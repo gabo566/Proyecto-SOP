@@ -29,7 +29,7 @@ function renderTopbar() {
     <button class="icon-button menu-toggle" type="button" data-action="open-menu" data-focus-key="menu-open" aria-label="Abrir menú">
       <span class="material-symbols-rounded" aria-hidden="true">menu</span>
     </button>
-    <div class="topbar-title"><h1>SOP de desensamble · GB200</h1><p>Control de ejecución, validación y trazabilidad del desensamble</p></div>
+    <div class="topbar-title"><span class="topbar-kicker">Panel ejecutivo · Control GB200</span><h1>SOP de desensamble · GB200</h1><p>Control de ejecución, validación y trazabilidad del desensamble</p></div>
     <div class="topbar-profile">
       <div class="profile-chip"><span class="profile-avatar">FA</span><span><strong>Supervisor</strong><small>Modo de demostración</small></span></div>
     </div>
