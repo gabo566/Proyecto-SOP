@@ -1,8 +1,8 @@
 const NAV_ITEMS = [
   { id: "overview", label: "Seguimiento SOP", icon: "space_dashboard", target: "top" },
   { id: "production", label: "Producción", icon: "precision_manufacturing", target: "production" },
-  { id: "traceability", label: "Trazabilidad", icon: "inventory_2", target: "records" },
-  { id: "reports", label: "Reportes", icon: "bar_chart", action: "reports" },
+  { id: "traceability", label: "Trazabilidad", icon: "inventory_2", target: "activity-heading" },
+  { id: "reports", label: "Reportes", icon: "bar_chart", target: "work-items-heading" },
 ];
 
 function renderSidebar(state) {
@@ -31,7 +31,7 @@ function renderTopbar() {
     </button>
     <div class="topbar-title">
       <span class="topbar-title-icon"><span class="material-symbols-rounded" aria-hidden="true">description</span></span>
-      <div class="topbar-title-copy"><span class="topbar-kicker">SOP actual</span><h1>Desensamble General de Compu Tray Modelo 200 Rev 2</h1><p>Control de ejecución, validación y trazabilidad</p></div>
+      <div class="topbar-title-copy"><span class="topbar-kicker">SOP actual</span><h1>Desensamble General de Compu Tray Modelo 2000 Rev 2</h1><p>Control de ejecución, validación y trazabilidad</p></div>
     </div>
     <div class="topbar-profile">
       <div class="profile-chip"><span class="profile-avatar">FA</span><span><strong>Supervisor</strong><small>Modo de demostración</small></span></div>
@@ -67,7 +67,7 @@ function renderSummaryMetrics(todayRecords, state) {
   const reviewCount = state.workItems.filter((item) => item.status === "Pendiente de revisión").length;
   const attentionCount = pausedCount + reworkCount + reviewCount;
   const metrics = [
-    { tone: "total", label: "Total de SOP (GB200)", value: String(PROCEDURES.length), unit: "procedimientos", icon: "description" },
+    { tone: "total", label: "Total de SOP (GB200)", value: String(PROCEDURES.length), unit: `${SOP_STEP_COUNT} pasos documentados`, icon: "description" },
     { tone: "completed", label: "Completados hoy", value: String(completedRecords.length), unit: `${TODAY_DATE_LABEL} · demostración`, icon: "check_circle" },
     { tone: "progress", label: "En proceso", value: String(inProgressCount), unit: `${state.completedSteps.length} pasos marcados`, icon: "donut_large" },
     { tone: "pending", label: "Atención requerida", value: String(attentionCount), unit: `${pausedCount} detenidos · ${reworkCount} retrabajos · ${reviewCount} por revisar`, icon: "priority_high" },

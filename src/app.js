@@ -12,6 +12,7 @@ const state = {
   activeWorkId: restorableWork?.id ?? "",
   workDialogOpen: false,
   workDraft: { type: "pause", failedStep: "", note: "" },
+  validationEvidenceFiles: [],
   workError: "",
   evidenceError: "",
   evidenceBusy: false,
@@ -77,16 +78,19 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   const previousFocus = focusKey === undefined ? getFocusState() : { key: focusKey, start: null, end: null };
   const records = getRecords();
   const todayRecords = records.filter((record) => record.date === TODAY_DATE_KEY);
-  app.innerHTML = `${renderSidebar(state)}<main class="main-area" id="main-content">
-    ${renderTopbar()}<div class="dashboard-content">
-      ${renderSummaryMetrics(todayRecords, state)}
+  const dashboard = state.activeSection === "traceability"
+    ? renderActivityPanel(todayRecords)
+    : state.activeSection === "reports"
+    ? `${renderWorkItemsPanel(state.workItems, state.activeWorkId)}${renderSerialTable(records, state.serialQuery, state.workItems)}`
+    : `${renderSummaryMetrics(todayRecords, state)}
       <div class="production-layout" id="production">
         ${renderProcedurePanel(getProcedure(), state)}${renderOperatorValidationPanel(getProcedure(), state)}
       </div>
       ${renderWorkItemsPanel(state.workItems, state.activeWorkId)}
       ${renderSerialTable(records, state.serialQuery, state.workItems)}
-      ${renderActivityPanel(todayRecords)}${renderFooter()}
-    </div></main>
+      ${renderActivityPanel(todayRecords)}`;
+  app.innerHTML = `${renderSidebar(state)}<main class="main-area" id="main-content">
+    ${renderTopbar()}<div class="dashboard-content">${dashboard}${renderFooter()}</div></main>
     ${renderRecordsDialog(records, state.recordsQuery, state.workItems)}${renderWorkItemDialog(state)}${renderEvidenceReviewDialog(state)}${renderEvidenceImageDialog(state)}${renderStepImageDialog()}
     ${renderToast()}`;
 
@@ -197,6 +201,18 @@ function handleCompletionSubmit(event) {
     return;
   }
   const formElement = event.currentTarget;
+  if (!state.form.repairType) {
+    showFormError("Selecciona el tipo de reparación.", formElement.querySelector('[name="repairType"]'));
+    return;
+  }
+  if (!state.form.componentPartNumber?.trim()) {
+    showFormError("Captura el número de parte del componente.", formElement.querySelector('[name="componentPartNumber"]'));
+    return;
+  }
+  if (!state.form.componentSerial?.trim()) {
+    showFormError("Captura el número de serie del componente.", formElement.querySelector('[name="componentSerial"]'));
+    return;
+  }
   const incompleteField = formElement.querySelector(".validation-field input[required]:invalid");
   if (incompleteField) {
     const fieldLabel = incompleteField.closest(".validation-field")?.firstChild?.textContent.trim() || "obligatorio";
@@ -240,16 +256,20 @@ function saveCompletion() {
     nodeNumber: state.form.nodeNumber.trim(),
     serial: state.form.serial.trim(),
     nodePartNumber: state.form.nodePartNumber.trim(),
-    componentPartNumber: procedure.partNumber,
+    componentPartNumber: state.form.componentPartNumber.trim(),
+    componentSerial: state.form.componentSerial.trim(),
     operator: state.form.name.trim(),
     employeeNumber: state.form.employeeNumber.trim(),
     position: state.form.position.trim(),
+    repairType: state.form.repairType,
     date: TODAY_DATE_KEY,
     displayDate: TODAY_DATE_LABEL,
     time: new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false }).format(now),
     status: "Completado",
     recordType: "Validación del operador",
     declared: true,
+    evidenceFiles: [...state.validationEvidenceFiles],
+    evidenceCount: state.validationEvidenceFiles.length,
   };
   workflow.prepareCompletionRecord(record);
   const next = [record, ...state.savedRecords];
@@ -263,6 +283,7 @@ function saveCompletion() {
     : { saved: true, needsReview: false };
   state.completedSteps = [];
   state.form = createEmptyForm();
+  state.validationEvidenceFiles = [];
   state.formError = "";
   const successMessage = completion.needsReview
     ? "Retrabajo enviado; queda pendiente de aprobación del supervisor."
@@ -291,9 +312,12 @@ bindInteractions(app, {
   openEvidenceReview: workflow.openEvidenceReview,
   closeEvidenceReview: workflow.closeEvidenceReview,
   decideEvidenceReview: workflow.decideEvidenceReview,
-  saveEvidenceObservation: workflow.saveEvidenceObservation,
-  saveManagedObservation: workflow.saveManagedObservation,
   addEvidenceToRecord: workflow.addEvidenceToRecord,
+  addValidationEvidence: workflow.addValidationEvidence,
+  removeValidationEvidence: workflow.removeValidationEvidence,
+  addDraftEvidence: workflow.addDraftEvidence,
+  removeDraftEvidence: workflow.removeDraftEvidence,
+  openRecordEvidence: workflow.openRecordEvidence,
 });
 
 render({ initial: true });

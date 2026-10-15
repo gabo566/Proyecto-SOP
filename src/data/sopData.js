@@ -22,6 +22,16 @@ const SOP_DOCUMENT = {
   processSheetRange: "5–46",
 };
 
+const STEP_IMAGE_OVERRIDES = {
+  "5:1": "./public/assets/sop-step-blocks/sheet-5-step-1.jpg",
+  "5:2": "./public/assets/sop-step-blocks/sheet-5-step-2.jpg",
+  "5:3": "./public/assets/sop-step-blocks/sheet-5-step-3.jpg",
+  "6:4": "./public/assets/sop-step-blocks/sheet-6-step-4.jpg",
+  "6:5": "./public/assets/sop-step-blocks/sheet-6-step-5.jpg",
+  "6:6": "./public/assets/sop-step-blocks/sheet-6-step-6.jpg",
+  "20:31": "./public/assets/sop-step-blocks/sheet-20-step-31.jpg",
+};
+
 function createProcedure(sheet, category, title, stepRange, partNumber, steps) {
   return {
     id: `sheet-${sheet}`,
@@ -30,14 +40,15 @@ function createProcedure(sheet, category, title, stepRange, partNumber, steps) {
     title,
     stepRange,
     partNumber,
-    steps: steps.map(([number, text]) => {
+    steps: steps.map(([number, text, sourceNote]) => {
       const stepId = String(number);
       const imageName = stepId.replaceAll(".", "-");
       return {
         number: stepId,
         text,
+        sourceNote: sourceNote ?? "",
         images: [{
-          src: `./public/assets/sop-step-references/sheet-${sheet}-step-${imageName}.jpg`,
+          src: STEP_IMAGE_OVERRIDES[`${sheet}:${stepId}`] ?? `./public/assets/sop-step-references/sheet-${sheet}-step-${imageName}.jpg`,
           alt: `Referencia visual del paso ${stepId}, hoja ${sheet}`,
         }],
       };
@@ -53,7 +64,7 @@ const PROCEDURES = [
   ]),
   createProcedure(6, "Busbar", "Retiro de soporte y conexiones Busbar", "4–6", "755-24975-0001-001", [
     [4, "Retire los 4 tornillos del soporte central en la secuencia indicada; el tornillo superior se retira con punta PH1."],
-    [5, "Retire el soporte del Busbar y sus tornillos. Conserve los tornillos para el ensamble."],
+    [5, "Retire el soporte del Busbar y sus tornillos. Conserve los tornillos para el ensamble. Para este proceso: torque de 4.8–5.3 in-lb con punta PH2."],
     [6, "Desconecte el Busbar (PN 755-24975-0001-001) y sus conexiones. Apriete indicado para el ensamble: 4.8–5.3 in-lb con punta PH2."],
   ]),
   createProcedure(7, "Busbar", "Desmontaje de Busbar y ventiladores", "7–8.1.2", "755-24975-0001-001 / 755-24975-0040-001", [
@@ -83,7 +94,7 @@ const PROCEDURES = [
     [17, "Desconecte el cable MCIO de NIC 1G (PN 755-24975-0044-A01) en MB(L) J117; tire de la lengüeta azul."],
   ]),
   createProcedure(12, "Bianca", "Desconexión de cables de bahía izquierda", "18–19", "755-24975-0047-A01", [
-    [18, "Desconecte los cables PCIe de la bahía izquierda en los conectores J10 y J80 de la Bianca izquierda, siguiendo el ruteo ilustrado."],
+    [18, "Desconecte los cables PCIe de la bahía izquierda de la Bianca izquierda. Primero desconecte el conector J80 y después J10; siga el ruteo ilustrado."],
     [19, "Desconecte el cable Front Panel IO (PN 755-24975-0047-A01) de MB(L) J82."],
   ]),
   createProcedure(13, "Bianca", "Retiro de M.2, HMC y TPM", "20–21", "750-0411-000 / 692-24764-0001-000 / 699-23177-0000-ING", [
@@ -104,7 +115,7 @@ const PROCEDURES = [
     ["22.5.1", "Solo si observa contaminación, proceda con la limpieza; si no, omita estos pasos."],
     ["22.5.2", "Solicite hisopos e isopropanol y humedezca el hisopo."],
     ["22.5.3", "Limpie suavemente ambos conectores Ultrapass y sople con aire ionizado."],
-    [23, "Desconecte en la Bianca izquierda el NCSI de BF3 J86 (PN 755-24975-0054-A01), el OSFP sideband L (PN 755-24975-0027-A09) y el sideband de PDB en JSB2 (PN 755-24975-0015-A07)."],
+    [23, "Desconecte en la Bianca izquierda el NCSI de BF3 J86 (PN 755-24975-0054-A01), el OSFP sideband L (PN 755-24975-0027-A09) y el sideband de PDB en JSB2 (PN 755-24975-0015-A07).", "El PN del NCSI no coincide en esta hoja: el texto indica 755-24975-0054-A01; el llamado visual y la tabla de partes indican 755-24975-0018-A11. Confirma el número antes de ejecutar."],
     ["23.1", "Retire el OSFP sideband derecho (PN 755-24975-0003-A08) del CX8 derecho."],
   ]),
   createProcedure(17, "Cableado / energía", "Desconexión de Front Panel y alimentación", "24–25.2", "755-24975-0004-A02 / 755-24975-0047-A01", [
@@ -145,7 +156,7 @@ const PROCEDURES = [
     [42, "Inspeccione los conectores CX8 J16 de ambas Biancas; verifique que no haya pines doblados ni daño en el plástico."],
     [43, "Inspeccione los sensores de las Cold Plates."],
     [44, "Inspeccione J86 y JSB2 en ambas Biancas."],
-    [45, "Retire la charola en la esquina marcada de la Bianca. Tornillo PN EQ-32405-34A31A; torque indicado 5.0–5.4 in-lb con punta PH2."],
+    [45, "Retire la charola de agua en la esquina marcada de la Bianca. Use el tornillo PN EQ-32405-34A31A, torque indicado 5.0–5.4 in-lb y punta PH2."],
   ]),
   createProcedure(25, "Bianca", "Retiro de charola, Bianca y Cold Plate", "46–49", "MTB-06-2839 / MTB-07-2839", [
     [46, "Retire la charola del chasis y coloque la placa en el fixture MTB-06-2839."],
@@ -163,13 +174,13 @@ const PROCEDURES = [
     [54, "Prepare las herramientas y consumibles para limpiar la Bianca y la Cold Plate conforme a los pasos de limpieza."],
   ]),
   createProcedure(28, "Cold Plate / Manifold", "Limpieza de Bianca y Cold Plate", "54.1–54.3", "", [
-    ["54.1", "Prepare cepillo, wipes de cuarto limpio, espátula plástica y alcohol. Retire pasta/TIM residual del exterior hacia el centro; evite tocar la superficie de contacto y los capacitores."],
+    ["54.1", "Con cepillo, wipes de cuarto limpio, espátula plástica y alcohol, retire la pasta térmica/TIM desde los bordes hacia el centro. No toque la superficie de contacto ni los capacitores del CX7 modelo 2000 (PN 692-24768-0000-000) ni de la Bianca 2000 (PN 692-2G548-0081-000) o 0R0 (PN 692-2G548-0001-0R0)."],
     ["54.2", "Recoja los restos de pasta con el raspador o con las manos, según indica el procedimiento."],
     ["54.3", "Retire todos los thermal pads y deje la superficie sin residuos."],
   ]),
   createProcedure(29, "Cold Plate / Manifold", "Limpieza de orificios y superficies BGA", "54.4–54.5", "", [
     ["54.4", "Use la pistola de aire o succión para limpiar los orificios y retirar residuos."],
-    ["54.5", "Humedezca con IPA el cepillo antiestático y limpie suavemente en círculos las superficies BGA de los modelos CX8 y las Biancas; no deje residuos."],
+    ["54.5", "Humedezca con alcohol isopropílico el cepillo antiestático. Coloque una toalla en el área y limpie suavemente en círculos la superficie BGA del CX8 modelo 3000 (PN 692-9X86E-00CX-SP0), CX8 modelo 3100 (PN 692-9X86E-00SX-SPA) y Bianca 2000 (PN 692-2G548-0081-000) o 0R0 (PN 692-2G548-0001-0R0). Asegúrese de que no queden residuos."],
   ]),
   createProcedure(30, "PDB / BMC", "Retiro de PDB y BMC Interpose", "55–57", "699-25859-0311-200 / 688-24975-0008-000", [
     [55, "Retire el módulo PDB del chasis: tornillo 1 con torque 4.8–5.3 in-lb y punta PH2; tornillo 2 con torque 4.8–5.3 in-lb y punta PH1."],
@@ -198,7 +209,7 @@ const PROCEDURES = [
   createProcedure(34, "Bahías / PCIe", "Preparación del bracket IPEX derecho", "69–71", "WI-HT-G66587A / 692-9D3B6-00CN-PN0", [
     [69, "Desensamble el bracket IPEX retirando sus 4 tornillos (PN WI-HT-G66587A) en orden. Torque indicado: 5.0–5.4 in-lb con punta PH2."],
     [70, "Instale el bracket IPEX en el chasis de la bahía derecha."],
-    [71, "Retire los tornillos negros del BF3. Torque indicado: 2.3–2.7 in-lb con punta T6."],
+    [71, "Retire los tornillos negros de la tarjeta BF3 con torque de 2.3–2.7 in-lb y punta T6. Guarde adecuadamente todos los tornillos para evitar pérdidas."],
   ]),
   createProcedure(35, "Bahías / PCIe", "Retiro de BF3 y riser PCIe derecho", "72–73", "692-9D3B6-00CN-PN0 / 753-24974-0012-A03", [
     [72, "Desensamble el bracket y el BF3 (PN 692-9D3B6-00CN-PN0); separe el BF3 del PCIe Riser. Torque indicado: 2.3–2.7 in-lb con punta PH2."],
@@ -229,7 +240,7 @@ const PROCEDURES = [
     [85, "Retire el bracket IPEX quitando sus 4 tornillos (PN WI-HT-G66587A) en la secuencia indicada. Torque: 5.0–5.4 in-lb con punta PH2."],
     [86, "Instale el bracket en el chasis de la bahía derecha, conforme al texto de la hoja."],
     [87, "Desconecte el NCSI del BF3 (PN 755-24975-0018-A11)."],
-    [88, "Retire los tornillos negros del BF3. Torque indicado: 2.3–2.7 in-lb con punta T6."],
+    [88, "Retire los tornillos negros de la tarjeta BF3 con torque de 2.3–2.7 in-lb y punta T6. Guarde adecuadamente todos los tornillos para evitar pérdidas."],
   ]),
   createProcedure(41, "Bahías / PCIe", "Retiro seguro del cable NCSI de BF3", "89–89.4", "755-24975-0018-A11", [
     [89, "Desconecte el NCSI del BF3 (PN 755-24975-0018-A11); libere el seguro para proteger la tarjeta."],
@@ -240,7 +251,7 @@ const PROCEDURES = [
   ]),
   createProcedure(42, "Bahías / PCIe", "Separación de BF3 y riser PCIe izquierdo", "90–91", "692-9D3B6-00CN-PN0 / 753-24974-0012-000", [
     [90, "Desensamble el bracket y el BF3 (PN 692-9D3B6-00CN-PN0), separe el BF3 del PCIe riser. Torque indicado: 2.3–2.7 in-lb con punta PH2."],
-    [91, "Retire el cable PCIe riser (PN 753-24974-0012-000). Torque indicado: 4.8–5.3 in-lb con punta PH2."],
+    [91, "Retire el cable PCIe riser (PN 753-24974-0012-000). Torque indicado: 4.8–5.3 in-lb con punta PH2.", "El PN no coincide en esta hoja: el texto indica 753-24974-0012-000; la imagen y la tabla de partes indican 753-24974-0010-A03. Confirma el número antes de ejecutar."],
   ]),
   createProcedure(43, "Bahías / PCIe", "Retiro de cables IPEX en tarjeta izquierda", "92–95", "", [
     [92, "Abra el protector plástico del cable y deslice el conector."],
@@ -253,16 +264,18 @@ const PROCEDURES = [
     [97, "Voltee el BF3 y retire el cable IPEX con etiqueta blanca de la parte inferior usando el seguro."],
   ]),
   createProcedure(45, "Bahías / PCIe", "Desconexión de OSFP, NIC 1G y alimentación", "98–101", "755-24975-0027-A09 / 755-24975-0044-A01", [
-    [98, "Retire el OSFP sideband derecho (PN 755-24975-0027-A09) del conector J1 usando el fixture indicado."],
+    [98, "Retire el OSFP sideband derecho (PN 755-24975-0027-A09) del conector J1 usando el fixture indicado.", "La descripción del PN 755-24975-0027-A09 aparece como lado izquierdo en la tabla de partes y como derecho en el texto de esta hoja. Confirma el lado antes de ejecutar."],
     [99, "Desconecte el cable MCIO de NIC 1G (PN 755-24975-0044-A01) en J1."],
     [100, "Desconecte el cable OSFP izquierdo (PN 755-24975-0019-A01) de la tarjeta OSFP en PDB JP1."],
     [101, "Desconecte el cable Multi-End Power Left (PN 755-24975-0019-001) del NIC en PDB JP1."],
   ]),
   createProcedure(46, "Bahías / PCIe", "Retiro de NIC y tarjeta OSFP izquierda", "102–103", "688-24975-0012-000 / 688-24975-0009-005", [
     [102, "Retire la NIC (PN 688-24975-0012-000) junto a la OSFP; use torque de 4.8–5.3 in-lb con punta PH2, deslícela hacia atrás y levántela."],
-    [103, "Desatornille y retire la OSFP (PN 688-24975-0009-005) del chasis de la bahía izquierda. Torque indicado: 4.8–5.3 in-lb con punta PH2."],
+    [103, "Desatornille y retire la OSFP (PN 688-24975-0009-005) del chasis de la bahía izquierda. Torque indicado: 4.8–5.3 in-lb con punta PH2.", "El PN no coincide en esta hoja: el texto indica 688-24975-0009-005; la imagen y la tabla de partes indican 688-24975-0009-002. Confirma el número antes de ejecutar."],
   ]),
 ];
+
+const SOP_STEP_COUNT = PROCEDURES.reduce((total, procedure) => total + procedure.steps.length, 0);
 
 const DEMO_GROUPS = [
   { procedureId: "sheet-8", sheet: 8, category: "BMC", count: 5, componentPn: "692-13809-2404-000", operation: "Desmontaje de tarjeta BMC y cables MCIO" },

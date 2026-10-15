@@ -17,6 +17,7 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
   }
 
   const evidenceWorkflow = createEvidenceWorkflow(state, { render, showToast, persistSavedRecords, getTimestamp, appendEvent });
+  const evidenceCaptureWorkflow = createEvidenceCaptureWorkflow(state, { render, getTimestamp });
 
   function persistProgress() {
     if (!state.activeWorkId) return true;
@@ -36,13 +37,16 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
   }
 
   function openDialog() {
-    state.workDraft = { type: "pause", failedStep: "", note: "" };
+    state.workDraft = { type: "pause", failedStep: "", note: "", reasonCode: "", repairType: state.form.repairType ?? "", componentPartNumber: state.form.componentPartNumber ?? "", componentSerial: state.form.componentSerial ?? "", evidenceFiles: [] };
     state.workError = "";
     state.workDialogOpen = true;
     render();
   }
 
   function closeDialog() {
+    const stagedEvidence = state.workDraft.evidenceFiles ?? [];
+    Promise.all(stagedEvidence.map((file) => deleteEvidenceFile(file.id).catch(() => {})));
+    state.workDraft = { type: "pause", failedStep: "", note: "", reasonCode: "", repairType: "", componentPartNumber: "", componentSerial: "", evidenceFiles: [] };
     state.workDialogOpen = false;
     state.workError = "";
     render();
@@ -55,6 +59,9 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
     const reasonLabel = String(formData.get("reasonCode") ?? "").trim();
     const note = String(formData.get("workNote") ?? "").trim();
     const failedStep = String(formData.get("failedStep") ?? "").trim();
+    const repairType = String(formData.get("repairType") ?? "").trim();
+    const componentPartNumber = String(formData.get("componentPartNumber") ?? "").trim();
+    const componentSerial = String(formData.get("componentSerial") ?? "").trim();
     if (!state.form.serial.trim() || !state.form.name.trim() || !state.form.employeeNumber.trim()) {
       state.workError = "Captura el serial, nombre del operador y número de empleado antes de detener el trabajo.";
     } else if (!reasonLabel || !note || (type === "rework" && !failedStep)) {
@@ -65,6 +72,9 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
       const timestamp = getTimestamp();
       const procedure = getProcedure();
       const isRework = type === "rework";
+      state.form.repairType = repairType;
+      state.form.componentPartNumber = componentPartNumber;
+      state.form.componentSerial = componentSerial;
       let item = state.workItems.find((workItem) => workItem.id === state.activeWorkId);
       if (!item) {
         item = { id: `work-${timestamp.at}`, createdAt: timestamp.at, attempts: 0, history: [], evidenceFiles: [], evidenceHistory: [], evidenceObservation: "" };
@@ -79,12 +89,16 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
         nodeNumber: state.form.nodeNumber.trim(),
         employeeNumber: state.form.employeeNumber.trim(),
         form: { ...state.form },
+        repairType,
+        componentPartNumber,
+        componentSerial,
         completedSteps: [...state.completedSteps],
         totalSteps: procedure.steps.length,
         failedStep: isRework ? failedStep : item.failedStep ?? "",
         workKind: isRework ? "rework" : item.workKind ?? "pause",
         reasonLabel,
         reason: note,
+        stopEvidence: [...(state.workDraft.evidenceFiles ?? []), ...(state.validationEvidenceFiles ?? [])],
       });
       appendEvent(item, isRework ? "Retrabajo requerido" : "Detenida", `${reasonLabel}: ${note}`);
       if (!persistWorkItems(state.workItems)) {
@@ -94,7 +108,9 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
         state.activeWorkId = "";
         state.completedSteps = [];
         state.form = createEmptyForm();
+        state.validationEvidenceFiles = [];
         state.workDialogOpen = false;
+        state.workDraft = { type: "pause", failedStep: "", note: "", reasonCode: "", repairType: "", componentPartNumber: "", componentSerial: "", evidenceFiles: [] };
         state.workError = "";
         showToast(isRework ? "Retrabajo guardado con el avance original." : "Trabajo detenido; el avance quedó guardado.");
         return;
@@ -146,6 +162,12 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
     const item = state.workItems.find((workItem) => workItem.id === state.activeWorkId);
     if (!item) return;
     record.workItemId = item.id;
+    record.repairType = record.repairType || item.repairType || "";
+    item.repairType = record.repairType;
+    record.componentPartNumber = record.componentPartNumber || item.componentPartNumber || "";
+    record.componentSerial = record.componentSerial || item.componentSerial || "";
+    item.componentPartNumber = record.componentPartNumber;
+    item.componentSerial = record.componentSerial;
     record.attemptNumber = item.attempts;
     if (item.workKind === "rework") {
       record.status = "Pendiente de revisión";
@@ -191,5 +213,6 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
     prepareCompletionRecord,
     completeActiveWork,
     ...evidenceWorkflow,
+    ...evidenceCaptureWorkflow,
   };
 }
