@@ -29,7 +29,10 @@ function renderTopbar() {
     <button class="icon-button menu-toggle" type="button" data-action="open-menu" data-focus-key="menu-open" aria-label="Abrir menú">
       <span class="material-symbols-rounded" aria-hidden="true">menu</span>
     </button>
-    <div class="topbar-title"><span class="topbar-kicker">Panel ejecutivo</span><h1>DESENSAMBLE GENERAL DE COMPU TRAY <span class="topbar-title-revision">MODELO 2000 REV. 2</span></h1><p>Control de ejecución, validación y trazabilidad del desensamble</p></div>
+    <div class="topbar-title">
+      <span class="topbar-title-icon"><span class="material-symbols-rounded" aria-hidden="true">description</span></span>
+      <div class="topbar-title-copy"><span class="topbar-kicker">SOP actual</span><h1>Desensamble General de Compu Tray Modelo 200 Rev 2</h1><p>Control de ejecución, validación y trazabilidad</p></div>
+    </div>
     <div class="topbar-profile">
       <div class="profile-chip"><span class="profile-avatar">FA</span><span><strong>Supervisor</strong><small>Modo de demostración</small></span></div>
     </div>
