@@ -61,13 +61,16 @@ function renderSopSelector(selectedId) {
 function renderSummaryMetrics(todayRecords, state) {
   const completedRecords = todayRecords.filter((record) => record.status === "Completado");
   const completedProcedureIds = new Set(completedRecords.map((record) => record.procedureId).filter(Boolean));
-  const inProgressCount = state.completedSteps.length && !completedProcedureIds.has(state.selectedId) ? 1 : 0;
-  const pendingCount = Math.max(0, PROCEDURES.length - completedProcedureIds.size - inProgressCount);
+  const inProgressCount = Boolean(state.activeWorkId || (state.completedSteps.length && !completedProcedureIds.has(state.selectedId))) ? 1 : 0;
+  const pausedCount = state.workItems.filter((item) => item.status === "Detenida").length;
+  const reworkCount = state.workItems.filter((item) => ["Retrabajo requerido", "Retrabajo en proceso"].includes(item.status)).length;
+  const reviewCount = state.workItems.filter((item) => item.status === "Pendiente de revisión").length;
+  const attentionCount = pausedCount + reworkCount + reviewCount;
   const metrics = [
     { tone: "total", label: "Total de SOP (GB200)", value: String(PROCEDURES.length), unit: "procedimientos", icon: "description" },
     { tone: "completed", label: "Completados hoy", value: String(completedRecords.length), unit: `${TODAY_DATE_LABEL} · demostración`, icon: "check_circle" },
     { tone: "progress", label: "En proceso", value: String(inProgressCount), unit: `${state.completedSteps.length} pasos marcados`, icon: "donut_large" },
-    { tone: "pending", label: "Pendientes", value: String(pendingCount), unit: `de ${PROCEDURES.length} procedimientos`, icon: "radio_button_unchecked" },
+    { tone: "pending", label: "Atención requerida", value: String(attentionCount), unit: `${pausedCount} detenidos · ${reworkCount} retrabajos · ${reviewCount} por revisar`, icon: "priority_high" },
     { tone: "current", label: "SOP actual", value: SOP_DOCUMENT.id, unit: `Rev. ${SOP_DOCUMENT.revision}`, icon: "description" },
   ];
 
