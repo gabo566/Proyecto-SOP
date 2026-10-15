@@ -1,16 +1,38 @@
 const STORAGE_KEY = "sop-operador-validation-demo-records-v1";
 const app = document.querySelector("#app");
+const storedWorkItems = readWorkItems();
+const restorableWork = storedWorkItems
+  .filter((item) => ["En proceso", "Retrabajo en proceso"].includes(item.status))
+  .sort((a, b) => b.updatedAt - a.updatedAt)[0];
 const state = {
-  selectedId: PROCEDURES[0].id,
-  completedSteps: [],
+  selectedId: restorableWork?.procedureId ?? PROCEDURES[0].id,
+  completedSteps: restorableWork?.completedSteps ?? [],
   savedRecords: readSavedRecords(),
+  workItems: storedWorkItems,
+  activeWorkId: restorableWork?.id ?? "",
+  workDialogOpen: false,
+  workDraft: { type: "pause", failedStep: "", note: "" },
+  workError: "",
+  evidenceError: "",
+  evidenceBusy: false,
+  evidenceReviewDialogOpen: false,
+  reviewItem: null,
+  reviewSubmission: null,
+  reviewEvidence: [],
+  reviewReadOnly: false,
+  evidenceManageMode: false,
+  reviewObservation: "",
+  evidenceImageDialogOpen: false,
+  zoomedEvidence: null,
+  reviewError: "",
+  reviewNote: "",
   recordsDialogOpen: false,
   activeSection: "overview",
   navOpen: false,
   toast: null,
   serialQuery: "",
   recordsQuery: "",
-  form: createEmptyForm(),
+  form: { ...createEmptyForm(), ...(restorableWork?.form ?? {}) },
   formError: "",
   dialogTriggerFocusKey: "",
 };
@@ -22,6 +44,15 @@ function readSavedRecords() {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
   } catch {
     return [];
+  }
+}
+
+function persistSavedRecords(records) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -52,16 +83,29 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
       <div class="production-layout" id="production">
         ${renderProcedurePanel(getProcedure(), state)}${renderOperatorValidationPanel(getProcedure(), state)}
       </div>
-      ${renderSerialTable(records, state.serialQuery)}
+      ${renderWorkItemsPanel(state.workItems, state.activeWorkId)}
+      ${renderSerialTable(records, state.serialQuery, state.workItems)}
       ${renderActivityPanel(todayRecords)}${renderFooter()}
     </div></main>
-    ${renderRecordsDialog(records, state.recordsQuery)}${renderStepImageDialog()}
+    ${renderRecordsDialog(records, state.recordsQuery, state.workItems)}${renderWorkItemDialog(state)}${renderEvidenceReviewDialog(state)}${renderEvidenceImageDialog(state)}${renderStepImageDialog()}
     ${renderToast()}`;
 
   const recordsDialog = document.querySelector("#records-dialog");
   recordsDialog.addEventListener("close", () => handleNativeDialogClose("recordsDialogOpen"));
+  const workDialog = document.querySelector("#work-item-dialog");
+  workDialog.addEventListener("close", () => handleNativeDialogClose("workDialogOpen"));
+  const evidenceReviewDialog = document.querySelector("#evidence-review-dialog");
+  evidenceReviewDialog.addEventListener("close", workflow.handleReviewDialogClose);
+  const evidenceImageDialog = document.querySelector("#evidence-image-dialog");
+  evidenceImageDialog.addEventListener("close", () => {
+    state.evidenceImageDialogOpen = false;
+    state.zoomedEvidence = null;
+  });
 
   if (state.recordsDialogOpen) recordsDialog.showModal();
+  if (state.workDialogOpen) workDialog.showModal();
+  if (state.evidenceReviewDialogOpen) evidenceReviewDialog.showModal();
+  if (state.evidenceImageDialogOpen) evidenceImageDialog.showModal();
   restoreFocus(previousFocus, { focusDialog, initial });
   drawCompletionChart(document.querySelector("#completion-chart"), todayRecords);
 }
@@ -111,11 +155,17 @@ function showToast(message, kind = "success") {
 }
 
 function selectProcedure(id) {
+  if (state.activeWorkId && id !== state.selectedId) {
+    showToast("Guarda o finaliza el trabajo activo antes de cambiar de procedimiento.", "warning");
+    return;
+  }
   state.selectedId = id;
   state.completedSteps = [];
   state.formError = "";
   render();
 }
+
+const workflow = createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, showToast, persistSavedRecords });
 
 function moveProcedure(direction) {
   const currentIndex = PROCEDURES.findIndex((item) => item.id === state.selectedId);
@@ -157,8 +207,9 @@ function handleCompletionSubmit(event) {
     showFormError("Confirma la declaración del operador para continuar.", formElement.querySelector('[name="declaration"]'));
     return;
   }
-  if (state.form.signature.trim().toLocaleLowerCase("es-MX") !== state.form.name.trim().toLocaleLowerCase("es-MX")) {
-    showFormError("La firma escrita debe coincidir con el nombre del operador.");
+  if (workflow.requiresEvidence() && !workflow.hasEvidence()) {
+    state.evidenceError = "Adjunta al menos una foto del retrabajo antes de enviarlo a revisión.";
+    document.querySelector("[data-evidence-input]")?.focus();
     return;
   }
   saveCompletion();
@@ -169,9 +220,7 @@ function showFormError(message, target = null) {
   const error = document.querySelector("#completion-form-error");
   error.textContent = message;
   error.hidden = false;
-  const fallbackTarget = message.toLocaleLowerCase("es-MX").includes("firma")
-    ? document.querySelector('[name="signature"]')
-    : document.querySelector('[name="declaration"]');
+  const fallbackTarget = document.querySelector('[name="declaration"]');
   const invalidTarget = target ?? fallbackTarget;
   invalidTarget?.setAttribute("aria-invalid", "true");
   invalidTarget?.setAttribute("aria-describedby", "completion-form-error");
@@ -195,26 +244,30 @@ function saveCompletion() {
     operator: state.form.name.trim(),
     employeeNumber: state.form.employeeNumber.trim(),
     position: state.form.position.trim(),
-    signature: state.form.signature.trim(),
     date: TODAY_DATE_KEY,
     displayDate: TODAY_DATE_LABEL,
     time: new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false }).format(now),
     status: "Completado",
-    recordType: "Declaración local del operador",
+    recordType: "Validación del operador",
     declared: true,
   };
+  workflow.prepareCompletionRecord(record);
   const next = [record, ...state.savedRecords];
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  } catch {
+  if (!persistSavedRecords(next)) {
     showToast("No se pudo guardar en el almacenamiento local.", "warning");
     return;
   }
   state.savedRecords = next;
+  const completion = state.activeWorkId
+    ? workflow.completeActiveWork(record.id, state.form.name.trim())
+    : { saved: true, needsReview: false };
   state.completedSteps = [];
   state.form = createEmptyForm();
   state.formError = "";
-  showToast("Declaración y datos guardados en este navegador.");
+  const successMessage = completion.needsReview
+    ? "Retrabajo enviado; queda pendiente de aprobación del supervisor."
+    : "Declaración y datos guardados en este navegador.";
+  showToast(completion.saved ? successMessage : "Validación guardada; no se pudo actualizar el historial del trabajo.", completion.saved ? "success" : "warning");
 }
 
 bindInteractions(app, {
@@ -228,6 +281,19 @@ bindInteractions(app, {
   openRecords,
   closeDialog,
   handleCompletionSubmit,
+  openWorkItemDialog: workflow.openDialog,
+  closeWorkItemDialog: workflow.closeDialog,
+  handleWorkItemSubmit: workflow.submit,
+  resumeWorkItem: workflow.resume,
+  persistWorkState: workflow.persistProgress,
+  addEvidence: workflow.addEvidence,
+  removeEvidence: workflow.removeEvidence,
+  openEvidenceReview: workflow.openEvidenceReview,
+  closeEvidenceReview: workflow.closeEvidenceReview,
+  decideEvidenceReview: workflow.decideEvidenceReview,
+  saveEvidenceObservation: workflow.saveEvidenceObservation,
+  saveManagedObservation: workflow.saveManagedObservation,
+  addEvidenceToRecord: workflow.addEvidenceToRecord,
 });
 
 render({ initial: true });
