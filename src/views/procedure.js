@@ -4,8 +4,9 @@ function renderStepImages(step, sheet) {
   return `<div class="step-visuals ${imageLayout}" role="group" tabindex="0" aria-label="Imágenes de referencia del paso ${escapeHtml(step.number)}. Desplaza horizontalmente para ver las imágenes adicionales.">
     ${step.images.map((image) => `<button class="step-image-button" type="button" data-action="zoom-step-image"
       data-image-src="${escapeHtml(image.src)}" data-image-alt="${escapeHtml(image.alt)}"
+      data-step-text="${escapeHtml(step.text)}"
       data-step-number="${escapeHtml(step.number)}" data-sheet="${sheet}"
-      aria-label="Ampliar imagen del paso ${escapeHtml(step.number)}">
+      aria-label="Ampliar la imagen del paso ${escapeHtml(step.number)}">
       <img src="${escapeHtml(image.src)}" alt="${escapeHtml(image.alt)}" loading="lazy" decoding="async" />
       <span class="step-image-zoom"><span class="material-symbols-rounded" aria-hidden="true">zoom_in</span>Ampliar</span>
     </button>`).join("")}
@@ -13,10 +14,11 @@ function renderStepImages(step, sheet) {
 }
 
 function renderProcedurePanel(procedure, state) {
+  const hasMoreSteps = procedure.steps.length > 2;
   const steps = procedure.steps.map((step) => {
     return `<article class="procedure-step-item">
       <span class="step-number" aria-hidden="true">${escapeHtml(step.number)}</span>
-      <div class="step-content"><small>Paso ${escapeHtml(step.number)}</small><span>${escapeHtml(step.text)}</span></div>
+      <div class="step-content"><small>Paso ${escapeHtml(step.number)}</small><span>${escapeHtml(step.text)}</span>${step.sourceNote ? `<small class="step-source-note"><span class="material-symbols-rounded" aria-hidden="true">warning</span>${escapeHtml(step.sourceNote)}</small>` : ""}</div>
       ${renderStepImages(step, procedure.sheet)}
     </article>`;
   }).join("");
@@ -33,8 +35,8 @@ function renderProcedurePanel(procedure, state) {
     <div class="procedure-meta"><div><span>SOP</span><strong>${escapeHtml(SOP_DOCUMENT.id)}</strong></div><div><span>Revisión</span><strong>${escapeHtml(SOP_DOCUMENT.revision)}</strong></div>
       <div><span>Cliente</span><strong>${escapeHtml(SOP_DOCUMENT.customer)}</strong></div><div><span>Familia</span><strong>${escapeHtml(SOP_DOCUMENT.family)}</strong></div><div><span>Estación</span><strong>${escapeHtml(SOP_DOCUMENT.station)}</strong></div>
     </div>
-    <div class="procedure-steps-heading"><div><p class="eyebrow">Secuencia ${escapeHtml(procedure.stepRange)}</p><h3>Pasos del procedimiento</h3><small class="procedure-scroll-hint">Desplaza horizontalmente para ver más pasos.</small></div><span>${procedure.steps.length} pasos</span></div>
-    <div class="procedure-step-list" role="region" tabindex="0" aria-label="Pasos del procedimiento. Desplaza horizontalmente para ver el resto.">${steps}</div>
+    <div class="procedure-steps-heading"><div><p class="eyebrow">Secuencia ${escapeHtml(procedure.stepRange)}</p><h3>Pasos del procedimiento</h3>${hasMoreSteps ? '<small class="procedure-scroll-hint">Desplaza horizontalmente para ver los demás pasos.</small>' : ""}</div><span>${procedure.steps.length} pasos</span></div>
+    <div class="procedure-step-list procedure-step-list--scroll" role="region" tabindex="0" aria-label="Pasos del procedimiento${hasMoreSteps ? ". Desplaza horizontalmente para ver el resto" : ""}.">${steps}</div>
     <div class="step-note"><span class="material-symbols-rounded" aria-hidden="true">info</span><span>Revisa cada instrucción y su referencia visual. Marca su validación en el panel del operador.</span></div>
   </section>`;
 }

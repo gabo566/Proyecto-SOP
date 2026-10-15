@@ -5,9 +5,33 @@ const FIELDS = [
   { name: "employeeNumber", label: "N° de empleado", placeholder: "Número de empleado", group: "operator" },
   { name: "position", label: "Puesto", placeholder: "Puesto del operador", group: "operator" },
 ];
-
+const REPAIR_TYPES = [
+  "Reemplazo de BMC",
+  "Reemplazo de HMC",
+  "Reemplazo de Coldplate 0",
+  "Reemplazo de Coldplate 1",
+  "Reemplazo de Bianca 0",
+  "Reemplazo de Bianca 1",
+  "Reemplazo de IPEX 0",
+  "Reemplazo de IPEX 1",
+  "Reemplazo de 2F PWR 0",
+  "Reemplazo de 2F PWR 1",
+  "Reemplazo de E1S Backplane 0",
+  "Reemplazo de E1S Backplane 1",
+  "Reemplazo de FIO Board",
+  "Reemplazo de OSPF Board",
+];
 function createEmptyForm() {
-  return { name: "", employeeNumber: "", position: "", nodeNumber: "", serial: "", nodePartNumber: SOP_DOCUMENT.nodePartNumber, declaration: false };
+  return { name: "", employeeNumber: "", position: "", nodeNumber: "", serial: "", nodePartNumber: SOP_DOCUMENT.nodePartNumber, repairType: "", componentPartNumber: "", componentSerial: "", declaration: false };
+}
+
+function renderComponentFields(form, workDraft = null) {
+  const repairType = workDraft?.repairType ?? form.repairType;
+  const partNumber = workDraft?.componentPartNumber ?? form.componentPartNumber;
+  const serial = workDraft?.componentSerial ?? form.componentSerial;
+  return `<label class="validation-field">Tipo de reparación<select name="repairType" ${workDraft ? "data-work-draft-field=\"repairType\"" : "data-form-field=\"repairType\""} ${workDraft ? "" : "required"}><option value="">${workDraft ? "Por definir" : "Selecciona la reparación"}</option>${REPAIR_TYPES.map((value) => `<option value="${escapeHtml(value)}" ${repairType === value ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}</select></label>
+    <label class="validation-field">N° de parte del componente<input name="componentPartNumber" ${workDraft ? "data-work-draft-field=\"componentPartNumber\"" : "data-form-field=\"componentPartNumber\""} value="${escapeHtml(partNumber ?? "")}" placeholder="PN del componente" ${workDraft ? "" : "required"} /></label>
+    <label class="validation-field">N° de serie del componente<input name="componentSerial" ${workDraft ? "data-work-draft-field=\"componentSerial\"" : "data-form-field=\"componentSerial\""} value="${escapeHtml(serial ?? "")}" placeholder="Serial del componente" ${workDraft ? "" : "required"} /></label>`;
 }
 
 function renderField(field, form, error = "") {
@@ -22,22 +46,19 @@ function renderValidationSteps(procedure, state) {
     const checked = state.completedSteps.includes(step.number);
     return `<div class="validation-step ${checked ? "validation-step--checked" : ""}">
       <input id="validation-step-${escapeHtml(step.number)}" type="checkbox" data-step="${escapeHtml(step.number)}" data-focus-key="step-${escapeHtml(step.number)}" aria-label="Confirmo que realicé el paso ${escapeHtml(step.number)}" ${checked ? "checked" : ""} />
-      <span class="validation-step-number" aria-hidden="true">${escapeHtml(step.number)}</span><span class="validation-step-copy" aria-label="Instrucción completa del paso ${escapeHtml(step.number)}">${escapeHtml(step.text)}</span>
+      <span class="validation-step-number" aria-hidden="true">${escapeHtml(step.number)}</span><span class="validation-step-copy" aria-label="Instrucción completa del paso ${escapeHtml(step.number)}">${escapeHtml(step.text)}${step.sourceNote ? `<small class="validation-source-note">${escapeHtml(step.sourceNote)}</small>` : ""}</span>
     </div>`;
   }).join("");
 }
 
 function renderReworkEvidenceSection(workItem, state) {
-  if (workItem?.workKind !== "rework") return "";
-  const evidenceFiles = workItem.evidenceFiles ?? [];
-  const files = evidenceFiles.length
-    ? `<ul class="evidence-file-list">${evidenceFiles.map((file) => `<li><span class="material-symbols-rounded" aria-hidden="true">image</span><span>${escapeHtml(file.name)}<small>${(file.size / 1024 / 1024).toFixed(1)} MB</small></span><button class="icon-button" type="button" data-action="remove-evidence" data-evidence-id="${escapeHtml(file.id)}" aria-label="Quitar evidencia ${escapeHtml(file.name)}"><span class="material-symbols-rounded" aria-hidden="true">delete</span></button></li>`).join("")}</ul>`
-    : '<p class="evidence-empty">Adjunta al menos una foto del área corregida. El supervisor la revisará antes de cerrar el retrabajo.</p>';
-  const errorHidden = state.evidenceError ? "" : "hidden";
-  return `<section class="rework-evidence-section" aria-labelledby="rework-evidence-heading"><div class="rework-evidence-heading"><span class="material-symbols-rounded" aria-hidden="true">add_a_photo</span><div><h3 id="rework-evidence-heading">Evidencia del retrabajo <small>Requerida</small></h3><p>Sube fotos claras del componente o zona después de la corrección.</p></div></div>
-    <button class="button button--outlined evidence-upload-button" type="button" data-action="choose-evidence-file" ${state.evidenceBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">upload</span>${state.evidenceBusy ? "Guardando evidencia…" : "Subir evidencia"}</button><input class="evidence-upload-input" type="file" data-evidence-input hidden accept="${EVIDENCE_FILE_ACCEPT}" multiple capture="environment" aria-label="Seleccionar fotos de evidencia" aria-describedby="rework-evidence-help${state.evidenceError ? " evidence-error" : ""}" ${state.evidenceError ? 'aria-invalid="true"' : ""} ${state.evidenceBusy ? "disabled" : ""} />
-    <small id="rework-evidence-help" class="evidence-help">JPG, PNG o WebP · hasta ${MAX_EVIDENCE_FILES} fotos de ${MAX_EVIDENCE_FILE_MB} MB cada una.</small>${files}<label class="validation-field evidence-observation-field">Observaciones<textarea data-evidence-observation rows="2" maxlength="500" placeholder="Describe el resultado o detalle de la corrección">${escapeHtml(workItem.evidenceObservation ?? "")}</textarea></label><p class="form-error" id="evidence-error" role="alert" aria-live="polite" ${errorHidden}>${escapeHtml(state.evidenceError)}</p>
-  </section>`;
+  const isRework = workItem?.workKind === "rework";
+  const evidenceFiles = isRework ? workItem.evidenceFiles ?? [] : state.validationEvidenceFiles ?? [];
+  const files = evidenceFiles.map((file) => `<span class="evidence-inline-file" title="${escapeHtml(file.name)}"><span class="material-symbols-rounded" aria-hidden="true">image</span>${escapeHtml(file.name)}<button type="button" data-action="${isRework ? 'remove-evidence' : 'remove-validation-evidence'}" data-evidence-id="${escapeHtml(file.id)}" aria-label="Quitar evidencia ${escapeHtml(file.name)}">×</button></span>`).join("");
+  const inputAttrs = isRework ? 'data-evidence-input' : 'data-validation-evidence-input';
+  const action = isRework ? 'choose-evidence-file' : 'choose-validation-evidence';
+  const note = isRework ? `Requerida · ${evidenceFiles.length}/${MAX_EVIDENCE_FILES}` : evidenceFiles.length ? `${evidenceFiles.length} adjunta(s)` : "Opcional";
+  return `<div class="evidence-inline"><button class="evidence-inline-button" type="button" data-action="${action}" aria-label="Subir evidencia${isRework ? ' requerida' : ''}" title="Subir evidencia" ${state.evidenceBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.evidenceBusy ? "hourglass_top" : "add_a_photo"}</span><span>Evidencia</span></button><small class="evidence-inline-note">${note}</small><input class="evidence-upload-input" type="file" ${inputAttrs} hidden accept="${EVIDENCE_FILE_ACCEPT}" multiple capture="environment" aria-label="Seleccionar fotos de evidencia" ${state.evidenceBusy ? "disabled" : ""} />${files}${state.evidenceError ? `<small class="evidence-inline-error" role="alert">${escapeHtml(state.evidenceError)}</small>` : ""}</div>`;
 }
 
 function renderOperatorValidationPanel(procedure, state) {
@@ -65,8 +86,7 @@ function renderOperatorValidationPanel(procedure, state) {
       </section>
       <section class="validation-operator-section" aria-labelledby="operator-details-heading">
         <div class="validation-subheading"><span class="material-symbols-rounded" aria-hidden="true">person</span><h3 id="operator-details-heading">Declaración del operador</h3></div>
-        <div class="validation-operator-grid">${operatorFields.map((field) => renderField(field, state.form, state.formError)).join("")}</div>
-        ${renderReworkEvidenceSection(activeWork, state)}
+        <div class="validation-operator-grid">${operatorFields.map((field) => renderField(field, state.form, state.formError)).join("")}${renderComponentFields(state.form)}${renderReworkEvidenceSection(activeWork, state)}</div>
         <label class="declaration-check"><input type="checkbox" name="declaration" data-form-field="declaration" ${state.form.declaration ? "checked" : ""} ${declarationError} />
           <span>Confirmo que realicé los pasos indicados y que la información registrada es correcta.</span>
         </label>

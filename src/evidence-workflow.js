@@ -11,13 +11,6 @@ function createEvidenceWorkflow(state, { render, showToast, persistSavedRecords,
     return (getActiveWorkItem()?.evidenceFiles?.length ?? 0) > 0;
   }
 
-  function saveEvidenceObservation(value) {
-    const item = getActiveWorkItem();
-    if (!item || item.workKind !== "rework") return;
-    item.evidenceObservation = String(value ?? "").slice(0, 500);
-    persistWorkItems(state.workItems);
-  }
-
   async function addEvidence(fileList) {
     const item = getActiveWorkItem();
     const files = [...(fileList ?? [])];
@@ -82,7 +75,9 @@ function createEvidenceWorkflow(state, { render, showToast, persistSavedRecords,
     const item = state.workItems.find((workItem) => workItem.id === id);
     if (!item) return;
     const submissions = [...(item.evidenceHistory ?? [])].reverse();
-    const currentEvidence = !recordId && item.evidenceFiles?.length
+    const currentEvidence = !recordId && item.stopEvidence?.length
+      ? { files: item.stopEvidence, observations: item.stopObservation ?? "", reviewStatus: "Evidencia al detener" }
+      : !recordId && item.evidenceFiles?.length
       ? { files: item.evidenceFiles, observations: item.evidenceObservation ?? "", reviewStatus: "Evidencia guardada", attempt: item.attempts }
       : null;
     const submission = recordId
@@ -245,30 +240,9 @@ function createEvidenceWorkflow(state, { render, showToast, persistSavedRecords,
     }
   }
 
-  function saveManagedObservation(value) {
-    if (!state.evidenceManageMode || !state.reviewSubmission) return;
-    const submission = state.reviewSubmission;
-    const item = state.reviewItem;
-    const record = state.savedRecords.find((entry) => entry.id === submission.recordId);
-    const previous = submission.observations ?? "";
-    const previousRecordValue = record?.evidenceObservation;
-    submission.observations = String(value ?? "").slice(0, 500);
-    state.reviewObservation = submission.observations;
-    if (record) record.evidenceObservation = submission.observations;
-    if (!persistWorkItems(state.workItems) || (record && !persistSavedRecords(state.savedRecords))) {
-      submission.observations = previous;
-      if (record) record.evidenceObservation = previousRecordValue;
-      state.reviewError = "No se pudieron guardar las observaciones.";
-      render();
-      return;
-    }
-    state.reviewError = "";
-  }
-
   return {
     requiresEvidence,
     hasEvidence,
-    saveEvidenceObservation,
     addEvidence,
     removeEvidence,
     openEvidenceReview,
@@ -276,6 +250,5 @@ function createEvidenceWorkflow(state, { render, showToast, persistSavedRecords,
     handleReviewDialogClose,
     decideEvidenceReview,
     addEvidenceToRecord,
-    saveManagedObservation,
   };
 }

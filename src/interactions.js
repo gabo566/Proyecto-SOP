@@ -20,9 +20,12 @@ function bindInteractions(app, handlers) {
     openEvidenceReview,
     closeEvidenceReview,
     decideEvidenceReview,
-    saveEvidenceObservation,
-    saveManagedObservation,
     addEvidenceToRecord,
+    addValidationEvidence,
+    removeValidationEvidence,
+    addDraftEvidence,
+    removeDraftEvidence,
+    openRecordEvidence,
   } = handlers;
   let stepImageViewer = { zoom: 100 };
 
@@ -44,7 +47,7 @@ function bindInteractions(app, handlers) {
     const body = document.querySelector("#serial-table-body");
     const count = document.querySelector("#serial-table-count");
     if (!body || !count) return;
-    body.innerHTML = visible.length ? renderSerialRows(visible, state.workItems) : '<tr><td class="empty-row" colspan="10">No hay registros que coincidan con la búsqueda.</td></tr>';
+    body.innerHTML = visible.length ? renderSerialRows(visible, state.workItems) : '<tr><td class="empty-row" colspan="12">No hay registros que coincidan con la búsqueda.</td></tr>';
     count.textContent = `Mostrando ${visible.length} de ${filtered.length} ${state.serialQuery.trim() ? "coincidencias" : "registros representativos"}`;
   }
 
@@ -93,7 +96,7 @@ function bindInteractions(app, handlers) {
     stepImageViewer = { zoom: 100 };
     document.querySelector("#step-image-dialog-title").textContent = `Paso ${action.dataset.stepNumber} · hoja ${action.dataset.sheet}`;
     image.alt = action.dataset.imageAlt;
-    document.querySelector("#step-image-caption").textContent = action.dataset.imageAlt;
+    document.querySelector("#step-image-caption").textContent = action.dataset.stepText || action.dataset.imageAlt;
     image.onload = updateStepImageZoom;
     image.style.width = "auto";
     image.src = action.dataset.imageSrc;
@@ -135,12 +138,17 @@ function bindInteractions(app, handlers) {
       case "close-work-item-dialog": closeWorkItemDialog(); break;
       case "resume-work": resumeWorkItem(action.dataset.workId); break;
       case "remove-evidence": removeEvidence(action.dataset.evidenceId); break;
+      case "remove-validation-evidence": removeValidationEvidence(action.dataset.evidenceId); break;
+      case "remove-stop-evidence": removeDraftEvidence(action.dataset.evidenceId); break;
       case "review-evidence": openEvidenceReview(action.dataset.workId); break;
       case "view-work-evidence": openEvidenceReview(action.dataset.workId); break;
-      case "view-record-evidence": openEvidenceReview(action.dataset.workId, action.dataset.recordId, false, true); break;
+      case "view-record-evidence": action.dataset.workId ? openEvidenceReview(action.dataset.workId, action.dataset.recordId, false, true) : openRecordEvidence(action.dataset.recordId); break;
+      case "view-stop-evidence": openEvidenceReview(action.dataset.workId); break;
       case "manage-record-evidence": openEvidenceReview(action.dataset.workId, action.dataset.recordId, true); break;
       case "close-evidence-review": closeEvidenceReview(); break;
       case "choose-evidence-file": app.querySelector("[data-evidence-input]")?.click(); break;
+      case "choose-validation-evidence": app.querySelector("[data-validation-evidence-input]")?.click(); break;
+      case "choose-stop-evidence": app.querySelector("[data-stop-evidence-input]")?.click(); break;
       case "choose-record-evidence": app.querySelector("[data-record-evidence-input]")?.click(); break;
       case "zoom-evidence-image":
         state.zoomedEvidence = state.reviewEvidence.find((file) => file.id === action.dataset.evidenceId) ?? null;
@@ -171,6 +179,10 @@ function bindInteractions(app, handlers) {
       target.removeAttribute("aria-invalid");
       target.removeAttribute("aria-describedby");
       clearFormError();
+    } else if (target.dataset.formField) {
+      state.form[target.dataset.formField] = target.value;
+      persistWorkState();
+      if (state.formError) clearFormError();
     } else if (target.matches('input[name="workType"]')) {
       state.workDraft.type = target.value;
       document.querySelector(".work-failed-step").hidden = target.value !== "rework";
@@ -178,10 +190,20 @@ function bindInteractions(app, handlers) {
       state.workDraft.failedStep = target.value;
     } else if (target.name === "reasonCode") {
       state.workDraft.reasonCode = target.value;
+    } else if (target.dataset.workDraftField) {
+      state.workDraft[target.dataset.workDraftField] = target.value;
     } else if (target.matches("[data-evidence-input]")) {
       const selectedFiles = [...target.files];
       target.value = "";
       addEvidence(selectedFiles);
+    } else if (target.matches("[data-validation-evidence-input]")) {
+      const selectedFiles = [...target.files];
+      target.value = "";
+      addValidationEvidence(selectedFiles);
+    } else if (target.matches("[data-stop-evidence-input]")) {
+      const selectedFiles = [...target.files];
+      target.value = "";
+      addDraftEvidence(selectedFiles);
     } else if (target.matches("[data-record-evidence-input]")) {
       const selectedFiles = [...target.files];
       target.value = "";
@@ -209,12 +231,10 @@ function bindInteractions(app, handlers) {
       state.workDraft.failedStep = target.value;
     } else if (target.name === "reasonCode") {
       state.workDraft.reasonCode = target.value;
+    } else if (target.dataset.workDraftField) {
+      state.workDraft[target.dataset.workDraftField] = target.value;
     } else if (target.matches("[data-review-note]")) {
       state.reviewNote = target.value;
-    } else if (target.matches("[data-managed-observation]")) {
-      saveManagedObservation(target.value);
-    } else if (target.matches("[data-evidence-observation]")) {
-      saveEvidenceObservation(target.value);
     }
   });
 

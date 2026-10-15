@@ -1,8 +1,7 @@
 function recordMatchesQuery(record, query, includePartNumber = false) {
   const normalized = query.trim().toLocaleLowerCase("es-MX");
   if (!normalized) return true;
-  const values = [record.serial, record.nodeNumber, record.category, record.operator, record.employeeNumber];
-  if (includePartNumber) values.push(record.componentPartNumber);
+  const values = [record.serial, record.nodeNumber, record.nodePartNumber, record.category, record.operator, record.employeeNumber, record.componentPartNumber, record.componentSerial];
   return values
     .some((value) => value?.toLocaleLowerCase("es-MX").includes(normalized));
 }
@@ -20,7 +19,10 @@ function getRecordEvidence(record, workItems) {
 }
 
 function renderRecordEvidenceCell(record, workItems) {
-  if (!record.workItemId) return '<td><span class="evidence-not-available">—</span></td>';
+  if (!record.workItemId) {
+    const view = record.evidenceCount ? `<button class="icon-button evidence-eye-button" type="button" data-action="view-record-evidence" data-record-id="${escapeHtml(record.id)}" aria-label="Ver evidencia del serial ${escapeHtml(record.serial)}"><span class="material-symbols-rounded" aria-hidden="true">visibility</span></button>` : '';
+    return `<td>${view || '<span class="evidence-not-available">—</span>'}</td>`;
+  }
   const { count } = getRecordEvidence(record, workItems);
   const uploadButton = record.status !== "Completado"
     ? `<button class="button button--outlined evidence-record-button" type="button" data-action="manage-record-evidence" data-work-id="${escapeHtml(record.workItemId)}" data-record-id="${escapeHtml(record.id)}"><span class="material-symbols-rounded" aria-hidden="true">upload</span>${count ? `Subir más evidencia · ${count}` : "Subir evidencia"}</button>`
@@ -32,8 +34,9 @@ function renderRecordEvidenceCell(record, workItems) {
 function renderSerialRows(records, workItems = []) {
   return records.map((record) => `<tr>
     <td><span>${escapeHtml(record.displayDate ?? TODAY_DATE_LABEL)}</span><small>${escapeHtml(record.time)}</small></td>
-    <td>${escapeHtml(record.nodeNumber)}</td><td class="serial-cell">${escapeHtml(record.serial)}</td><td>${escapeHtml(record.nodePartNumber)}</td>
-    <td>${escapeHtml(SOP_DOCUMENT.id)}<small>Rev. ${escapeHtml(SOP_DOCUMENT.revision)} · ${escapeHtml(record.category)}${record.recordType && record.recordType !== "Declaración local del operador" ? ` · ${escapeHtml(record.recordType)}` : ""}</small></td>
+    <td class="serial-cell">${escapeHtml(record.serial)}</td><td>${escapeHtml(record.nodePartNumber)}</td>
+    <td>${escapeHtml(record.operation ?? record.category)}<small>${escapeHtml(record.category)} · hoja ${escapeHtml(record.sheet ?? "—")}</small></td>
+    <td>${escapeHtml(record.repairType ?? "—")}</td><td>${escapeHtml(record.componentPartNumber ?? "—")}</td><td>${escapeHtml(record.componentSerial ?? "—")}</td>
     <td>${escapeHtml(record.sheet ?? "—")}</td><td><span>${escapeHtml(record.operator)}</span></td><td>${escapeHtml(record.employeeNumber)}</td>
     <td><span class="status-chip ${recordStatusClass(record.status)}"><span></span>${escapeHtml(record.status)}</span></td>${renderRecordEvidenceCell(record, workItems)}
   </tr>`).join("");
@@ -53,7 +56,7 @@ function getVisibleSerialRecords(records, query) {
 
 function renderSerialTable(records, query = "", workItems = []) {
   const { filtered, visible } = getVisibleSerialRecords(records, query);
-  const rows = visible.length ? renderSerialRows(visible, workItems) : '<tr><td class="empty-row" colspan="10">No hay registros que coincidan con la búsqueda.</td></tr>';
+  const rows = visible.length ? renderSerialRows(visible, workItems) : '<tr><td class="empty-row" colspan="12">No hay registros que coincidan con la búsqueda.</td></tr>';
   const footnote = `Mostrando ${visible.length} de ${filtered.length} ${query.trim() ? "coincidencias" : "registros representativos"}`;
 
   return `<section class="serial-panel" id="records" aria-labelledby="serial-heading"><div class="section-heading records-heading">
@@ -62,16 +65,16 @@ function renderSerialTable(records, query = "", workItems = []) {
       <button class="text-button" type="button" data-action="open-records" data-focus-key="records-open-table">Ver todas las validaciones <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span></button>
     </div></div>
     <div class="demo-banner"><span class="material-symbols-rounded" aria-hidden="true">info</span>Datos de demostración · seriales, operadores y registros ilustrativos; no son producción real.</div>
-    <div class="table-scroll"><table><thead><tr><th>Fecha y hora</th><th>Nodo</th><th>N° de serie</th><th>N° de parte (PN)</th><th>SOP / Rev.</th><th>Hoja</th><th>Operador</th><th>N° empleado</th><th>Estado</th><th>Evidencia</th></tr></thead><tbody id="serial-table-body">${rows}</tbody></table></div>
+    <div class="table-scroll"><table><thead><tr><th>Fecha y hora</th><th>N° de serie del nodo</th><th>N° de parte del nodo</th><th>Tipo de SOP utilizada</th><th>Tipo de reparación</th><th>N° de parte del componente</th><th>N° de serie del componente</th><th>Hoja</th><th>Operador</th><th>N° empleado</th><th>Estado</th><th>Evidencia</th></tr></thead><tbody id="serial-table-body">${rows}</tbody></table></div>
     <div class="table-footnote"><span id="serial-table-count">${footnote}</span><span>El cierre se basa en la declaración y el registro del operador.</span></div>
   </section>`;
 }
 
 function renderDialogRows(records, query, workItems = []) {
   const filtered = records.filter((record) => recordMatchesQuery(record, query));
-  if (!filtered.length) return '<tr><td class="empty-row" colspan="8">No hay coincidencias.</td></tr>';
-  return filtered.map((record) => `<tr><td>${escapeHtml(record.operation ?? record.category)}<small>${escapeHtml(record.category)} · hoja ${escapeHtml(record.sheet ?? "—")}${record.recordType && record.recordType !== "Declaración local del operador" ? ` · ${escapeHtml(record.recordType)}` : ""}</small></td><td>${escapeHtml(record.nodeNumber)}</td><td class="serial-cell">${escapeHtml(record.serial)}</td>
-    <td>${escapeHtml(record.nodePartNumber)}</td><td>${escapeHtml(record.componentPartNumber)}</td>
+  if (!filtered.length) return '<tr><td class="empty-row" colspan="9">No hay coincidencias.</td></tr>';
+  return filtered.map((record) => `<tr><td>${escapeHtml(record.operation ?? record.category)}<small>${escapeHtml(record.category)} · hoja ${escapeHtml(record.sheet ?? "—")}</small></td><td class="serial-cell">${escapeHtml(record.serial)}</td>
+    <td>${escapeHtml(record.nodePartNumber)}</td><td>${escapeHtml(record.componentPartNumber)}</td><td>${escapeHtml(record.componentSerial ?? "—")}</td><td>${escapeHtml(record.repairType ?? "—")}</td>
     <td>${escapeHtml(record.operator)}<small>${escapeHtml(record.employeeNumber)} · ${escapeHtml(record.position ?? "Técnico de FA")}</small></td><td>${escapeHtml(record.time)}</td>${renderRecordEvidenceCell(record, workItems)}</tr>`).join("");
 }
 
@@ -85,7 +88,7 @@ function renderRecordsDialog(records, query = "", workItems = []) {
       <button class="icon-button" type="button" data-action="close-records" aria-label="Cerrar"><span class="material-symbols-rounded" aria-hidden="true">close</span></button></div>
     <div class="dialog-summary"><strong>${records.length}</strong><span>desensambles de demostración</span></div>
     <label class="search-box dialog-search"><span class="material-symbols-rounded" aria-hidden="true">search</span><input id="records-search" data-search="dialog" data-focus-key="records-search" placeholder="Buscar por serial, nodo u operador" aria-label="Buscar en procedimientos realizados" value="${escapeHtml(query)}" /></label>
-    <div class="table-scroll dialog-table-scroll"><table><thead><tr><th>Procedimiento</th><th>Nodo</th><th>Serial</th><th>P/N nodo</th><th>P/N componente</th><th>Operador / empleado</th><th>Hora</th><th>Evidencia</th></tr></thead>
+    <div class="table-scroll dialog-table-scroll"><table><thead><tr><th>Tipo de SOP utilizada</th><th>Serial del nodo</th><th>P/N nodo</th><th>P/N componente</th><th>Serial del componente</th><th>Tipo de reparación</th><th>Operador / empleado</th><th>Hora</th><th>Evidencia</th></tr></thead>
       <tbody id="dialog-table-body">${renderDialogRows(records, query, workItems)}</tbody></table></div>
     <p class="dialog-note"><span class="material-symbols-rounded" aria-hidden="true">info</span>Los ${DEMO_RECORDS.length} registros iniciales y sus seriales son ficticios. Los cierres nuevos se guardan en este navegador.</p>
   </dialog>`;
