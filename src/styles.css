@@ -176,7 +176,7 @@ button { color: inherit; }
 .procedure-selector-panel .source-link { min-height: 34px; margin: 0; padding: 0 5px; gap: 4px; font-size: 11px; }
 .sop-page-preview { min-width: 0; width: 100%; height: auto; min-height: 0; display: block; flex: 0 0 auto; overflow: visible; scroll-margin-top: 108px; border: 1px solid var(--outline); border-radius: 8px; background: #fff; }
 .sop-page-preview img { display: block; width: 100%; height: auto; max-width: 100%; margin: 0 auto; object-fit: contain; }
-.procedure-action-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 2px; padding: 8px 10px; border: 1px solid var(--outline); border-radius: 10px; background: var(--surface-soft); }
+.procedure-action-bar { position: sticky; top: 102px; z-index: 15; display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 2px; padding: 8px 10px; border: 1px solid var(--outline); border-radius: 10px; background: var(--surface-soft); box-shadow: 0 3px 10px rgba(22,29,40,.08); }
 .procedure-identity-chip { min-width: 0; display: flex; align-items: center; gap: 9px; color: #345474; }
 .procedure-identity-chip > .material-symbols-rounded { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; border-radius: 50%; background: #e7eef6; }
 .procedure-identity-chip > span:last-child { min-width: 0; display: grid; gap: 2px; }
@@ -518,6 +518,13 @@ td small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px;
 .toast button .material-symbols-rounded { font-size: 17px; }
 .nav-scrim { display: none; }
 
+@media (min-width: 1001px) and (max-height: 850px) {
+  #app { zoom: .9; }
+}
+@media (min-width: 1001px) and (max-height: 700px) {
+  #app { zoom: .82; }
+}
+
 @media (max-width: 1330px) {
   .dashboard-content { padding: 12px 14px; }
   .metric-card { gap: 7px; padding: 9px 8px; }
@@ -602,7 +609,7 @@ td small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px;
   .sheet-chip { padding: 5px 7px; font-size: 9px; }
   .procedure-step-list--scroll { min-height: 260px; }
   .procedure-step-list--scroll .procedure-step-item { flex-basis: 100%; min-height: 260px; grid-template-rows: auto minmax(175px,1fr); padding: 11px; }
-  .procedure-action-bar { align-items: stretch; flex-direction: column; }
+  .procedure-action-bar { top: 76px; align-items: stretch; flex-direction: column; }
   .procedure-action-buttons { display: grid; grid-template-columns: 1fr; }
   .procedure-action-buttons .button { width: 100%; }
   .validation-dialog { max-height: calc(100vh - 16px); width: calc(100vw - 16px); }

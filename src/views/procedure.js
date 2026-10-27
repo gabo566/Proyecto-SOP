@@ -31,7 +31,6 @@ function renderProcedurePanel(procedure) {
 
   return `<section class="procedure-panel" aria-label="SOP seleccionada">
     ${renderSopSelector(procedure.id)}
-    <div class="sop-page-preview" id="sop-page-preview"><img src="${pageImageUrl}" alt="${escapeHtml(SOP_DOCUMENT.title)} · hoja ${procedure.sheet} completa" loading="eager" decoding="async" /></div>
     ${procedure.steps.length ? `<div class="procedure-action-bar">
       <div class="procedure-identity-chip"><span class="material-symbols-rounded" aria-hidden="true">person</span><span><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.employeeNumber)} · ${escapeHtml(user.position || "Técnico de FA")}</small></span></div>
       <div class="procedure-action-buttons">
@@ -39,6 +38,7 @@ function renderProcedurePanel(procedure) {
         <button class="button button--secondary procedure-stop-button" type="button" data-action="open-work-item-dialog"><span class="material-symbols-rounded" aria-hidden="true">pause_circle</span>Detener / registrar retrabajo</button>
       </div>
     </div>` : ""}
+    <div class="sop-page-preview" id="sop-page-preview"><img src="${pageImageUrl}" alt="${escapeHtml(SOP_DOCUMENT.title)} · hoja ${procedure.sheet} completa" loading="eager" decoding="async" /></div>
   </section>`;
 }
 
