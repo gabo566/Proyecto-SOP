@@ -2,7 +2,7 @@
 
 Aplicación web estática en español para consultar y registrar el avance de procedimientos de desensamble de un nodo GB200. El prototipo combina instrucciones de trabajo, referencias visuales, una lista de validación por paso, perfiles locales de operador/supervisor/administrador, una bitácora ilustrativa y un flujo para detener trabajos, documentar retrabajos y revisar evidencia fotográfica.
 
-> **Estado del proyecto:** prototipo de desarrollo local. La interfaz identifica expresamente un entorno de muestra sin conexión a producción. Hay un formulario de acceso simulado, pero no valida identidad real: no hay servidor de aplicación, API, base de datos compartida, autenticación segura ni despliegue configurado como parte del flujo actual.
+> **Estado del proyecto:** prototipo de desarrollo local. La interfaz identifica expresamente un entorno de muestra sin conexión a producción. No hay servidor de aplicación, API, base de datos compartida ni despliegue configurado. El inicio de sesión y los roles son simulados en el navegador y no autentican identidades ni protegen información.
 
 ## Para qué sirve
 
@@ -83,17 +83,9 @@ La navegación separa «Seguimiento SOP», «Producción», «Trazabilidad» y �
 
 Los datos iniciales son 19 registros ficticios distribuidos entre BMC, Busbar, Cold Plate / Manifold y Bianca. Llevan seriales `DEMO-*`, operadores `Operador demo *` y la etiqueta «Demostración». Las métricas del día combinan esos datos ilustrativos con las validaciones que se hayan guardado localmente. No deben interpretarse como producción real.
 
-### Inicio de sesión y bitácora local
+### Perfiles y bitácora local
 
-Al abrir la aplicación aparece una pantalla de inicio de sesión que solicita usuario (número de empleado) y contraseña. Las tres cuentas precargadas son:
-
-| Usuario | Contraseña | Rol |
-| --- | --- | --- |
-| `140785` | `0785` | Operador |
-| `140784` | `0784` | Supervisor |
-| `140783` | `0783` | Administrador |
-
-La sesión se mantiene solo en la pestaña del navegador y se cierra con «Cerrar sesión» o al terminar esa sesión de pestaña. Desde «Usuarios», el administrador de demostración puede agregar usuarios indicando número de empleado (que sirve como usuario), contraseña, correo de referencia y rol, además de activar o desactivar los usuarios agregados. Los tres perfiles precargados están protegidos y no se pueden desactivar. La lista no muestra contraseñas.
+El prototipo incluye tres perfiles de ejemplo para recorrer la interfaz: Operador Demo (`DEMO-001`), Supervisor Demo (`DEMO-002`) y Administrador Demo (`DEMO-003`). El selector «Usuario de demostración» permite cambiar el perfil; en la sección «Usuarios», el perfil administrador puede agregar perfiles ficticios y activar o desactivar los perfiles agregados desde esa pantalla. Los tres perfiles de ejemplo iniciales están protegidos y no se pueden desactivar.
 
 | Rol | Flujo que representa |
 | --- | --- |
@@ -103,16 +95,16 @@ La sesión se mantiene solo en la pestaña del navegador y se cierra con «Cerra
 
 Al marcar o reabrir un paso se registra el usuario activo, número de empleado y rol, fecha/hora, paso, sección SOP y serial si ya se capturó. La bitácora también registra validaciones, detenciones, retrabajos, reanudaciones, carga/retiro de fotos, revisiones y acciones de gestión de usuarios. La vista de evidencia muestra quién agregó cada foto cuando esa información está disponible. El historial local conserva como máximo los últimos 1,000 eventos.
 
-**El inicio de sesión no autentica identidad real.** Las credenciales precargadas son públicas y las contraseñas de los usuarios agregados se guardan directamente en `localStorage`. Cualquier persona con acceso al navegador puede inspeccionar o modificar usuarios, contraseñas, sesión, permisos y bitácora. El control solo sirve para recorrer la interfaz y asociar acciones con un perfil seleccionado; no acredita quién realizó una operación ni protege datos. Microsoft Entra ID, las cuentas corporativas y los permisos protegidos por un servidor siguen pendientes de integración.
+**Estos perfiles no inician sesión.** Cualquier persona que abra la aplicación puede cambiar el perfil de demostración, incluidos los perfiles de supervisor y administrador. Los perfiles, permisos y bitácora se guardan en el navegador y pueden alterarse o borrarse desde él; no acreditan quién realizó una operación. Microsoft Entra ID, las cuentas corporativas y los permisos protegidos por un servidor siguen pendientes de integración.
 
 ## Persistencia y límites
 
-La aplicación no tiene backend. Los registros de validación, trabajos, perfiles de demostración, contraseñas de prueba y bitácora se guardan en `localStorage`; la sesión de inicio de sesión vive en `sessionStorage`; los archivos de evidencia se guardan en IndexedDB. Las claves locales de perfiles/bitácora incluyen `sop-operador-local-users-v1`, `sop-operador-active-user-v1`, `sop-operador-login-session-v1`, `sop-operador-audit-trail-v1` y `sop-operador-audit-session-v1`. Esto significa que:
+La aplicación no tiene backend. Los registros de validación, trabajos, perfiles de demostración y bitácora se guardan en `localStorage`; los archivos de evidencia se guardan en IndexedDB. Las claves locales de perfiles/bitácora incluyen `sop-operador-local-users-v1`, `sop-operador-active-user-v1`, `sop-operador-audit-trail-v1` y `sop-operador-audit-session-v1`. Esto significa que:
 
 - Los datos pertenecen al perfil de navegador y al origen local que se usó para abrir la aplicación.
 - No se comparten entre operadores, equipos, navegadores ni instalaciones.
 - Borrar los datos del sitio en el navegador puede eliminar registros y evidencia.
-- No hay sincronización, respaldo central, control de acceso seguro, autenticación real, bitácora inmutable ni recuperación administrativa.
+- No hay sincronización, respaldo central, control de acceso efectivo, autenticación real, bitácora inmutable ni recuperación administrativa.
 - La persistencia local sirve para probar el flujo de interfaz, no para mantener registros oficiales de manufactura.
 - La bitácora se puede editar desde las herramientas del navegador y solo retiene los últimos 1,000 eventos; no es evidencia de auditoría oficial.
 
@@ -141,7 +133,7 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | --- | --- |
 | `index.html` | Documento inicial, CSS y orden de carga de scripts. |
 | `src/data/sopData.js` | Metadata de la SOP, los 42 procedimientos, pasos, referencias visuales, categorías y registros ficticios. |
-| `src/user-control.js` | Inicio de sesión de demostración, cuentas locales, roles ilustrativos, gestión local y bitácora del navegador. |
+| `src/user-control.js` | Perfiles de demostración, selector de usuario, roles ilustrativos, gestión local y bitácora del navegador. |
 | `src/app.js` | Estado de pantalla, selección de procedimiento, validación, usuario activo, guardado de registros y composición de vistas. |
 | `src/interactions.js` | Eventos de navegación, formularios, búsqueda, diálogos, imágenes y evidencia. |
 | `src/workflow.js` | Crear, pausar, reanudar, completar y registrar el historial de trabajos. |
@@ -171,7 +163,7 @@ Se recomienda un navegador moderno con soporte para esas APIs. Las fotos requier
 
 ## Alcance pendiente antes de cualquier uso operativo
 
-Antes de tratar el proyecto como una herramienta de producción, haría falta definir e implementar fuera de este prototipo, como mínimo, la fuente oficial y revisión vigente de la SOP, la resolución de discrepancias, autenticación y roles reales, un backend con persistencia central, sincronización y respaldo de fotos, auditoría de cambios, política de retención y privacidad, manejo de errores operativos, pruebas del flujo completo y aprobación de ingeniería/calidad. El código actual no proporciona esas capacidades.
+Antes de tratar el proyecto como una herramienta de producción, haría falta definir e implementar fuera de este prototipo, como mínimo, la fuente oficial y revisión vigente de la SOP, la resolución de discrepancias, autenticación y roles reales en servidor, un backend con persistencia central, sincronización y respaldo de fotos, auditoría de cambios, política de retención y privacidad, manejo de errores operativos, pruebas del flujo completo y aprobación de ingeniería/calidad. El código actual no proporciona esas capacidades.
 
 ## Regla para mantener esta documentación
 

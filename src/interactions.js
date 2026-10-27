@@ -27,11 +27,10 @@ function bindInteractions(app, handlers) {
     addDraftEvidence,
     removeDraftEvidence,
     openRecordEvidence,
-    switchLocalUser,
+    authenticateLocalUser,
+    endLocalUserSession,
     createLocalUser,
     toggleLocalUser,
-    loginLocalUser,
-    logoutLocalUser,
   } = handlers;
   let stepImageViewer = { zoom: 100 };
 
@@ -135,6 +134,7 @@ function bindInteractions(app, handlers) {
       case "open-menu": state.navOpen = true; render(); break;
       case "close-menu": state.navOpen = false; render(); break;
       case "brand-home": state.navOpen = false; render(); break;
+      case "logout-local-user": endLocalUserSession(); break;
       case "previous-procedure": moveProcedure(-1); break;
       case "next-procedure": moveProcedure(1); break;
       case "zoom-step-image": openStepImage(action); break;
@@ -148,7 +148,6 @@ function bindInteractions(app, handlers) {
       case "close-work-item-dialog": closeWorkItemDialog(); break;
       case "resume-work": if (["operator", "admin"].includes(getActiveLocalUser().role)) resumeWorkItem(action.dataset.workId); else showToast("Solo un operador puede reanudar el trabajo.", "warning"); break;
       case "toggle-local-user": if (getActiveLocalUser().role === "admin") toggleLocalUser(action.dataset.userId, action.dataset.active === "true"); break;
-      case "logout-local-user": logoutLocalUser(); break;
       case "remove-evidence": removeEvidence(action.dataset.evidenceId); break;
       case "remove-validation-evidence": removeValidationEvidence(action.dataset.evidenceId); break;
       case "remove-stop-evidence": removeDraftEvidence(action.dataset.evidenceId); break;
@@ -177,9 +176,7 @@ function bindInteractions(app, handlers) {
 
   app.addEventListener("change", (event) => {
     const { target } = event;
-    if (target.matches("[data-local-user-switch]")) {
-      switchLocalUser(target.value);
-    } else if (target.matches("#procedure-select")) {
+    if (target.matches("#procedure-select")) {
       selectProcedure(target.value);
     } else if (target.matches("[data-step]")) {
       if (!["operator", "admin"].includes(getActiveLocalUser().role)) {
@@ -241,7 +238,9 @@ function bindInteractions(app, handlers) {
 
   app.addEventListener("input", (event) => {
     const { target } = event;
-    if (target.dataset.search === "serial") {
+    if (target.matches('[data-login-field="username"]')) {
+      state.loginUsername = target.value;
+    } else if (target.dataset.search === "serial") {
       state.serialQuery = target.value;
       updateSerialSearch();
     } else if (target.dataset.search === "dialog") {
@@ -270,9 +269,25 @@ function bindInteractions(app, handlers) {
     if (event.target.matches("#local-login-form")) {
       event.preventDefault();
       const formData = new FormData(event.target);
-      loginLocalUser(String(formData.get("username") ?? ""), String(formData.get("password") ?? ""));
-    }
-    if (event.target.matches("#completion-form")) handleCompletionSubmit(event);
+      state.loginUsername = String(formData.get("username") ?? "").trim();
+      const user = authenticateLocalUser(state.loginUsername, String(formData.get("password") ?? ""));
+      if (!user) {
+        state.loginError = "Usuario o contraseña incorrectos, o cuenta inactiva.";
+        render();
+        return;
+      }
+      state.loginError = "";
+      state.loginUsername = "";
+      state.activeSection = "overview";
+      state.form.name = user.name;
+      state.form.employeeNumber = user.employeeNumber;
+      state.form.position = "Técnico de FA";
+      state.formError = "";
+      state.auditSessionId = `session-${crypto.randomUUID()}`;
+      localStorage.setItem("sop-operador-audit-session-v1", state.auditSessionId);
+      recordLocalAuditEvent("local_login", { sessionId: state.auditSessionId });
+      render();
+    } else if (event.target.matches("#completion-form")) handleCompletionSubmit(event);
     if (event.target.matches("#work-item-form")) {
       if (["operator", "admin"].includes(getActiveLocalUser().role)) handleWorkItemSubmit(event);
       else showToast("Solo un operador puede detener o registrar un retrabajo.", "warning");

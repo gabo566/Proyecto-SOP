@@ -1,7 +1,7 @@
 const LOCAL_USERS_KEY = "sop-operador-local-users-v1";
 const ACTIVE_LOCAL_USER_KEY = "sop-operador-active-user-v1";
+const LOCAL_AUTH_SESSION_KEY = "sop-operador-auth-session-v1";
 const LOCAL_AUDIT_KEY = "sop-operador-audit-trail-v1";
-const LOCAL_LOGIN_KEY = "sop-operador-login-session-v1";
 const LOCAL_USER_ROLES = {
   operator: "Operador",
   supervisor: "Supervisor",
@@ -9,53 +9,25 @@ const LOCAL_USER_ROLES = {
 };
 
 const INITIAL_LOCAL_USERS = [
-  { id: "demo-operator", name: "Operador Demo", employeeNumber: "140785", password: "0785", email: "operador.demo@example.local", role: "operator", active: true, demo: true },
-  { id: "demo-supervisor", name: "Supervisor Demo", employeeNumber: "140784", password: "0784", email: "supervisor.demo@example.local", role: "supervisor", active: true, demo: true },
-  { id: "demo-admin", name: "Administrador Demo", employeeNumber: "140783", password: "0783", email: "admin.demo@example.local", role: "admin", active: true, demo: true },
+  { id: "demo-operator", name: "Operador Demo", username: "140785", password: "0785", employeeNumber: "140785", email: "operador.demo@example.local", role: "operator", active: true, demo: true },
+  { id: "demo-supervisor", name: "Supervisor Demo", username: "140784", password: "0784", employeeNumber: "140784", email: "supervisor.demo@example.local", role: "supervisor", active: true, demo: true },
+  { id: "demo-admin", name: "Administrador Demo", username: "140783", password: "0783", employeeNumber: "140783", email: "admin.demo@example.local", role: "admin", active: true, demo: true },
 ];
-
-function isLocalUserLoggedIn() {
-  return Boolean(sessionStorage.getItem(LOCAL_LOGIN_KEY));
-}
-
-function loginLocalUser(username, password) {
-  const user = listLocalUsers().find((item) => item.active && item.employeeNumber === username.trim() && item.password === password);
-  if (!user) return false;
-  localStorage.setItem(ACTIVE_LOCAL_USER_KEY, user.id);
-  sessionStorage.setItem(LOCAL_LOGIN_KEY, user.id);
-  recordLocalAuditEvent("demo_user_login", {});
-  return true;
-}
-
-function logoutLocalUser() {
-  recordLocalAuditEvent("demo_user_logout", {});
-  sessionStorage.removeItem(LOCAL_LOGIN_KEY);
-}
-
-function renderLocalLogin(error = "") {
-  return `<main class="login-screen"><section class="login-card" aria-labelledby="login-title">
-    <img class="login-logo" src="./public/assets/ingrasys-logo-dark.png" alt="Ingrasys" />
-    <p class="login-kicker">Control de desensamble</p><h1 id="login-title">Ingresar al sistema</h1>
-    <p class="login-description">Inicia sesión para registrar o revisar evidencia de la SOP.</p>
-    <form id="local-login-form" class="login-form">
-      <label for="login-user">Usuario</label><input id="login-user" name="username" inputmode="numeric" autocomplete="username" placeholder="Número de empleado" required />
-      <label for="login-password">Contraseña</label><input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Contraseña" required />
-      ${error ? `<p class="login-error" role="alert">${escapeHtml(error)}</p>` : ""}
-      <button type="submit">Ingresar</button>
-    </form>
-    <details class="login-demo"><summary>Credenciales de demostración</summary><p>Operador: <code>140785</code> / <code>0785</code><br>Supervisor: <code>140784</code> / <code>0784</code><br>Administrador: <code>140783</code> / <code>0783</code></p></details>
-    <p class="login-notice">Prototipo local: estas credenciales son públicas y no protegen datos reales.</p>
-  </section></main>`;
-}
 
 function readLocalUsers() {
   try {
     const users = JSON.parse(localStorage.getItem(LOCAL_USERS_KEY) || "null");
     if (!Array.isArray(users) || !users.length) return structuredClone(INITIAL_LOCAL_USERS);
-    return users.map((user) => {
-      const seed = INITIAL_LOCAL_USERS.find((initialUser) => initialUser.id === user.id);
-      return seed ? { ...user, ...seed } : user;
+    const migratedUsers = users.map((user) => {
+      const seeded = INITIAL_LOCAL_USERS.find((item) => item.id === user.id);
+      return seeded
+        ? { ...seeded, ...user, username: seeded.username, password: seeded.password, employeeNumber: seeded.employeeNumber, role: seeded.role, demo: true }
+        : { ...user, username: user.username || user.employeeNumber, password: user.password || "" };
     });
+    INITIAL_LOCAL_USERS.forEach((seeded) => {
+      if (!migratedUsers.some((user) => user.id === seeded.id)) migratedUsers.push(structuredClone(seeded));
+    });
+    return migratedUsers;
   } catch {
     return structuredClone(INITIAL_LOCAL_USERS);
   }
@@ -71,34 +43,53 @@ function getActiveLocalUser() {
   return users.find((user) => user.id === id && user.active) ?? users.find((user) => user.active) ?? INITIAL_LOCAL_USERS[0];
 }
 
+function getAuthenticatedLocalUser() {
+  if (sessionStorage.getItem(LOCAL_AUTH_SESSION_KEY) !== "1") return null;
+  const id = localStorage.getItem(ACTIVE_LOCAL_USER_KEY);
+  const user = listLocalUsers().find((item) => item.id === id && item.active) ?? null;
+  if (!user) sessionStorage.removeItem(LOCAL_AUTH_SESSION_KEY);
+  return user;
+}
+
 function getLocalUserSnapshot(user = getActiveLocalUser()) {
   return { id: user.id, name: user.name, employeeNumber: user.employeeNumber, role: user.role };
 }
 
-function setActiveLocalUser(id) {
-  const user = listLocalUsers().find((item) => item.id === id && item.active);
-  if (!user) return false;
-  recordLocalAuditEvent("demo_user_switched", { targetUserId: user.id, targetUserName: user.name, targetRole: user.role });
-  localStorage.setItem(ACTIVE_LOCAL_USER_KEY, id);
-  return true;
+function authenticateLocalUser(username, password) {
+  const normalizedUsername = String(username ?? "").trim();
+  const suppliedPassword = String(password ?? "");
+  const user = listLocalUsers().find((item) => item.active && item.username === normalizedUsername && item.password === suppliedPassword);
+  if (!user) return null;
+  localStorage.setItem(ACTIVE_LOCAL_USER_KEY, user.id);
+  sessionStorage.setItem(LOCAL_AUTH_SESSION_KEY, "1");
+  return user;
+}
+
+function endLocalUserSession() {
+  const user = getAuthenticatedLocalUser();
+  if (user) recordLocalAuditEvent("local_logout", { targetUserName: user.name });
+  sessionStorage.removeItem(LOCAL_AUTH_SESSION_KEY);
+  localStorage.removeItem(ACTIVE_LOCAL_USER_KEY);
 }
 
 function persistLocalUsers(users) {
   localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(users));
 }
 
-function addLocalUser({ name, employeeNumber, email, password, role }) {
+function addLocalUser({ name, employeeNumber, email, role, password }) {
   const users = listLocalUsers();
   const normalizedEmail = email.trim().toLocaleLowerCase("es-MX");
   const normalizedEmployee = employeeNumber.trim().toLocaleLowerCase("es-MX");
   if (users.some((user) => user.email.toLocaleLowerCase("es-MX") === normalizedEmail)) return "email";
   if (users.some((user) => user.employeeNumber.toLocaleLowerCase("es-MX") === normalizedEmployee)) return "employee";
+  if (password.trim().length < 4) return "password";
   if (!LOCAL_USER_ROLES[role]) return "role";
   const user = {
     id: `local-user-${crypto.randomUUID()}`,
     name: name.trim(),
+    username: employeeNumber.trim(),
+    password: password.trim(),
     employeeNumber: employeeNumber.trim(),
-    password,
     email: email.trim(),
     role,
     active: true,
@@ -155,16 +146,12 @@ function recordLocalAuditEvent(action, details = {}) {
   return event;
 }
 
-function renderUserSwitcher() {
-  return `<button class="logout-button" type="button" data-action="logout-local-user">Cerrar sesión</button>`;
-}
-
 function renderLocalUsersPanel() {
   const users = listLocalUsers();
   const rows = users.map((user) => `<tr><td><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.email)}</small></td><td>${escapeHtml(user.employeeNumber)}</td><td>${escapeHtml(LOCAL_USER_ROLES[user.role] ?? user.role)}</td><td><span class="local-user-status ${user.active ? "is-active" : ""}">${user.active ? "Activo" : "Desactivado"}</span></td><td>${user.demo ? "Cuenta de ejemplo" : `<button class="text-button" type="button" data-action="toggle-local-user" data-user-id="${escapeHtml(user.id)}" data-active="${user.active ? "false" : "true"}">${user.active ? "Desactivar" : "Activar"}</button>`}</td></tr>`).join("");
   return `<section class="users-panel" id="users-panel"><div class="section-heading"><div><p class="eyebrow">Control local · sin cuentas Microsoft</p><h2>Usuarios de demostración</h2></div><span>${users.filter((user) => user.active).length} activos</span></div>
     <div class="local-prototype-notice" role="note">Los perfiles y roles se simulan en este navegador. No validan identidad ni protegen datos; no uses información real.</div>
-    <form class="local-user-form" id="local-user-form"><label>Nombre completo<input name="userName" required maxlength="100" autocomplete="off" /></label><label>Número de empleado (usuario)<input name="employeeNumber" required maxlength="40" autocomplete="off" /></label><label>Contraseña<input name="loginPassword" type="password" required minlength="4" maxlength="64" autocomplete="new-password" /></label><label>Correo de referencia<input name="userEmail" type="email" required maxlength="160" autocomplete="off" /></label><label>Rol<select name="userRole"><option value="operator">Operador</option><option value="supervisor">Supervisor</option><option value="admin">Administrador</option></select></label><button class="button button--primary" type="submit">Agregar usuario de demostración</button></form>
+    <form class="local-user-form" id="local-user-form"><label>Nombre completo<input name="userName" required maxlength="100" autocomplete="off" /></label><label>Número de empleado / usuario<input name="employeeNumber" required maxlength="40" autocomplete="username" /></label><label>Contraseña inicial<input name="userPassword" type="password" required minlength="4" maxlength="80" autocomplete="new-password" /></label><label>Correo de referencia<input name="userEmail" type="email" required maxlength="160" autocomplete="off" /></label><label>Rol<select name="userRole"><option value="operator">Operador</option><option value="supervisor">Supervisor</option><option value="admin">Administrador</option></select></label><button class="button button--primary" type="submit">Agregar usuario de demostración</button></form>
     <div class="table-scroll"><table><thead><tr><th>Usuario</th><th>N° empleado</th><th>Rol</th><th>Estado</th><th>Acción</th></tr></thead><tbody>${rows}</tbody></table></div></section>
     <section class="audit-panel" id="audit-panel"><div class="section-heading"><div><p class="eyebrow">Eventos guardados en este navegador</p><h2>Actividad de usuarios</h2></div><span>${readLocalAuditTrail().length} eventos · máximo 1,000</span></div>${renderLocalAuditTable()}</section>`;
 }
@@ -182,9 +169,8 @@ function renderLocalAuditTable() {
     work_resumed: "Reanudó trabajo",
     evidence_review_approved: "Aprobó retrabajo",
     evidence_review_correction_requested: "Solicitó corrección",
-    demo_user_switched: "Cambió perfil de demostración",
-    demo_user_login: "Inició sesión de demostración",
-    demo_user_logout: "Cerró sesión de demostración",
+    local_login: "Ingresó al sistema",
+    local_logout: "Cerró sesión",
     demo_user_created: "Creó usuario de demostración",
     demo_user_activated: "Activó usuario de demostración",
     demo_user_deactivated: "Desactivó usuario de demostración",

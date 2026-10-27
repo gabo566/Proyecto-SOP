@@ -31,6 +31,8 @@ const state = {
   recordsDialogOpen: false,
   activeSection: "overview",
   navOpen: false,
+  loginError: "",
+  loginUsername: "",
   toast: null,
   serialQuery: "",
   recordsQuery: "",
@@ -77,8 +79,9 @@ function getFocusState() {
 }
 
 function render({ focusKey, focusDialog = false, initial = false } = {}) {
-  if (!isLocalUserLoggedIn()) {
-    app.innerHTML = renderLocalLogin();
+  if (!getAuthenticatedLocalUser()) {
+    app.innerHTML = renderLoginView({ error: state.loginError, username: state.loginUsername });
+    document.querySelector(state.loginError ? "#login-password" : "#login-username")?.focus();
     return;
   }
   const previousFocus = focusKey === undefined ? getFocusState() : { key: focusKey, start: null, end: null };
@@ -345,47 +348,36 @@ bindInteractions(app, {
   handleWorkItemSubmit: workflow.submit,
   resumeWorkItem: workflow.resume,
   persistWorkState: workflow.persistProgress,
-  switchLocalUser: (id) => {
+  authenticateLocalUser,
+  endLocalUserSession: () => {
     if (state.evidenceBusy) {
-      showToast("Espera a que termine el guardado de evidencia para cambiar el perfil.", "warning");
+      showToast("Espera a que termine el guardado de evidencia antes de cerrar sesión.", "warning");
       return;
     }
-    if (!setActiveLocalUser(id)) return;
-    const user = getActiveLocalUser();
-    state.form.name = user.name;
-    state.form.employeeNumber = user.employeeNumber;
-    state.form.position = "Técnico de FA";
-    if ((state.activeSection === "users" && user.role !== "admin")
-      || (state.activeSection === "production" && !["operator", "admin"].includes(user.role))
-      || (state.activeSection === "reports" && !["supervisor", "admin"].includes(user.role))) state.activeSection = "overview";
-    render();
-    showToast(`Perfil de demostración: ${user.name} · ${LOCAL_USER_ROLES[user.role]}`, "warning");
-  },
-  loginLocalUser: (username, password) => {
-    if (!loginLocalUser(username, password)) {
-      app.innerHTML = renderLocalLogin("Usuario o contraseña incorrectos.");
-      return;
-    }
-    const user = getActiveLocalUser();
-    state.form.name = user.name;
-    state.form.employeeNumber = user.employeeNumber;
+    endLocalUserSession();
+    state.loginError = "";
+    state.loginUsername = "";
     state.activeSection = "overview";
-    render();
-  },
-  logoutLocalUser: () => {
-    logoutLocalUser();
+    state.formError = "";
+    state.form = createEmptyForm();
+    state.validationEvidenceFiles = [];
+    state.workDialogOpen = false;
+    state.recordsDialogOpen = false;
+    state.evidenceReviewDialogOpen = false;
+    state.evidenceImageDialogOpen = false;
+    state.zoomedEvidence = null;
     render();
   },
   createLocalUser: (formData) => {
     const result = addLocalUser({
       name: String(formData.get("userName") ?? ""),
       employeeNumber: String(formData.get("employeeNumber") ?? ""),
-      password: String(formData.get("loginPassword") ?? ""),
       email: String(formData.get("userEmail") ?? ""),
       role: String(formData.get("userRole") ?? ""),
+      password: String(formData.get("userPassword") ?? ""),
     });
     if (result === "ok") showToast("Usuario agregado a esta demostración.", "warning");
-    else showToast(result === "email" ? "Ese correo ya existe." : result === "employee" ? "Ese número de empleado ya existe." : "No se pudo crear el perfil.", "warning");
+    else showToast(result === "email" ? "Ese correo ya existe." : result === "employee" ? "Ese número de empleado ya existe." : result === "password" ? "La contraseña debe tener al menos 4 caracteres." : "No se pudo crear el perfil.", "warning");
     render();
   },
   toggleLocalUser: (id, active) => {
