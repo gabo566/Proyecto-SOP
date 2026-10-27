@@ -175,7 +175,7 @@ button { color: inherit; }
 .procedure-selector-panel .selector-fields select { min-height: 34px; padding: 0 28px 0 9px; font-size: 11px; }
 .procedure-selector-panel .source-link { min-height: 34px; margin: 0; padding: 0 5px; gap: 4px; font-size: 11px; }
 .sop-page-preview { min-width: 0; width: 100%; height: auto; min-height: 0; display: block; flex: 0 0 auto; overflow: visible; scroll-margin-top: 108px; border: 1px solid var(--outline); border-radius: 8px; background: #fff; }
-.sop-page-preview img { display: block; width: 100%; height: auto; max-width: 100%; margin: 0; object-fit: contain; }
+.sop-page-preview img { display: block; width: 75%; height: auto; max-width: 100%; margin: 0 auto; object-fit: contain; }
 .procedure-action-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 2px; padding: 8px 10px; border: 1px solid var(--outline); border-radius: 10px; background: var(--surface-soft); }
 .procedure-identity-chip { min-width: 0; display: flex; align-items: center; gap: 9px; color: #345474; }
 .procedure-identity-chip > .material-symbols-rounded { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; border-radius: 50%; background: #e7eef6; }
