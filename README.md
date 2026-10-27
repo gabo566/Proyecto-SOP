@@ -52,6 +52,7 @@ Estas notas son advertencias editoriales del prototipo, no una resolución de in
 
 - Elegir cualquiera de las 42 secciones desde el selector o avanzar y retroceder entre ellas.
 - Consultar categoría, título, hoja, secuencia, instrucciones, imágenes y datos generales de la SOP.
+- Ver la hoja completa de la SOP al 65% del ancho disponible para mantenerla más compacta dentro del panel.
 - Abrir las referencias visuales con un ajuste inicial de 90% para mostrar un poco más de la hoja; los controles permiten acercar, alejar y volver al ajuste inicial.
 - Capturar serial y número de parte del nodo, nombre y número de empleado, puesto, tipo de reparación y datos del componente reparado.
 - Marcar cada paso como realizado y revisar el avance de la sección.
