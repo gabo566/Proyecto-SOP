@@ -12,6 +12,7 @@ const state = {
   workItems: storedWorkItems,
   activeWorkId: restorableWork?.id ?? "",
   workDialogOpen: false,
+  validationDialogOpen: false,
   workDraft: { type: "pause", failedStep: "", note: "" },
   validationEvidenceFiles: [],
   workError: "",
@@ -36,7 +37,7 @@ const state = {
   toast: null,
   serialQuery: "",
   recordsQuery: "",
-  form: { ...createEmptyForm(), ...(restorableWork?.form ?? {}), name: activeDemoUser.name, employeeNumber: activeDemoUser.employeeNumber, position: "Técnico de FA" },
+  form: { ...createEmptyForm(), ...(restorableWork?.form ?? {}), name: activeDemoUser.name, employeeNumber: activeDemoUser.employeeNumber, position: activeDemoUser.position || "Técnico de FA" },
   auditSessionId: localStorage.getItem("sop-operador-audit-session-v1") || `session-${crypto.randomUUID()}`,
   formError: "",
   dialogTriggerFocusKey: "",
@@ -66,7 +67,7 @@ function getRecords() {
 }
 
 function getProcedure() {
-  return PROCEDURES.find((item) => item.id === state.selectedId) ?? PROCEDURES[0];
+  return SOP_SHEETS.find((item) => item.id === state.selectedId) ?? SOP_SHEETS[0];
 }
 
 function getFocusState() {
@@ -93,22 +94,22 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     ? `${renderWorkItemsPanel(state.workItems, state.activeWorkId)}${renderSerialTable(records, state.serialQuery, state.workItems)}`
     : state.activeSection === "users"
     ? renderLocalUsersPanel()
-    : getActiveLocalUser().role === "supervisor"
-    ? `${renderSummaryMetrics(todayRecords, state)}${renderWorkItemsPanel(state.workItems, state.activeWorkId)}${renderSerialTable(records, state.serialQuery, state.workItems)}${renderActivityPanel(todayRecords)}`
     : `${renderSummaryMetrics(todayRecords, state)}
-      <div class="production-layout" id="production">
-        ${renderProcedurePanel(getProcedure(), state)}${renderOperatorValidationPanel(getProcedure(), state)}
+      <div class="production-layout production-layout--sheet" id="production">
+        ${renderProcedurePanel(getProcedure())}
       </div>
       ${renderWorkItemsPanel(state.workItems, state.activeWorkId)}
       ${renderSerialTable(records, state.serialQuery, state.workItems)}
       ${renderActivityPanel(todayRecords)}`;
   app.innerHTML = `${renderSidebar(state)}<main class="main-area" id="main-content">
     ${renderTopbar()}<div class="dashboard-content">${dashboard}${renderFooter()}</div></main>
-    ${renderRecordsDialog(records, state.recordsQuery, state.workItems)}${renderWorkItemDialog(state)}${renderEvidenceReviewDialog(state)}${renderEvidenceImageDialog(state)}${renderStepImageDialog()}
+    ${renderOperatorValidationDialog(getProcedure(), state)}${renderRecordsDialog(records, state.recordsQuery, state.workItems)}${renderWorkItemDialog(state)}${renderEvidenceReviewDialog(state)}${renderEvidenceImageDialog(state)}${renderStepImageDialog()}
     ${renderToast()}`;
 
   const recordsDialog = document.querySelector("#records-dialog");
   recordsDialog.addEventListener("close", () => handleNativeDialogClose("recordsDialogOpen"));
+  const validationDialog = document.querySelector("#validation-dialog");
+  validationDialog.addEventListener("close", () => handleNativeDialogClose("validationDialogOpen"));
   const workDialog = document.querySelector("#work-item-dialog");
   workDialog.addEventListener("close", () => handleNativeDialogClose("workDialogOpen"));
   const evidenceReviewDialog = document.querySelector("#evidence-review-dialog");
@@ -120,6 +121,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   });
 
   if (state.recordsDialogOpen) recordsDialog.showModal();
+  if (state.validationDialogOpen) validationDialog.showModal();
   if (state.workDialogOpen) workDialog.showModal();
   if (state.evidenceReviewDialogOpen) evidenceReviewDialog.showModal();
   if (state.evidenceImageDialogOpen) evidenceImageDialog.showModal();
@@ -138,6 +140,10 @@ function renderToast() {
 function restoreFocus(previousFocus, { focusDialog, initial }) {
   if (focusDialog && state.recordsDialogOpen) {
     document.querySelector('[data-focus-key="records-search"]')?.focus();
+    return;
+  }
+  if (focusDialog && state.validationDialogOpen) {
+    (document.querySelector("#completion-form [data-step]:not(:checked)") ?? document.querySelector('#completion-form [name="serial"]'))?.focus();
     return;
   }
   if (!previousFocus.key) {
@@ -173,10 +179,6 @@ function showToast(message, kind = "success") {
 }
 
 function selectProcedure(id) {
-  if (!["operator", "admin"].includes(getActiveLocalUser().role)) {
-    showToast("El rol de supervisor puede consultar registros, pero no ejecutar pasos.", "warning");
-    return;
-  }
   if (state.activeWorkId && id !== state.selectedId) {
     showToast("Guarda o finaliza el trabajo activo antes de cambiar de procedimiento.", "warning");
     return;
@@ -185,14 +187,15 @@ function selectProcedure(id) {
   state.completedSteps = [];
   state.formError = "";
   render();
+  document.querySelector("#production")?.scrollIntoView({ block: "start" });
 }
 
 const workflow = createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, showToast, persistSavedRecords });
 
 function moveProcedure(direction) {
-  const currentIndex = PROCEDURES.findIndex((item) => item.id === state.selectedId);
-  const nextIndex = (currentIndex + direction + PROCEDURES.length) % PROCEDURES.length;
-  selectProcedure(PROCEDURES[nextIndex].id);
+  const currentIndex = SOP_SHEETS.findIndex((item) => item.id === getProcedure().id);
+  const nextIndex = (currentIndex + direction + SOP_SHEETS.length) % SOP_SHEETS.length;
+  selectProcedure(SOP_SHEETS[nextIndex].id);
 }
 
 function openRecords(triggerKey) {
@@ -212,14 +215,15 @@ function closeDialog(stateKey) {
 
 function handleCompletionSubmit(event) {
   event.preventDefault();
-  if (!["operator", "admin"].includes(getActiveLocalUser().role)) {
-    showToast("Solo un operador puede registrar una validación.", "warning");
+  const procedure = getProcedure();
+  if (!procedure.steps.length) {
+    showToast("Esta hoja es informativa y no tiene pasos para validar.", "warning");
     return;
   }
-  const procedure = getProcedure();
   const allChecked = procedure.steps.every((step) => state.completedSteps.includes(step.number));
   if (!allChecked) {
-    showToast("Completa todos los pasos antes de registrar la declaración.", "warning");
+    const uncheckedStep = procedure.steps.find((step) => !state.completedSteps.includes(step.number));
+    showFormError("Confirma todos los pasos antes de registrar la validación.", document.querySelector(`[data-step="${CSS.escape(String(uncheckedStep?.number ?? ""))}"]`));
     return;
   }
   const formElement = event.currentTarget;
@@ -283,10 +287,10 @@ function saveCompletion() {
     componentSerial: state.form.componentSerial.trim(),
     operator: user.name,
     employeeNumber: user.employeeNumber,
-    actor: { id: user.id, name: user.name, employeeNumber: user.employeeNumber, role: user.role },
+    actor: { id: user.id, name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", role: user.role },
     sessionId: state.auditSessionId,
     auditEventIds: readLocalAuditTrail().filter((event) => event.sessionId === state.auditSessionId && event.procedureId === procedure.id).map((event) => event.id),
-    position: state.form.position.trim(),
+    position: user.position || "Técnico de FA",
     repairType: state.form.repairType,
     date: TODAY_DATE_KEY,
     displayDate: TODAY_DATE_LABEL,
@@ -317,9 +321,11 @@ function saveCompletion() {
     persistSavedRecords(next);
   }
   const completion = state.activeWorkId
-    ? workflow.completeActiveWork(record.id, state.form.name.trim())
+    ? workflow.completeActiveWork(record.id, user.name)
     : { saved: true, needsReview: false };
   state.completedSteps = [];
+  state.validationDialogOpen = false;
+  document.querySelector("#validation-dialog")?.close();
   state.form = createEmptyForm();
   state.validationEvidenceFiles = [];
   state.auditSessionId = `session-${crypto.randomUUID()}`;
@@ -372,6 +378,7 @@ bindInteractions(app, {
     const result = addLocalUser({
       name: String(formData.get("userName") ?? ""),
       employeeNumber: String(formData.get("employeeNumber") ?? ""),
+      position: String(formData.get("userPosition") ?? ""),
       email: String(formData.get("userEmail") ?? ""),
       role: String(formData.get("userRole") ?? ""),
       password: String(formData.get("userPassword") ?? ""),
@@ -398,4 +405,5 @@ bindInteractions(app, {
   openRecordEvidence: workflow.openRecordEvidence,
 });
 
+startCurrentShiftClock();
 render({ initial: true });

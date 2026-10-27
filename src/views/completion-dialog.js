@@ -23,7 +23,7 @@ const REPAIR_TYPES = [
 ];
 function createEmptyForm() {
   const user = getActiveLocalUser();
-  return { name: user.name, employeeNumber: user.employeeNumber, position: "Técnico de FA", nodeNumber: "", serial: "", nodePartNumber: SOP_DOCUMENT.nodePartNumber, repairType: "", componentPartNumber: "", componentSerial: "", declaration: false };
+  return { name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", nodeNumber: "", serial: "", nodePartNumber: SOP_DOCUMENT.nodePartNumber, repairType: "", componentPartNumber: "", componentSerial: "", declaration: false };
 }
 
 function renderComponentFields(form, workDraft = null) {
@@ -37,7 +37,7 @@ function renderComponentFields(form, workDraft = null) {
 
 function renderField(field, form, error = "") {
   const fullWidth = field.full ? " validation-field--full" : "";
-  const identityLock = ["name", "employeeNumber"].includes(field.name) ? "readonly aria-readonly=\"true\"" : "";
+  const identityLock = ["name", "employeeNumber", "position"].includes(field.name) ? "readonly aria-readonly=\"true\"" : "";
   return `<label class="validation-field${fullWidth}">${field.label}<input name="${field.name}" data-form-field="${field.name}" data-focus-key="form-${field.name}"
     value="${escapeHtml(form[field.name] ?? "")}" placeholder="${field.placeholder}" ${field.autocomplete ? `autocomplete="${field.autocomplete}"` : ""}
     ${identityLock} required /></label>`;
@@ -76,7 +76,8 @@ function renderOperatorValidationPanel(procedure, state) {
 
   return `<section class="validation-panel" aria-labelledby="validation-heading">
     <div class="validation-panel-heading"><span class="heading-icon material-symbols-rounded" aria-hidden="true">how_to_reg</span>
-      <div><p class="eyebrow">Captura y declaración</p><h2 id="validation-heading">Validación del operador</h2></div>
+      <div><p class="eyebrow">Captura y declaración</p><h2 id="validation-heading">Registrar validación</h2></div>
+      <button class="icon-button validation-dialog-close" type="button" data-action="close-validation-dialog" aria-label="Cerrar registro"><span class="material-symbols-rounded" aria-hidden="true">close</span></button>
     </div>
     <form id="completion-form" novalidate>
       <div class="validation-asset-grid">${equipmentFields.map((field) => renderField(field, state.form, state.formError)).join("")}</div>
@@ -96,9 +97,12 @@ function renderOperatorValidationPanel(procedure, state) {
         </label>
       </section>
       <p class="form-error" id="completion-form-error" role="alert" aria-live="polite" ${errorHidden}>${escapeHtml(state.formError)}</p>
-      <button class="button button--secondary validation-pause" type="button" data-action="open-work-item-dialog"><span class="material-symbols-rounded" aria-hidden="true">pause_circle</span>Detener / registrar retrabajo</button>
       <button class="button button--primary validation-submit" type="submit"><span class="material-symbols-rounded" aria-hidden="true">${isRework ? "fact_check" : "task_alt"}</span>${isRework ? "Enviar retrabajo a revisión" : "Registrar validación"}</button>
       <p class="validation-note">${isRework ? "El cierre requiere aprobación del supervisor." : "La declaración se vincula al nombre y número de empleado."}</p>
     </form>
   </section>`;
+}
+
+function renderOperatorValidationDialog(procedure, state) {
+  return `<dialog class="validation-dialog" id="validation-dialog" aria-labelledby="validation-heading">${renderOperatorValidationPanel(procedure, state)}</dialog>`;
 }

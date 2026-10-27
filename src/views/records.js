@@ -37,7 +37,7 @@ function renderSerialRows(records, workItems = []) {
     <td class="serial-cell">${escapeHtml(record.serial)}</td><td>${escapeHtml(record.nodePartNumber)}</td>
     <td>${escapeHtml(record.operation ?? record.category)}<small>${escapeHtml(record.category)} · hoja ${escapeHtml(record.sheet ?? "—")}</small></td>
     <td>${escapeHtml(record.repairType ?? "—")}</td><td>${escapeHtml(record.componentPartNumber ?? "—")}</td><td>${escapeHtml(record.componentSerial ?? "—")}</td>
-    <td>${escapeHtml(record.sheet ?? "—")}</td><td><span>${escapeHtml(record.operator)}</span></td><td>${escapeHtml(record.employeeNumber)}</td>
+    <td>${escapeHtml(record.sheet ?? "—")}</td><td><span>${escapeHtml(record.operator)}</span></td><td>${escapeHtml(record.employeeNumber)}</td><td>${escapeHtml(record.position ?? "Técnico de FA")}</td>
     <td><span class="status-chip ${recordStatusClass(record.status)}"><span></span>${escapeHtml(record.status)}</span></td>${renderRecordEvidenceCell(record, workItems)}
   </tr>`).join("");
 }
@@ -56,7 +56,7 @@ function getVisibleSerialRecords(records, query) {
 
 function renderSerialTable(records, query = "", workItems = []) {
   const { filtered, visible } = getVisibleSerialRecords(records, query);
-  const rows = visible.length ? renderSerialRows(visible, workItems) : '<tr><td class="empty-row" colspan="12">No hay registros que coincidan con la búsqueda.</td></tr>';
+  const rows = visible.length ? renderSerialRows(visible, workItems) : '<tr><td class="empty-row" colspan="13">No hay registros que coincidan con la búsqueda.</td></tr>';
   const footnote = `Mostrando ${visible.length} de ${filtered.length} ${query.trim() ? "coincidencias" : "registros representativos"}`;
 
   return `<section class="serial-panel" id="records" aria-labelledby="serial-heading"><div class="section-heading records-heading">
@@ -65,7 +65,7 @@ function renderSerialTable(records, query = "", workItems = []) {
       <button class="text-button" type="button" data-action="open-records" data-focus-key="records-open-table">Ver todas las validaciones <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span></button>
     </div></div>
     <div class="demo-banner"><span class="material-symbols-rounded" aria-hidden="true">info</span>Datos de demostración · seriales, operadores y registros ilustrativos; no son producción real.</div>
-    <div class="table-scroll"><table><thead><tr><th>Fecha y hora</th><th>N° de serie del nodo</th><th>N° de parte del nodo</th><th>Tipo de SOP utilizada</th><th>Tipo de reparación</th><th>N° de parte del componente</th><th>N° de serie del componente</th><th>Hoja</th><th>Operador</th><th>N° empleado</th><th>Estado</th><th>Evidencia</th></tr></thead><tbody id="serial-table-body">${rows}</tbody></table></div>
+    <div class="table-scroll"><table><thead><tr><th>Fecha y hora</th><th>N° de serie del nodo</th><th>N° de parte del nodo</th><th>Tipo de SOP utilizada</th><th>Tipo de reparación</th><th>N° de parte del componente</th><th>N° de serie del componente</th><th>Hoja</th><th>Operador</th><th>N° empleado</th><th>Puesto</th><th>Estado</th><th>Evidencia</th></tr></thead><tbody id="serial-table-body">${rows}</tbody></table></div>
     <div class="table-footnote"><span id="serial-table-count">${footnote}</span><span>El cierre se basa en la declaración y el registro del operador.</span></div>
   </section>`;
 }

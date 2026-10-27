@@ -10,7 +10,6 @@ function renderSidebar(state) {
   const user = getActiveLocalUser();
   const role = user.role;
   const visibleItems = NAV_ITEMS.filter((item) => item.id !== "users" || role === "admin")
-    .filter((item) => item.id !== "production" || ["operator", "admin"].includes(role))
     .filter((item) => item.id !== "reports" || ["supervisor", "admin"].includes(role));
   const navItems = visibleItems.map((item) => `
     <button class="nav-item ${state.activeSection === item.id ? "nav-item--active" : ""}"
@@ -45,23 +44,42 @@ function renderTopbar() {
     </div>
     <div class="topbar-meta">
       <div class="date-chip"><span class="material-symbols-rounded" aria-hidden="true">calendar_today</span><span>${escapeHtml(TODAY_DATE_LABEL)}</span></div>
-      <div class="shift-chip"><span class="material-symbols-rounded" aria-hidden="true">groups</span><span>Turno A</span></div>
+      <div class="shift-chip" aria-label="Turno actual"><span class="material-symbols-rounded" aria-hidden="true">groups</span><span id="current-shift-label">${getCurrentShiftLabel()}</span></div>
     </div>
   </header>`;
 }
 
+function getCurrentShiftLabel(date = new Date()) {
+  const minutes = date.getHours() * 60 + date.getMinutes();
+  if (minutes >= 7 * 60 && minutes < 15 * 60) return "Turno 1 (T1)";
+  if (minutes >= 15 * 60 && minutes < 22 * 60 + 30) return "Turno 2 (T2)";
+  if (minutes >= 22 * 60 + 30 || minutes <= 5 * 60 + 30) return "Turno 3 (T3)";
+  return "Sin turno";
+}
+
+function updateCurrentShiftLabel() {
+  const label = document.querySelector("#current-shift-label");
+  if (label) label.textContent = getCurrentShiftLabel();
+}
+
+function startCurrentShiftClock() {
+  const refreshAtNextMinute = 60_000 - (Date.now() % 60_000);
+  window.setTimeout(() => {
+    updateCurrentShiftLabel();
+    window.setInterval(updateCurrentShiftLabel, 60_000);
+  }, refreshAtNextMinute);
+}
+
 function renderSopSelector(selectedId) {
-  const options = PROCEDURES.map((procedure) => `<option value="${escapeHtml(procedure.id)}" ${procedure.id === selectedId ? "selected" : ""}>${escapeHtml(procedure.category)} · ${escapeHtml(procedure.title)} · hoja ${procedure.sheet}</option>`).join("");
-  const procedure = PROCEDURES.find((item) => item.id === selectedId) ?? PROCEDURES[0];
+  const options = SOP_SHEETS.map((procedure) => `<option value="${escapeHtml(procedure.id)}" ${procedure.id === selectedId ? "selected" : ""}>${escapeHtml(procedure.category)} · ${escapeHtml(procedure.title)} · hoja ${procedure.sheet}</option>`).join("");
+  const procedure = SOP_SHEETS.find((item) => item.id === selectedId) ?? SOP_SHEETS[0];
   const sourceUrl = `${SOP_DOCUMENT.pdfPath}#page=${procedure.sheet}`;
 
-  return `<section class="selector-panel" aria-label="Selección de SOP y procedimiento">
-    <div class="selector-icon"><span class="material-symbols-rounded" aria-hidden="true">fact_check</span></div>
-    <div class="selector-fields"><label for="procedure-select">Seleccionar SOP o procedimiento</label>
+  return `<section class="selector-panel procedure-selector-panel" aria-label="Selección de SOP y hoja">
+    <div class="selector-fields"><label for="procedure-select">SOP / hoja</label>
       <select id="procedure-select" data-action="select-procedure" data-focus-key="procedure-select">${options}</select>
-      <div class="selector-context"><span>${escapeHtml(SOP_DOCUMENT.id)} · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}</span><span>${escapeHtml(SOP_DOCUMENT.title)}</span></div>
     </div>
-    <a class="text-button source-link" href="${sourceUrl}" target="_blank" rel="noreferrer"><span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>Ver SOP</a>
+    <a class="text-button source-link" href="${sourceUrl}" target="_blank" rel="noreferrer"><span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>Ver PDF</a>
   </section>`;
 }
 
@@ -74,7 +92,7 @@ function renderSummaryMetrics(todayRecords, state) {
   const reviewCount = state.workItems.filter((item) => item.status === "Pendiente de revisión").length;
   const attentionCount = pausedCount + reworkCount + reviewCount;
   const metrics = [
-    { tone: "total", label: "Total de SOP (GB200)", value: String(PROCEDURES.length), unit: `${SOP_STEP_COUNT} pasos documentados`, icon: "description" },
+    { tone: "total", label: "Hojas de SOP (GB200)", value: String(SOP_DOCUMENT.totalSheets), unit: `${SOP_DOCUMENT.processSheets} procedimientos · ${SOP_STEP_COUNT} pasos`, icon: "description" },
     { tone: "completed", label: "Completados hoy", value: String(completedRecords.length), unit: `${TODAY_DATE_LABEL} · demostración`, icon: "check_circle" },
     { tone: "progress", label: "En proceso", value: String(inProgressCount), unit: `${state.completedSteps.length} pasos marcados`, icon: "donut_large" },
     { tone: "pending", label: "Atención requerida", value: String(attentionCount), unit: `${pausedCount} detenidos · ${reworkCount} retrabajos · ${reviewCount} por revisar`, icon: "priority_high" },

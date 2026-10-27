@@ -13,31 +13,32 @@ function renderStepImages(step, sheet) {
   </div>`;
 }
 
-function renderProcedurePanel(procedure, state) {
-  const hasMoreSteps = procedure.steps.length > 2;
-  const steps = procedure.steps.map((step) => {
-    return `<article class="procedure-step-item">
-      <span class="step-number" aria-hidden="true">${escapeHtml(step.number)}</span>
-      <div class="step-content"><small>Paso ${escapeHtml(step.number)}</small><span>${escapeHtml(step.text)}</span>${step.sourceNote ? `<small class="step-source-note"><span class="material-symbols-rounded" aria-hidden="true">warning</span>${escapeHtml(step.sourceNote)}</small>` : ""}</div>
-      ${renderStepImages(step, procedure.sheet)}
-    </article>`;
-  }).join("");
-  const currentStatus = state.completedSteps.length ? "EN PROCESO" : "PENDIENTE";
+function renderProcedureSteps(procedure, state, hasMoreSteps) {
+  const steps = procedure.steps.map((step) => `<article class="procedure-step-item">
+    <span class="step-number" aria-hidden="true">${escapeHtml(step.number)}</span>
+    <div class="step-content"><small>Paso ${escapeHtml(step.number)}</small><span>${escapeHtml(step.text)}</span>${step.sourceNote ? `<small class="step-source-note"><span class="material-symbols-rounded" aria-hidden="true">warning</span>${escapeHtml(step.sourceNote)}</small>` : ""}</div>
+    ${renderStepImages(step, procedure.sheet)}
+  </article>`).join("");
 
-  return `<section class="procedure-panel" aria-labelledby="procedure-heading">
-    <div class="section-heading procedure-heading"><div class="section-title"><span class="heading-icon material-symbols-rounded" aria-hidden="true">format_list_bulleted</span>
-      <div><p class="eyebrow">${escapeHtml(SOP_DOCUMENT.id)} · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}</p><h2 id="procedure-heading">SOP en proceso</h2><p class="procedure-current-title">${escapeHtml(procedure.title)}</p></div>
-    </div><div class="procedure-controls"><span class="status-chip status-chip--${state.completedSteps.length ? "progress" : "pending"}">${currentStatus}</span><span class="sheet-chip">Hoja ${procedure.sheet} de ${SOP_DOCUMENT.totalSheets}</span>
-      <button class="icon-button" type="button" aria-label="Procedimiento anterior" data-action="previous-procedure" data-focus-key="previous-procedure"><span class="material-symbols-rounded" aria-hidden="true">chevron_left</span></button>
-      <button class="icon-button" type="button" aria-label="Procedimiento siguiente" data-action="next-procedure" data-focus-key="next-procedure"><span class="material-symbols-rounded" aria-hidden="true">chevron_right</span></button>
-    </div></div>
-    ${renderSopSelector(procedure.id)}
-    <div class="procedure-meta"><div><span>SOP</span><strong>${escapeHtml(SOP_DOCUMENT.id)}</strong></div><div><span>Revisión</span><strong>${escapeHtml(SOP_DOCUMENT.revision)}</strong></div>
-      <div><span>Cliente</span><strong>${escapeHtml(SOP_DOCUMENT.customer)}</strong></div><div><span>Familia</span><strong>${escapeHtml(SOP_DOCUMENT.family)}</strong></div><div><span>Estación</span><strong>${escapeHtml(SOP_DOCUMENT.station)}</strong></div>
-    </div>
-    <div class="procedure-steps-heading"><div><p class="eyebrow">Secuencia ${escapeHtml(procedure.stepRange)}</p><h3>Pasos del procedimiento</h3>${hasMoreSteps ? '<small class="procedure-scroll-hint">Desplaza horizontalmente para ver los demás pasos.</small>' : ""}</div><span>${procedure.steps.length} pasos</span></div>
+  return `<div class="procedure-steps-heading"><div><p class="eyebrow">Secuencia ${escapeHtml(procedure.stepRange)}</p><h3>Pasos del procedimiento</h3>${hasMoreSteps ? '<small class="procedure-scroll-hint">Desplaza horizontalmente para ver los demás pasos.</small>' : ""}</div><span>${procedure.steps.length} pasos</span></div>
     <div class="procedure-step-list procedure-step-list--scroll" role="region" tabindex="0" aria-label="Pasos del procedimiento${hasMoreSteps ? ". Desplaza horizontalmente para ver el resto" : ""}.">${steps}</div>
-    <div class="step-note"><span class="material-symbols-rounded" aria-hidden="true">info</span><span>Revisa cada instrucción y su referencia visual. Marca su validación en el panel del operador.</span></div>
+    <div class="step-note"><span class="material-symbols-rounded" aria-hidden="true">info</span><span>Revisa cada instrucción y su referencia visual. Marca su validación en el panel del operador.</span></div>`;
+}
+
+function renderProcedurePanel(procedure) {
+  const user = getActiveLocalUser();
+  const pageImageUrl = `./public/assets/sop-pages/sop-page-${String(procedure.sheet).padStart(2, "0")}.jpg?resolution=200dpi`;
+
+  return `<section class="procedure-panel" aria-label="SOP seleccionada">
+    ${renderSopSelector(procedure.id)}
+    <div class="sop-page-preview" id="sop-page-preview"><img src="${pageImageUrl}" alt="${escapeHtml(SOP_DOCUMENT.title)} · hoja ${procedure.sheet} completa" loading="eager" decoding="async" /></div>
+    ${procedure.steps.length ? `<div class="procedure-action-bar">
+      <div class="procedure-identity-chip"><span class="material-symbols-rounded" aria-hidden="true">person</span><span><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.employeeNumber)} · ${escapeHtml(user.position || "Técnico de FA")}</small></span></div>
+      <div class="procedure-action-buttons">
+        <button class="button button--primary procedure-register-button" type="button" data-action="open-validation-dialog" data-focus-key="register-validation"><span class="material-symbols-rounded" aria-hidden="true">task_alt</span>Registrar validación</button>
+        <button class="button button--secondary procedure-stop-button" type="button" data-action="open-work-item-dialog"><span class="material-symbols-rounded" aria-hidden="true">pause_circle</span>Detener / registrar retrabajo</button>
+      </div>
+    </div>` : ""}
   </section>`;
 }
 

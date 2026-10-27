@@ -9,9 +9,9 @@ const LOCAL_USER_ROLES = {
 };
 
 const INITIAL_LOCAL_USERS = [
-  { id: "demo-operator", name: "Operador Demo", username: "140785", password: "0785", employeeNumber: "140785", email: "operador.demo@example.local", role: "operator", active: true, demo: true },
-  { id: "demo-supervisor", name: "Supervisor Demo", username: "140784", password: "0784", employeeNumber: "140784", email: "supervisor.demo@example.local", role: "supervisor", active: true, demo: true },
-  { id: "demo-admin", name: "Administrador Demo", username: "140783", password: "0783", employeeNumber: "140783", email: "admin.demo@example.local", role: "admin", active: true, demo: true },
+  { id: "demo-operator", name: "Operador Demo", username: "140785", password: "0785", employeeNumber: "140785", position: "Técnico de FA", email: "operador.demo@example.local", role: "operator", active: true, demo: true },
+  { id: "demo-supervisor", name: "Gabriel Medina Ramirez", username: "140784", password: "0784", employeeNumber: "140784", position: "Ing FA JR", email: "supervisor.demo@example.local", role: "supervisor", active: true, demo: true },
+  { id: "demo-admin", name: "Administrador Demo", username: "140783", password: "0783", employeeNumber: "140783", position: "Administrador", email: "admin.demo@example.local", role: "admin", active: true, demo: true },
 ];
 
 function readLocalUsers() {
@@ -21,7 +21,7 @@ function readLocalUsers() {
     const migratedUsers = users.map((user) => {
       const seeded = INITIAL_LOCAL_USERS.find((item) => item.id === user.id);
       return seeded
-        ? { ...seeded, ...user, username: seeded.username, password: seeded.password, employeeNumber: seeded.employeeNumber, role: seeded.role, demo: true }
+        ? { ...seeded, ...user, name: seeded.name, position: user.position || seeded.position, username: seeded.username, password: seeded.password, employeeNumber: seeded.employeeNumber, role: seeded.role, demo: true }
         : { ...user, username: user.username || user.employeeNumber, password: user.password || "" };
     });
     INITIAL_LOCAL_USERS.forEach((seeded) => {
@@ -52,7 +52,7 @@ function getAuthenticatedLocalUser() {
 }
 
 function getLocalUserSnapshot(user = getActiveLocalUser()) {
-  return { id: user.id, name: user.name, employeeNumber: user.employeeNumber, role: user.role };
+  return { id: user.id, name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", role: user.role };
 }
 
 function authenticateLocalUser(username, password) {
@@ -76,7 +76,7 @@ function persistLocalUsers(users) {
   localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(users));
 }
 
-function addLocalUser({ name, employeeNumber, email, role, password }) {
+function addLocalUser({ name, employeeNumber, email, role, password, position }) {
   const users = listLocalUsers();
   const normalizedEmail = email.trim().toLocaleLowerCase("es-MX");
   const normalizedEmployee = employeeNumber.trim().toLocaleLowerCase("es-MX");
@@ -90,6 +90,7 @@ function addLocalUser({ name, employeeNumber, email, role, password }) {
     username: employeeNumber.trim(),
     password: password.trim(),
     employeeNumber: employeeNumber.trim(),
+    position: position.trim(),
     email: email.trim(),
     role,
     active: true,
@@ -133,7 +134,7 @@ function recordLocalAuditEvent(action, details = {}) {
   const event = {
     id: `audit-${crypto.randomUUID()}`,
     action,
-    actor: { id: user.id, name: user.name, employeeNumber: user.employeeNumber, role: user.role },
+    actor: { id: user.id, name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", role: user.role },
     at: new Date().toISOString(),
     ...details,
   };
@@ -148,11 +149,11 @@ function recordLocalAuditEvent(action, details = {}) {
 
 function renderLocalUsersPanel() {
   const users = listLocalUsers();
-  const rows = users.map((user) => `<tr><td><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.email)}</small></td><td>${escapeHtml(user.employeeNumber)}</td><td>${escapeHtml(LOCAL_USER_ROLES[user.role] ?? user.role)}</td><td><span class="local-user-status ${user.active ? "is-active" : ""}">${user.active ? "Activo" : "Desactivado"}</span></td><td>${user.demo ? "Cuenta de ejemplo" : `<button class="text-button" type="button" data-action="toggle-local-user" data-user-id="${escapeHtml(user.id)}" data-active="${user.active ? "false" : "true"}">${user.active ? "Desactivar" : "Activar"}</button>`}</td></tr>`).join("");
+  const rows = users.map((user) => `<tr><td><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.email)}</small></td><td>${escapeHtml(user.employeeNumber)}</td><td>${escapeHtml(user.position || "Técnico de FA")}</td><td>${escapeHtml(LOCAL_USER_ROLES[user.role] ?? user.role)}</td><td><span class="local-user-status ${user.active ? "is-active" : ""}">${user.active ? "Activo" : "Desactivado"}</span></td><td>${user.demo ? "Cuenta de ejemplo" : `<button class="text-button" type="button" data-action="toggle-local-user" data-user-id="${escapeHtml(user.id)}" data-active="${user.active ? "false" : "true"}">${user.active ? "Desactivar" : "Activar"}</button>`}</td></tr>`).join("");
   return `<section class="users-panel" id="users-panel"><div class="section-heading"><div><p class="eyebrow">Control local · sin cuentas Microsoft</p><h2>Usuarios de demostración</h2></div><span>${users.filter((user) => user.active).length} activos</span></div>
     <div class="local-prototype-notice" role="note">Los perfiles y roles se simulan en este navegador. No validan identidad ni protegen datos; no uses información real.</div>
-    <form class="local-user-form" id="local-user-form"><label>Nombre completo<input name="userName" required maxlength="100" autocomplete="off" /></label><label>Número de empleado / usuario<input name="employeeNumber" required maxlength="40" autocomplete="username" /></label><label>Contraseña inicial<input name="userPassword" type="password" required minlength="4" maxlength="80" autocomplete="new-password" /></label><label>Correo de referencia<input name="userEmail" type="email" required maxlength="160" autocomplete="off" /></label><label>Rol<select name="userRole"><option value="operator">Operador</option><option value="supervisor">Supervisor</option><option value="admin">Administrador</option></select></label><button class="button button--primary" type="submit">Agregar usuario de demostración</button></form>
-    <div class="table-scroll"><table><thead><tr><th>Usuario</th><th>N° empleado</th><th>Rol</th><th>Estado</th><th>Acción</th></tr></thead><tbody>${rows}</tbody></table></div></section>
+    <form class="local-user-form" id="local-user-form"><label>Nombre completo<input name="userName" required maxlength="100" autocomplete="off" /></label><label>Número de empleado / usuario<input name="employeeNumber" required maxlength="40" autocomplete="username" /></label><label>Puesto<input name="userPosition" required maxlength="80" autocomplete="organization-title" /></label><label>Contraseña inicial<input name="userPassword" type="password" required minlength="4" maxlength="80" autocomplete="new-password" /></label><label>Correo de referencia<input name="userEmail" type="email" required maxlength="160" autocomplete="off" /></label><label>Rol<select name="userRole"><option value="operator">Operador</option><option value="supervisor">Supervisor</option><option value="admin">Administrador</option></select></label><button class="button button--primary" type="submit">Agregar usuario de demostración</button></form>
+    <div class="table-scroll"><table><thead><tr><th>Usuario</th><th>N° empleado</th><th>Puesto</th><th>Rol</th><th>Estado</th><th>Acción</th></tr></thead><tbody>${rows}</tbody></table></div></section>
     <section class="audit-panel" id="audit-panel"><div class="section-heading"><div><p class="eyebrow">Eventos guardados en este navegador</p><h2>Actividad de usuarios</h2></div><span>${readLocalAuditTrail().length} eventos · máximo 1,000</span></div>${renderLocalAuditTable()}</section>`;
 }
 

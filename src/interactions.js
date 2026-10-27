@@ -38,8 +38,7 @@ function bindInteractions(app, handlers) {
     const item = navItems.find((navItem) => navItem.id === action.dataset.navId);
     if (!item) return;
     const role = getActiveLocalUser().role;
-    if ((item.id === "production" && !["operator", "admin"].includes(role))
-      || (item.id === "reports" && !["supervisor", "admin"].includes(role))
+    if ((item.id === "reports" && !["supervisor", "admin"].includes(role))
       || (item.id === "users" && role !== "admin")) return;
     state.navOpen = false;
     if (item.action === "reports") {
@@ -56,7 +55,7 @@ function bindInteractions(app, handlers) {
     const body = document.querySelector("#serial-table-body");
     const count = document.querySelector("#serial-table-count");
     if (!body || !count) return;
-    body.innerHTML = visible.length ? renderSerialRows(visible, state.workItems) : '<tr><td class="empty-row" colspan="12">No hay registros que coincidan con la búsqueda.</td></tr>';
+    body.innerHTML = visible.length ? renderSerialRows(visible, state.workItems) : '<tr><td class="empty-row" colspan="13">No hay registros que coincidan con la búsqueda.</td></tr>';
     count.textContent = `Mostrando ${visible.length} de ${filtered.length} ${state.serialQuery.trim() ? "coincidencias" : "registros representativos"}`;
   }
 
@@ -122,6 +121,7 @@ function bindInteractions(app, handlers) {
       if (clickedBackdrop) {
         if (event.target.id === "step-image-dialog") event.target.close();
         else if (event.target.id === "work-item-dialog") closeWorkItemDialog();
+        else if (event.target.id === "validation-dialog") event.target.close();
         else if (event.target.id === "evidence-review-dialog") closeEvidenceReview();
         else closeDialog("recordsDialogOpen");
       }
@@ -137,6 +137,12 @@ function bindInteractions(app, handlers) {
       case "logout-local-user": endLocalUserSession(); break;
       case "previous-procedure": moveProcedure(-1); break;
       case "next-procedure": moveProcedure(1); break;
+      case "open-validation-dialog":
+        state.dialogTriggerFocusKey = action.dataset.focusKey || "register-validation";
+        state.validationDialogOpen = true;
+        render({ focusDialog: true });
+        break;
+      case "close-validation-dialog": document.querySelector("#validation-dialog")?.close(); break;
       case "zoom-step-image": openStepImage(action); break;
       case "step-image-zoom-in": setStepImageZoom(stepImageViewer.zoom + 25); break;
       case "step-image-zoom-out": setStepImageZoom(stepImageViewer.zoom - 25); break;
@@ -144,9 +150,9 @@ function bindInteractions(app, handlers) {
       case "close-step-image": document.querySelector("#step-image-dialog")?.close(); break;
       case "open-records": openRecords(action.dataset.focusKey); break;
       case "close-records": closeDialog("recordsDialogOpen"); break;
-      case "open-work-item-dialog": if (["operator", "admin"].includes(getActiveLocalUser().role)) openWorkItemDialog(); else showToast("Solo un operador puede detener o registrar un retrabajo.", "warning"); break;
+      case "open-work-item-dialog": openWorkItemDialog(); break;
       case "close-work-item-dialog": closeWorkItemDialog(); break;
-      case "resume-work": if (["operator", "admin"].includes(getActiveLocalUser().role)) resumeWorkItem(action.dataset.workId); else showToast("Solo un operador puede reanudar el trabajo.", "warning"); break;
+      case "resume-work": resumeWorkItem(action.dataset.workId); break;
       case "toggle-local-user": if (getActiveLocalUser().role === "admin") toggleLocalUser(action.dataset.userId, action.dataset.active === "true"); break;
       case "remove-evidence": removeEvidence(action.dataset.evidenceId); break;
       case "remove-validation-evidence": removeValidationEvidence(action.dataset.evidenceId); break;
@@ -179,11 +185,6 @@ function bindInteractions(app, handlers) {
     if (target.matches("#procedure-select")) {
       selectProcedure(target.value);
     } else if (target.matches("[data-step]")) {
-      if (!["operator", "admin"].includes(getActiveLocalUser().role)) {
-        target.checked = !target.checked;
-        showToast("El perfil de supervisor solo puede revisar evidencia y registros.", "warning");
-        return;
-      }
       const step = target.dataset.step;
       state.completedSteps = target.checked
         ? [...state.completedSteps, step]
@@ -281,7 +282,7 @@ function bindInteractions(app, handlers) {
       state.activeSection = "overview";
       state.form.name = user.name;
       state.form.employeeNumber = user.employeeNumber;
-      state.form.position = "Técnico de FA";
+      state.form.position = user.position || "Técnico de FA";
       state.formError = "";
       state.auditSessionId = `session-${crypto.randomUUID()}`;
       localStorage.setItem("sop-operador-audit-session-v1", state.auditSessionId);
@@ -289,8 +290,7 @@ function bindInteractions(app, handlers) {
       render();
     } else if (event.target.matches("#completion-form")) handleCompletionSubmit(event);
     if (event.target.matches("#work-item-form")) {
-      if (["operator", "admin"].includes(getActiveLocalUser().role)) handleWorkItemSubmit(event);
-      else showToast("Solo un operador puede detener o registrar un retrabajo.", "warning");
+      handleWorkItemSubmit(event);
     }
     if (event.target.matches("#local-user-form")) {
       event.preventDefault();
