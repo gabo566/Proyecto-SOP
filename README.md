@@ -52,7 +52,7 @@ Estas notas son advertencias editoriales del prototipo, no una resolución de in
 
 - Elegir cualquiera de las 42 secciones desde el selector o avanzar y retroceder entre ellas.
 - Consultar categoría, título, hoja, secuencia, instrucciones, imágenes y datos generales de la SOP.
-- Ver la hoja completa de la SOP ocupando todo el ancho disponible en el panel, conservando la proporción y sin recortar el contenido.
+- Ver la hoja completa de la SOP usando casi todo el ancho del panel; se recortan levemente los márgenes blancos propios del escaneo, sin deformar el contenido.
 - Encontrar «Registrar validación» y «Detener / registrar retrabajo» antes de la hoja; la barra de acciones permanece visible bajo el encabezado mientras se desplaza por la SOP.
 - En pantallas de escritorio de poca altura, la interfaz aplica una escala compacta para facilitar el acceso a los controles principales.
 - Abrir las referencias visuales con un ajuste inicial de 90% para mostrar un poco más de la hoja; los controles permiten acercar, alejar y volver al ajuste inicial.
