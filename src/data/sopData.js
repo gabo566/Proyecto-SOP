@@ -275,6 +275,14 @@ const PROCEDURES = [
   ]),
 ];
 
+const SOP_FRONT_MATTER = [
+  createProcedure(1, "Información general", "Criterios de aceptación para puntas de torque", "", "", []),
+  createProcedure(2, "Información general", "Índice de procedimientos", "", "", []),
+  createProcedure(3, "Información general", "Índice de procedimientos · continuación", "", "", []),
+  createProcedure(4, "Información general", "Listado de partes y materiales", "", "", []),
+];
+const SOP_SHEETS = [...SOP_FRONT_MATTER, ...PROCEDURES];
+
 const SOP_STEP_COUNT = PROCEDURES.reduce((total, procedure) => total + procedure.steps.length, 0);
 
 const DEMO_GROUPS = [
