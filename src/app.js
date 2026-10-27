@@ -77,6 +77,10 @@ function getFocusState() {
 }
 
 function render({ focusKey, focusDialog = false, initial = false } = {}) {
+  if (!isLocalUserLoggedIn()) {
+    app.innerHTML = renderLocalLogin();
+    return;
+  }
   const previousFocus = focusKey === undefined ? getFocusState() : { key: focusKey, start: null, end: null };
   const records = getRecords();
   const todayRecords = records.filter((record) => record.date === TODAY_DATE_KEY);
@@ -357,10 +361,26 @@ bindInteractions(app, {
     render();
     showToast(`Perfil de demostración: ${user.name} · ${LOCAL_USER_ROLES[user.role]}`, "warning");
   },
+  loginLocalUser: (username, password) => {
+    if (!loginLocalUser(username, password)) {
+      app.innerHTML = renderLocalLogin("Usuario o contraseña incorrectos.");
+      return;
+    }
+    const user = getActiveLocalUser();
+    state.form.name = user.name;
+    state.form.employeeNumber = user.employeeNumber;
+    state.activeSection = "overview";
+    render();
+  },
+  logoutLocalUser: () => {
+    logoutLocalUser();
+    render();
+  },
   createLocalUser: (formData) => {
     const result = addLocalUser({
       name: String(formData.get("userName") ?? ""),
       employeeNumber: String(formData.get("employeeNumber") ?? ""),
+      password: String(formData.get("loginPassword") ?? ""),
       email: String(formData.get("userEmail") ?? ""),
       role: String(formData.get("userRole") ?? ""),
     });

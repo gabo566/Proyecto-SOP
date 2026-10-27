@@ -30,6 +30,8 @@ function bindInteractions(app, handlers) {
     switchLocalUser,
     createLocalUser,
     toggleLocalUser,
+    loginLocalUser,
+    logoutLocalUser,
   } = handlers;
   let stepImageViewer = { zoom: 100 };
 
@@ -146,6 +148,7 @@ function bindInteractions(app, handlers) {
       case "close-work-item-dialog": closeWorkItemDialog(); break;
       case "resume-work": if (["operator", "admin"].includes(getActiveLocalUser().role)) resumeWorkItem(action.dataset.workId); else showToast("Solo un operador puede reanudar el trabajo.", "warning"); break;
       case "toggle-local-user": if (getActiveLocalUser().role === "admin") toggleLocalUser(action.dataset.userId, action.dataset.active === "true"); break;
+      case "logout-local-user": logoutLocalUser(); break;
       case "remove-evidence": removeEvidence(action.dataset.evidenceId); break;
       case "remove-validation-evidence": removeValidationEvidence(action.dataset.evidenceId); break;
       case "remove-stop-evidence": removeDraftEvidence(action.dataset.evidenceId); break;
@@ -264,6 +267,11 @@ function bindInteractions(app, handlers) {
   });
 
   app.addEventListener("submit", (event) => {
+    if (event.target.matches("#local-login-form")) {
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      loginLocalUser(String(formData.get("username") ?? ""), String(formData.get("password") ?? ""));
+    }
     if (event.target.matches("#completion-form")) handleCompletionSubmit(event);
     if (event.target.matches("#work-item-form")) {
       if (["operator", "admin"].includes(getActiveLocalUser().role)) handleWorkItemSubmit(event);
