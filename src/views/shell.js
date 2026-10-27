@@ -7,7 +7,8 @@ const NAV_ITEMS = [
 ];
 
 function renderSidebar(state) {
-  const role = getActiveLocalUser().role;
+  const user = getActiveLocalUser();
+  const role = user.role;
   const visibleItems = NAV_ITEMS.filter((item) => item.id !== "users" || role === "admin")
     .filter((item) => item.id !== "production" || ["operator", "admin"].includes(role))
     .filter((item) => item.id !== "reports" || ["supervisor", "admin"].includes(role));
@@ -25,7 +26,7 @@ function renderSidebar(state) {
         <img class="brand-mark" src="./public/assets/ingrasys-emblem.png" alt="" aria-hidden="true" />
       </a>
       <nav class="side-nav">${navItems}</nav>
-      <div class="sidebar-bottom"><span class="demo-pulse"></span><div><strong>Entorno de muestra</strong><small>Sin conexión a producción</small></div>${renderUserSwitcher()}</div>
+      <div class="sidebar-bottom"><span class="demo-pulse"></span><div><strong>Entorno de muestra</strong><small>Sin conexión a producción</small></div><button class="sidebar-logout" type="button" data-action="logout-local-user" aria-label="Cerrar sesión de ${escapeHtml(user.name)}" title="Cerrar sesión"><span class="material-symbols-rounded" aria-hidden="true">logout</span><span>Salir</span></button></div>
     </aside>`;
 }
 
@@ -41,7 +42,6 @@ function renderTopbar() {
     </div>
     <div class="topbar-profile">
       <div class="profile-chip"><span class="profile-avatar">${escapeHtml(user.name.slice(0, 2).toLocaleUpperCase("es-MX"))}</span><span><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(LOCAL_USER_ROLES[user.role])} · perfil simulado</small></span></div>
-      ${renderUserSwitcher()}
     </div>
     <div class="topbar-meta">
       <div class="date-chip"><span class="material-symbols-rounded" aria-hidden="true">calendar_today</span><span>${escapeHtml(TODAY_DATE_LABEL)}</span></div>
