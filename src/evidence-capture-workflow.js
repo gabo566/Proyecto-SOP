@@ -2,6 +2,7 @@ function createEvidenceCaptureWorkflow(state, { render, getTimestamp }) {
   async function saveEvidenceFiles(fileList, existing, onSaved, onError) {
     const files = [...(fileList ?? [])];
     if (!files.length) return;
+    const addedBy = getLocalUserSnapshot();
     if (existing.length + files.length > MAX_EVIDENCE_FILES) {
       onError(`Puedes adjuntar hasta ${MAX_EVIDENCE_FILES} fotos.`);
       render();
@@ -21,9 +22,10 @@ function createEvidenceCaptureWorkflow(state, { render, getTimestamp }) {
       for (const file of files) {
         const id = `evidence-${crypto.randomUUID()}`;
         await storeEvidenceFile(id, file);
-        additions.push({ id, name: file.name, type: file.type, size: file.size, addedAt: getTimestamp() });
+        additions.push({ id, name: file.name, type: file.type, size: file.size, addedAt: getTimestamp(), addedBy });
       }
       onSaved([...existing, ...additions]);
+      recordLocalAuditEvent("evidence_added", { serial: state.form?.serial?.trim() ?? "", nodeNumber: state.form?.nodeNumber?.trim() ?? "", procedureId: state.selectedId, details: `${files.length} foto(s) de validación o detención` });
       state.evidenceBusy = false;
       render();
     } catch {
@@ -41,8 +43,10 @@ function createEvidenceCaptureWorkflow(state, { render, getTimestamp }) {
   }
 
   async function removeValidationEvidence(id) {
+    const file = (state.validationEvidenceFiles ?? []).find((item) => item.id === id);
     state.validationEvidenceFiles = (state.validationEvidenceFiles ?? []).filter((file) => file.id !== id);
     await deleteEvidenceFile(id).catch(() => {});
+    recordLocalAuditEvent("evidence_removed", { serial: state.form?.serial?.trim() ?? "", details: file?.name ?? "Foto de validación" });
     state.evidenceError = "";
     render();
   }
@@ -54,8 +58,10 @@ function createEvidenceCaptureWorkflow(state, { render, getTimestamp }) {
   }
 
   async function removeDraftEvidence(id) {
+    const file = (state.workDraft.evidenceFiles ?? []).find((item) => item.id === id);
     state.workDraft.evidenceFiles = (state.workDraft.evidenceFiles ?? []).filter((file) => file.id !== id);
     await deleteEvidenceFile(id).catch(() => {});
+    recordLocalAuditEvent("evidence_removed", { serial: state.form?.serial?.trim() ?? "", details: file?.name ?? "Foto de detención" });
     render();
   }
 

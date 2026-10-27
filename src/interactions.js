@@ -3,6 +3,7 @@ function bindInteractions(app, handlers) {
     state,
     navItems,
     getRecords,
+    getProcedure,
     render,
     showToast,
     selectProcedure,
@@ -26,12 +27,19 @@ function bindInteractions(app, handlers) {
     addDraftEvidence,
     removeDraftEvidence,
     openRecordEvidence,
+    switchLocalUser,
+    createLocalUser,
+    toggleLocalUser,
   } = handlers;
   let stepImageViewer = { zoom: 100 };
 
   function handleNavigation(action) {
     const item = navItems.find((navItem) => navItem.id === action.dataset.navId);
     if (!item) return;
+    const role = getActiveLocalUser().role;
+    if ((item.id === "production" && !["operator", "admin"].includes(role))
+      || (item.id === "reports" && !["supervisor", "admin"].includes(role))
+      || (item.id === "users" && role !== "admin")) return;
     state.navOpen = false;
     if (item.action === "reports") {
       openRecords(action.dataset.focusKey);
@@ -134,17 +142,18 @@ function bindInteractions(app, handlers) {
       case "close-step-image": document.querySelector("#step-image-dialog")?.close(); break;
       case "open-records": openRecords(action.dataset.focusKey); break;
       case "close-records": closeDialog("recordsDialogOpen"); break;
-      case "open-work-item-dialog": openWorkItemDialog(); break;
+      case "open-work-item-dialog": if (["operator", "admin"].includes(getActiveLocalUser().role)) openWorkItemDialog(); else showToast("Solo un operador puede detener o registrar un retrabajo.", "warning"); break;
       case "close-work-item-dialog": closeWorkItemDialog(); break;
-      case "resume-work": resumeWorkItem(action.dataset.workId); break;
+      case "resume-work": if (["operator", "admin"].includes(getActiveLocalUser().role)) resumeWorkItem(action.dataset.workId); else showToast("Solo un operador puede reanudar el trabajo.", "warning"); break;
+      case "toggle-local-user": if (getActiveLocalUser().role === "admin") toggleLocalUser(action.dataset.userId, action.dataset.active === "true"); break;
       case "remove-evidence": removeEvidence(action.dataset.evidenceId); break;
       case "remove-validation-evidence": removeValidationEvidence(action.dataset.evidenceId); break;
       case "remove-stop-evidence": removeDraftEvidence(action.dataset.evidenceId); break;
-      case "review-evidence": openEvidenceReview(action.dataset.workId); break;
-      case "view-work-evidence": openEvidenceReview(action.dataset.workId); break;
-      case "view-record-evidence": action.dataset.workId ? openEvidenceReview(action.dataset.workId, action.dataset.recordId, false, true) : openRecordEvidence(action.dataset.recordId); break;
-      case "view-stop-evidence": openEvidenceReview(action.dataset.workId); break;
-      case "manage-record-evidence": openEvidenceReview(action.dataset.workId, action.dataset.recordId, true); break;
+      case "review-evidence": if (["supervisor", "admin"].includes(getActiveLocalUser().role)) openEvidenceReview(action.dataset.workId); else showToast("La revisión está reservada para supervisor o administrador.", "warning"); break;
+      case "view-work-evidence": if (["supervisor", "admin"].includes(getActiveLocalUser().role)) openEvidenceReview(action.dataset.workId); else showToast("La evidencia de retrabajo está reservada para supervisor o administrador.", "warning"); break;
+      case "view-record-evidence": if (["supervisor", "admin"].includes(getActiveLocalUser().role)) action.dataset.workId ? openEvidenceReview(action.dataset.workId, action.dataset.recordId, false, true) : openRecordEvidence(action.dataset.recordId); else showToast("La evidencia está reservada para supervisor o administrador.", "warning"); break;
+      case "view-stop-evidence": if (["supervisor", "admin"].includes(getActiveLocalUser().role)) openEvidenceReview(action.dataset.workId); else showToast("La evidencia está reservada para supervisor o administrador.", "warning"); break;
+      case "manage-record-evidence": if (["supervisor", "admin"].includes(getActiveLocalUser().role)) openEvidenceReview(action.dataset.workId, action.dataset.recordId, true); else showToast("La evidencia está reservada para supervisor o administrador.", "warning"); break;
       case "close-evidence-review": closeEvidenceReview(); break;
       case "choose-evidence-file": app.querySelector("[data-evidence-input]")?.click(); break;
       case "choose-validation-evidence": app.querySelector("[data-validation-evidence-input]")?.click(); break;
@@ -165,13 +174,29 @@ function bindInteractions(app, handlers) {
 
   app.addEventListener("change", (event) => {
     const { target } = event;
-    if (target.matches("#procedure-select")) {
+    if (target.matches("[data-local-user-switch]")) {
+      switchLocalUser(target.value);
+    } else if (target.matches("#procedure-select")) {
       selectProcedure(target.value);
     } else if (target.matches("[data-step]")) {
+      if (!["operator", "admin"].includes(getActiveLocalUser().role)) {
+        target.checked = !target.checked;
+        showToast("El perfil de supervisor solo puede revisar evidencia y registros.", "warning");
+        return;
+      }
       const step = target.dataset.step;
       state.completedSteps = target.checked
         ? [...state.completedSteps, step]
         : state.completedSteps.filter((value) => value !== step);
+      recordLocalAuditEvent(target.checked ? "step_completed" : "step_reopened", {
+        sessionId: state.auditSessionId,
+        serial: state.form.serial.trim(),
+        nodeNumber: state.form.nodeNumber.trim(),
+        procedureId: state.selectedId,
+        procedureTitle: getProcedure().title,
+        sheet: getProcedure().sheet,
+        step,
+      });
       persistWorkState();
       render();
     } else if (target.dataset.formField === "declaration") {
@@ -240,6 +265,14 @@ function bindInteractions(app, handlers) {
 
   app.addEventListener("submit", (event) => {
     if (event.target.matches("#completion-form")) handleCompletionSubmit(event);
-    if (event.target.matches("#work-item-form")) handleWorkItemSubmit(event);
+    if (event.target.matches("#work-item-form")) {
+      if (["operator", "admin"].includes(getActiveLocalUser().role)) handleWorkItemSubmit(event);
+      else showToast("Solo un operador puede detener o registrar un retrabajo.", "warning");
+    }
+    if (event.target.matches("#local-user-form")) {
+      event.preventDefault();
+      if (getActiveLocalUser().role !== "admin") return;
+      createLocalUser(new FormData(event.target));
+    }
   });
 }

@@ -1,6 +1,7 @@
 const STORAGE_KEY = "sop-operador-validation-demo-records-v1";
 const app = document.querySelector("#app");
 const storedWorkItems = readWorkItems();
+const activeDemoUser = getActiveLocalUser();
 const restorableWork = storedWorkItems
   .filter((item) => ["En proceso", "Retrabajo en proceso"].includes(item.status))
   .sort((a, b) => b.updatedAt - a.updatedAt)[0];
@@ -33,7 +34,8 @@ const state = {
   toast: null,
   serialQuery: "",
   recordsQuery: "",
-  form: { ...createEmptyForm(), ...(restorableWork?.form ?? {}) },
+  form: { ...createEmptyForm(), ...(restorableWork?.form ?? {}), name: activeDemoUser.name, employeeNumber: activeDemoUser.employeeNumber, position: "Técnico de FA" },
+  auditSessionId: localStorage.getItem("sop-operador-audit-session-v1") || `session-${crypto.randomUUID()}`,
   formError: "",
   dialogTriggerFocusKey: "",
 };
@@ -82,6 +84,10 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     ? renderActivityPanel(todayRecords)
     : state.activeSection === "reports"
     ? `${renderWorkItemsPanel(state.workItems, state.activeWorkId)}${renderSerialTable(records, state.serialQuery, state.workItems)}`
+    : state.activeSection === "users"
+    ? renderLocalUsersPanel()
+    : getActiveLocalUser().role === "supervisor"
+    ? `${renderSummaryMetrics(todayRecords, state)}${renderWorkItemsPanel(state.workItems, state.activeWorkId)}${renderSerialTable(records, state.serialQuery, state.workItems)}${renderActivityPanel(todayRecords)}`
     : `${renderSummaryMetrics(todayRecords, state)}
       <div class="production-layout" id="production">
         ${renderProcedurePanel(getProcedure(), state)}${renderOperatorValidationPanel(getProcedure(), state)}
@@ -112,6 +118,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   if (state.evidenceImageDialogOpen) evidenceImageDialog.showModal();
   restoreFocus(previousFocus, { focusDialog, initial });
   drawCompletionChart(document.querySelector("#completion-chart"), todayRecords);
+  if (!localStorage.getItem("sop-operador-audit-session-v1")) localStorage.setItem("sop-operador-audit-session-v1", state.auditSessionId);
 }
 
 function renderToast() {
@@ -159,6 +166,10 @@ function showToast(message, kind = "success") {
 }
 
 function selectProcedure(id) {
+  if (!["operator", "admin"].includes(getActiveLocalUser().role)) {
+    showToast("El rol de supervisor puede consultar registros, pero no ejecutar pasos.", "warning");
+    return;
+  }
   if (state.activeWorkId && id !== state.selectedId) {
     showToast("Guarda o finaliza el trabajo activo antes de cambiar de procedimiento.", "warning");
     return;
@@ -194,6 +205,10 @@ function closeDialog(stateKey) {
 
 function handleCompletionSubmit(event) {
   event.preventDefault();
+  if (!["operator", "admin"].includes(getActiveLocalUser().role)) {
+    showToast("Solo un operador puede registrar una validación.", "warning");
+    return;
+  }
   const procedure = getProcedure();
   const allChecked = procedure.steps.every((step) => state.completedSteps.includes(step.number));
   if (!allChecked) {
@@ -245,6 +260,7 @@ function showFormError(message, target = null) {
 
 function saveCompletion() {
   const procedure = getProcedure();
+  const user = getActiveLocalUser();
   const now = new Date();
   const record = {
     id: `local-${now.getTime()}`,
@@ -258,8 +274,11 @@ function saveCompletion() {
     nodePartNumber: state.form.nodePartNumber.trim(),
     componentPartNumber: state.form.componentPartNumber.trim(),
     componentSerial: state.form.componentSerial.trim(),
-    operator: state.form.name.trim(),
-    employeeNumber: state.form.employeeNumber.trim(),
+    operator: user.name,
+    employeeNumber: user.employeeNumber,
+    actor: { id: user.id, name: user.name, employeeNumber: user.employeeNumber, role: user.role },
+    sessionId: state.auditSessionId,
+    auditEventIds: readLocalAuditTrail().filter((event) => event.sessionId === state.auditSessionId && event.procedureId === procedure.id).map((event) => event.id),
     position: state.form.position.trim(),
     repairType: state.form.repairType,
     date: TODAY_DATE_KEY,
@@ -278,12 +297,26 @@ function saveCompletion() {
     return;
   }
   state.savedRecords = next;
+  const auditEvent = recordLocalAuditEvent("validation_submitted", {
+    serial: record.serial,
+    nodeNumber: record.nodeNumber,
+    procedureId: procedure.id,
+    procedureTitle: procedure.title,
+    sheet: procedure.sheet,
+    sessionId: state.auditSessionId,
+  });
+  if (auditEvent) {
+    record.auditEventIds = [...record.auditEventIds, auditEvent.id];
+    persistSavedRecords(next);
+  }
   const completion = state.activeWorkId
     ? workflow.completeActiveWork(record.id, state.form.name.trim())
     : { saved: true, needsReview: false };
   state.completedSteps = [];
   state.form = createEmptyForm();
   state.validationEvidenceFiles = [];
+  state.auditSessionId = `session-${crypto.randomUUID()}`;
+  localStorage.setItem("sop-operador-audit-session-v1", state.auditSessionId);
   state.formError = "";
   const successMessage = completion.needsReview
     ? "Retrabajo enviado; queda pendiente de aprobación del supervisor."
@@ -295,6 +328,7 @@ bindInteractions(app, {
   state,
   navItems: NAV_ITEMS,
   getRecords,
+  getProcedure,
   render,
   showToast,
   selectProcedure,
@@ -307,6 +341,38 @@ bindInteractions(app, {
   handleWorkItemSubmit: workflow.submit,
   resumeWorkItem: workflow.resume,
   persistWorkState: workflow.persistProgress,
+  switchLocalUser: (id) => {
+    if (state.evidenceBusy) {
+      showToast("Espera a que termine el guardado de evidencia para cambiar el perfil.", "warning");
+      return;
+    }
+    if (!setActiveLocalUser(id)) return;
+    const user = getActiveLocalUser();
+    state.form.name = user.name;
+    state.form.employeeNumber = user.employeeNumber;
+    state.form.position = "Técnico de FA";
+    if ((state.activeSection === "users" && user.role !== "admin")
+      || (state.activeSection === "production" && !["operator", "admin"].includes(user.role))
+      || (state.activeSection === "reports" && !["supervisor", "admin"].includes(user.role))) state.activeSection = "overview";
+    render();
+    showToast(`Perfil de demostración: ${user.name} · ${LOCAL_USER_ROLES[user.role]}`, "warning");
+  },
+  createLocalUser: (formData) => {
+    const result = addLocalUser({
+      name: String(formData.get("userName") ?? ""),
+      employeeNumber: String(formData.get("employeeNumber") ?? ""),
+      email: String(formData.get("userEmail") ?? ""),
+      role: String(formData.get("userRole") ?? ""),
+    });
+    if (result === "ok") showToast("Usuario agregado a esta demostración.", "warning");
+    else showToast(result === "email" ? "Ese correo ya existe." : result === "employee" ? "Ese número de empleado ya existe." : "No se pudo crear el perfil.", "warning");
+    render();
+  },
+  toggleLocalUser: (id, active) => {
+    const result = setLocalUserActive(id, active);
+    showToast(result === "ok" ? `Usuario ${active ? "activado" : "desactivado"} en esta demostración.` : result === "last-admin" ? "Debe quedar al menos un administrador activo." : result === "active-user" ? "Cambia el perfil activo antes de desactivarlo." : "Las cuentas de ejemplo no se pueden cambiar.", "warning");
+    render();
+  },
   addEvidence: workflow.addEvidence,
   removeEvidence: workflow.removeEvidence,
   openEvidenceReview: workflow.openEvidenceReview,

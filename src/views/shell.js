@@ -3,10 +3,15 @@ const NAV_ITEMS = [
   { id: "production", label: "Producción", icon: "precision_manufacturing", target: "production" },
   { id: "traceability", label: "Trazabilidad", icon: "inventory_2", target: "activity-heading" },
   { id: "reports", label: "Reportes", icon: "bar_chart", target: "work-items-heading" },
+  { id: "users", label: "Usuarios", icon: "manage_accounts", target: "users-panel" },
 ];
 
 function renderSidebar(state) {
-  const navItems = NAV_ITEMS.map((item) => `
+  const role = getActiveLocalUser().role;
+  const visibleItems = NAV_ITEMS.filter((item) => item.id !== "users" || role === "admin")
+    .filter((item) => item.id !== "production" || ["operator", "admin"].includes(role))
+    .filter((item) => item.id !== "reports" || ["supervisor", "admin"].includes(role));
+  const navItems = visibleItems.map((item) => `
     <button class="nav-item ${state.activeSection === item.id ? "nav-item--active" : ""}"
       type="button" data-action="navigate" data-nav-id="${item.id}" data-focus-key="nav-${item.id}"
       aria-current="${state.activeSection === item.id ? "page" : "false"}">
@@ -20,11 +25,12 @@ function renderSidebar(state) {
         <img class="brand-mark" src="./public/assets/ingrasys-emblem.png" alt="" aria-hidden="true" />
       </a>
       <nav class="side-nav">${navItems}</nav>
-      <div class="sidebar-bottom"><span class="demo-pulse"></span><div><strong>Entorno de muestra</strong><small>Sin conexión a producción</small></div></div>
+      <div class="sidebar-bottom"><span class="demo-pulse"></span><div><strong>Entorno de muestra</strong><small>Sin conexión a producción</small></div>${renderUserSwitcher()}</div>
     </aside>`;
 }
 
 function renderTopbar() {
+  const user = getActiveLocalUser();
   return `<header class="topbar" id="top">
     <button class="icon-button menu-toggle" type="button" data-action="open-menu" data-focus-key="menu-open" aria-label="Abrir menú">
       <span class="material-symbols-rounded" aria-hidden="true">menu</span>
@@ -34,7 +40,8 @@ function renderTopbar() {
       <div class="topbar-title-copy"><span class="topbar-kicker">SOP actual</span><h1>Desensamble General de Compu Tray Modelo 2000 Rev 2</h1><p>Control de ejecución, validación y trazabilidad</p></div>
     </div>
     <div class="topbar-profile">
-      <div class="profile-chip"><span class="profile-avatar">FA</span><span><strong>Supervisor</strong><small>Modo de demostración</small></span></div>
+      <div class="profile-chip"><span class="profile-avatar">${escapeHtml(user.name.slice(0, 2).toLocaleUpperCase("es-MX"))}</span><span><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(LOCAL_USER_ROLES[user.role])} · perfil simulado</small></span></div>
+      ${renderUserSwitcher()}
     </div>
     <div class="topbar-meta">
       <div class="date-chip"><span class="material-symbols-rounded" aria-hidden="true">calendar_today</span><span>${escapeHtml(TODAY_DATE_LABEL)}</span></div>

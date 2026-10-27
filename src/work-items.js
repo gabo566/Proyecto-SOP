@@ -75,7 +75,7 @@ function renderWorkItemsPanel(workItems, activeWorkId) {
 }
 
 function renderEvidenceReviewDialog(state) {
-  const files = state.reviewEvidence.map((file) => `<figure class="evidence-review-file"><button class="evidence-review-image-button" type="button" data-action="zoom-evidence-image" data-evidence-id="${escapeHtml(file.id)}" aria-label="Ampliar evidencia ${escapeHtml(file.name)}"><img src="${escapeHtml(file.url)}" alt="Evidencia del retrabajo: ${escapeHtml(file.name)}" /><span class="material-symbols-rounded" aria-hidden="true">zoom_in</span></button><figcaption>${escapeHtml(file.name)} · ${(file.size / 1024 / 1024).toFixed(1)} MB</figcaption></figure>`).join("");
+  const files = state.reviewEvidence.map((file) => `<figure class="evidence-review-file"><button class="evidence-review-image-button" type="button" data-action="zoom-evidence-image" data-evidence-id="${escapeHtml(file.id)}" aria-label="Ampliar evidencia ${escapeHtml(file.name)}"><img src="${escapeHtml(file.url)}" alt="Evidencia del retrabajo: ${escapeHtml(file.name)}" /><span class="material-symbols-rounded" aria-hidden="true">zoom_in</span></button><figcaption>${escapeHtml(file.name)} · ${(file.size / 1024 / 1024).toFixed(1)} MB · agregó ${escapeHtml(file.addedBy?.name ?? "usuario anterior")}</figcaption></figure>`).join("");
   const errorHidden = state.reviewError ? "" : "hidden";
   const submissionStatus = state.reviewSubmission?.reviewStatus ?? "";
   const dialogTitle = submissionStatus === "Evidencia de validación" ? "Evidencia de la validación" : submissionStatus === "Evidencia al detener" ? "Evidencia al detener" : "Evidencia del retrabajo";

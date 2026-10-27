@@ -21,6 +21,7 @@ function createEvidenceWorkflow(state, { render, showToast, persistSavedRecords,
       render();
       return;
     }
+    const addedBy = getLocalUserSnapshot();
     const invalidFile = files.find((file) => !EVIDENCE_MIME_TYPES.has(file.type) || file.size > MAX_EVIDENCE_FILE_BYTES);
     if (invalidFile) {
       state.evidenceError = !EVIDENCE_MIME_TYPES.has(invalidFile.type)
@@ -38,10 +39,11 @@ function createEvidenceWorkflow(state, { render, showToast, persistSavedRecords,
       for (const file of files) {
         const id = `evidence-${crypto.randomUUID()}`;
         await storeEvidenceFile(id, file);
-        additions.push({ id, name: file.name, type: file.type, size: file.size, addedAt: getTimestamp() });
+        additions.push({ id, name: file.name, type: file.type, size: file.size, addedAt: getTimestamp(), addedBy });
       }
       item.evidenceFiles = [...currentFiles, ...additions];
       if (!persistWorkItems(state.workItems)) throw new Error("local-storage");
+      recordLocalAuditEvent("evidence_added", { serial: item.serial, nodeNumber: item.nodeNumber, procedureId: item.procedureId, procedureTitle: item.procedureTitle, workItemId: item.id, details: `${files.length} foto(s) de retrabajo` });
       state.evidenceBusy = false;
       render();
     } catch {
@@ -67,6 +69,7 @@ function createEvidenceWorkflow(state, { render, showToast, persistSavedRecords,
       return;
     }
     await deleteEvidenceFile(id).catch(() => {});
+    recordLocalAuditEvent("evidence_removed", { serial: item.serial, nodeNumber: item.nodeNumber, procedureId: item.procedureId, procedureTitle: item.procedureTitle, workItemId: item.id, details: file.name });
     state.evidenceError = "";
     render();
   }
@@ -143,6 +146,7 @@ function createEvidenceWorkflow(state, { render, showToast, persistSavedRecords,
 
   function decideEvidenceReview(id, approved) {
     if (state.reviewReadOnly) return;
+    if (!["supervisor", "admin"].includes(getActiveLocalUser().role)) return;
     const item = state.workItems.find((workItem) => workItem.id === id && workItem.status === "Pendiente de revisión");
     const submission = item?.evidenceHistory?.find((entry) => entry === state.reviewSubmission && entry.reviewStatus === "Pendiente de revisión");
     const record = state.savedRecords.find((entry) => entry.id === submission?.recordId);
@@ -162,22 +166,22 @@ function createEvidenceWorkflow(state, { render, showToast, persistSavedRecords,
     const recordSnapshot = { ...record };
     const timestamp = getTimestamp();
     submission.reviewStatus = approved ? "Aprobada" : "Corrección solicitada";
-    submission.reviewedBy = "Supervisor";
+    submission.reviewedBy = getActiveLocalUser().name;
     submission.reviewedAt = timestamp;
     submission.reviewNote = note;
-    record.reviewedBy = "Supervisor";
+    record.reviewedBy = getActiveLocalUser().name;
     record.reviewedAt = `${timestamp.date} · ${timestamp.time}`;
     record.reviewNote = note;
     if (approved) {
       record.status = "Completado";
       record.recordType = "Retrabajo validado";
-      appendEvent(item, "Completado", `Evidencia aprobada por Supervisor${note ? `: ${note}` : ""}`);
+      appendEvent(item, "Completado", `Evidencia aprobada por ${getActiveLocalUser().name}${note ? `: ${note}` : ""}`);
     } else {
       record.status = "Corrección solicitada";
       record.recordType = "Retrabajo requiere ajuste";
       item.reasonLabel = "Corrección solicitada";
       item.reason = note;
-      appendEvent(item, "Retrabajo requerido", `Supervisor solicitó corrección: ${note}`);
+      appendEvent(item, "Retrabajo requerido", `${getActiveLocalUser().name} solicitó corrección: ${note}`);
     }
     const recordsSaved = persistSavedRecords(state.savedRecords);
     const workSaved = recordsSaved && persistWorkItems(state.workItems);
@@ -189,6 +193,16 @@ function createEvidenceWorkflow(state, { render, showToast, persistSavedRecords,
       render();
       return;
     }
+    recordLocalAuditEvent(approved ? "evidence_review_approved" : "evidence_review_correction_requested", {
+      serial: item.serial,
+      nodeNumber: item.nodeNumber,
+      procedureId: item.procedureId,
+      procedureTitle: item.procedureTitle,
+      sheet: item.sheet,
+      workItemId: item.id,
+      recordId: record.id,
+      details: note,
+    });
     closeEvidenceReview();
     showToast(approved ? "Retrabajo aprobado y cerrado." : "Retrabajo devuelto para corrección.");
   }
@@ -214,6 +228,7 @@ function createEvidenceWorkflow(state, { render, showToast, persistSavedRecords,
     const record = state.savedRecords?.find((entry) => entry.id === submission.recordId);
     const recordSnapshot = record ? { ...record } : null;
     const additions = [];
+    const addedBy = getLocalUserSnapshot();
     state.evidenceBusy = true;
     state.reviewError = "";
     render();
@@ -221,12 +236,13 @@ function createEvidenceWorkflow(state, { render, showToast, persistSavedRecords,
       for (const file of files) {
         const id = `evidence-${crypto.randomUUID()}`;
         await storeEvidenceFile(id, file);
-        additions.push({ id, name: file.name, type: file.type, size: file.size, addedAt: getTimestamp() });
+        additions.push({ id, name: file.name, type: file.type, size: file.size, addedAt: getTimestamp(), addedBy });
       }
       submission.files = [...submission.files, ...additions];
       if (record) record.evidenceCount = submission.files.length;
       const savedRecords = !record || persistSavedRecords(state.savedRecords);
       if (!savedRecords || !persistWorkItems(state.workItems)) throw new Error("save-failed");
+      recordLocalAuditEvent("evidence_added", { serial: item.serial, nodeNumber: item.nodeNumber, procedureId: item.procedureId, procedureTitle: item.procedureTitle, workItemId: item.id, recordId: record?.id, details: `${files.length} foto(s) añadidas al registro` });
       state.reviewEvidence = [...state.reviewEvidence, ...additions.map((file, index) => ({ ...file, url: URL.createObjectURL(files[index]) }))];
       state.evidenceBusy = false;
       render();

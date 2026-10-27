@@ -1,6 +1,6 @@
 # SOP de desensamble GB200 · Ingrasys
 
-Aplicación web estática en español para consultar y registrar el avance de procedimientos de desensamble de un nodo GB200. El prototipo combina instrucciones de trabajo, referencias visuales, una lista de validación por paso, trazabilidad ilustrativa y un flujo local para detener trabajos, documentar retrabajos y revisar evidencia fotográfica.
+Aplicación web estática en español para consultar y registrar el avance de procedimientos de desensamble de un nodo GB200. El prototipo combina instrucciones de trabajo, referencias visuales, una lista de validación por paso, perfiles locales de operador/supervisor/administrador, una bitácora ilustrativa y un flujo para detener trabajos, documentar retrabajos y revisar evidencia fotográfica.
 
 > **Estado del proyecto:** prototipo de desarrollo local. La interfaz identifica expresamente un entorno de muestra sin conexión a producción. No hay servidor de aplicación, API, base de datos compartida, autenticación ni despliegue configurado como parte del flujo actual.
 
@@ -83,15 +83,30 @@ La navegación separa «Seguimiento SOP», «Producción», «Trazabilidad» y �
 
 Los datos iniciales son 19 registros ficticios distribuidos entre BMC, Busbar, Cold Plate / Manifold y Bianca. Llevan seriales `DEMO-*`, operadores `Operador demo *` y la etiqueta «Demostración». Las métricas del día combinan esos datos ilustrativos con las validaciones que se hayan guardado localmente. No deben interpretarse como producción real.
 
+### Perfiles y bitácora local
+
+El prototipo incluye tres perfiles de ejemplo para recorrer la interfaz: Operador Demo (`DEMO-001`), Supervisor Demo (`DEMO-002`) y Administrador Demo (`DEMO-003`). El selector «Usuario de demostración» permite cambiar el perfil; en la sección «Usuarios», el perfil administrador puede agregar perfiles ficticios y activar o desactivar los perfiles agregados desde esa pantalla. Los tres perfiles de ejemplo iniciales están protegidos y no se pueden desactivar.
+
+| Rol | Flujo que representa |
+| --- | --- |
+| Operador | Consultar la sección SOP, marcar o reabrir pasos, detener/reanudar un trabajo, registrar la validación y adjuntar evidencia. |
+| Supervisor | Consultar trazabilidad y trabajos, abrir fotos, aprobar un retrabajo o solicitar corrección con una nota. |
+| Administrador | Gestionar perfiles locales y consultar la bitácora; también puede recorrer los flujos operativos del prototipo. |
+
+Al marcar o reabrir un paso se registra el usuario activo, número de empleado y rol, fecha/hora, paso, sección SOP y serial si ya se capturó. La bitácora también registra validaciones, detenciones, retrabajos, reanudaciones, carga/retiro de fotos, revisiones y acciones de gestión de usuarios. La vista de evidencia muestra quién agregó cada foto cuando esa información está disponible. El historial local conserva como máximo los últimos 1,000 eventos.
+
+**Estos perfiles no inician sesión.** Cualquier persona que abra la aplicación puede cambiar el perfil de demostración, incluidos los perfiles de supervisor y administrador. Los perfiles, permisos y bitácora se guardan en el navegador y pueden alterarse o borrarse desde él; no acreditan quién realizó una operación. Microsoft Entra ID, las cuentas corporativas y los permisos protegidos por un servidor siguen pendientes de integración.
+
 ## Persistencia y límites
 
-La aplicación no tiene backend. Los registros de validación y los trabajos detenidos o en retrabajo se guardan en `localStorage`; los archivos de evidencia se guardan en IndexedDB. Esto significa que:
+La aplicación no tiene backend. Los registros de validación, trabajos, perfiles de demostración y bitácora se guardan en `localStorage`; los archivos de evidencia se guardan en IndexedDB. Las claves locales de perfiles/bitácora incluyen `sop-operador-local-users-v1`, `sop-operador-active-user-v1`, `sop-operador-audit-trail-v1` y `sop-operador-audit-session-v1`. Esto significa que:
 
 - Los datos pertenecen al perfil de navegador y al origen local que se usó para abrir la aplicación.
 - No se comparten entre operadores, equipos, navegadores ni instalaciones.
 - Borrar los datos del sitio en el navegador puede eliminar registros y evidencia.
 - No hay sincronización, respaldo central, control de acceso, autenticación, bitácora inmutable ni recuperación administrativa.
 - La persistencia local sirve para probar el flujo de interfaz, no para mantener registros oficiales de manufactura.
+- La bitácora se puede editar desde las herramientas del navegador y solo retiene los últimos 1,000 eventos; no es evidencia de auditoría oficial.
 
 La fecha y hora se obtienen del reloj y la zona horaria del navegador. Las métricas y los registros de demostración se presentan para la fecha actual del dispositivo.
 
@@ -118,11 +133,12 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | --- | --- |
 | `index.html` | Documento inicial, CSS y orden de carga de scripts. |
 | `src/data/sopData.js` | Metadata de la SOP, los 42 procedimientos, pasos, referencias visuales, categorías y registros ficticios. |
-| `src/app.js` | Estado de pantalla, selección de procedimiento, validación, guardado de registros y composición de vistas. |
+| `src/user-control.js` | Perfiles de demostración, selector de usuario, roles ilustrativos, gestión local y bitácora del navegador. |
+| `src/app.js` | Estado de pantalla, selección de procedimiento, validación, usuario activo, guardado de registros y composición de vistas. |
 | `src/interactions.js` | Eventos de navegación, formularios, búsqueda, diálogos, imágenes y evidencia. |
 | `src/workflow.js` | Crear, pausar, reanudar, completar y registrar el historial de trabajos. |
 | `src/work-items.js` | Lectura y escritura de trabajos en almacenamiento local y presentación de sus tarjetas. |
-| `src/evidence-capture-workflow.js` | Selección y retiro de fotos de validación, detención y retrabajo. |
+| `src/evidence-capture-workflow.js` | Selección y retiro de fotos de validación, detención y retrabajo, con referencia al perfil de demostración activo. |
 | `src/evidence-workflow.js` | Evidencia asociada a retrabajos, visor, administración de fotos y decisión de revisión. |
 | `src/evidence-store.js` | Base IndexedDB del navegador y límites de archivos de evidencia. |
 | `src/views/` | Plantillas de navegación, procedimientos, formularios, registros, actividad y diálogos. |
