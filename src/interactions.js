@@ -101,7 +101,7 @@ function bindInteractions(app, handlers) {
     const dialog = document.querySelector("#step-image-dialog");
     const image = document.querySelector("#step-image-preview");
     if (!dialog || !image) return;
-    stepImageViewer = { zoom: 100 };
+    stepImageViewer = { zoom: 90 };
     document.querySelector("#step-image-dialog-title").textContent = `Paso ${action.dataset.stepNumber} · hoja ${action.dataset.sheet}`;
     image.alt = action.dataset.imageAlt;
     document.querySelector("#step-image-caption").textContent = action.dataset.stepText || action.dataset.imageAlt;
@@ -146,7 +146,7 @@ function bindInteractions(app, handlers) {
       case "zoom-step-image": openStepImage(action); break;
       case "step-image-zoom-in": setStepImageZoom(stepImageViewer.zoom + 25); break;
       case "step-image-zoom-out": setStepImageZoom(stepImageViewer.zoom - 25); break;
-      case "step-image-zoom-reset": setStepImageZoom(100); break;
+      case "step-image-zoom-reset": setStepImageZoom(90); break;
       case "close-step-image": document.querySelector("#step-image-dialog")?.close(); break;
       case "open-records": openRecords(action.dataset.focusKey); break;
       case "close-records": closeDialog("recordsDialogOpen"); break;
