@@ -22,7 +22,8 @@ const REPAIR_TYPES = [
   "Reemplazo de OSPF Board",
 ];
 function createEmptyForm() {
-  return { name: "", employeeNumber: "", position: "", nodeNumber: "", serial: "", nodePartNumber: SOP_DOCUMENT.nodePartNumber, repairType: "", componentPartNumber: "", componentSerial: "", declaration: false };
+  const user = getActiveLocalUser();
+  return { name: user.name, employeeNumber: user.employeeNumber, position: "Técnico de FA", nodeNumber: "", serial: "", nodePartNumber: SOP_DOCUMENT.nodePartNumber, repairType: "", componentPartNumber: "", componentSerial: "", declaration: false };
 }
 
 function renderComponentFields(form, workDraft = null) {
@@ -36,17 +37,20 @@ function renderComponentFields(form, workDraft = null) {
 
 function renderField(field, form, error = "") {
   const fullWidth = field.full ? " validation-field--full" : "";
+  const identityLock = ["name", "employeeNumber"].includes(field.name) ? "readonly aria-readonly=\"true\"" : "";
   return `<label class="validation-field${fullWidth}">${field.label}<input name="${field.name}" data-form-field="${field.name}" data-focus-key="form-${field.name}"
     value="${escapeHtml(form[field.name] ?? "")}" placeholder="${field.placeholder}" ${field.autocomplete ? `autocomplete="${field.autocomplete}"` : ""}
-    required /></label>`;
+    ${identityLock} required /></label>`;
 }
 
 function renderValidationSteps(procedure, state) {
   return procedure.steps.map((step) => {
     const checked = state.completedSteps.includes(step.number);
+    const audit = getLatestLocalStepEvent(procedure.id, step.number);
+    const auditLabel = checked && audit ? `<small class="step-audit-label">Marcó ${escapeHtml(audit.actor.name)} · ${escapeHtml(new Intl.DateTimeFormat("es-MX", { dateStyle: "short", timeStyle: "short" }).format(new Date(audit.at)))}</small>` : "";
     return `<div class="validation-step ${checked ? "validation-step--checked" : ""}">
       <input id="validation-step-${escapeHtml(step.number)}" type="checkbox" data-step="${escapeHtml(step.number)}" data-focus-key="step-${escapeHtml(step.number)}" aria-label="Confirmo que realicé el paso ${escapeHtml(step.number)}" ${checked ? "checked" : ""} />
-      <span class="validation-step-number" aria-hidden="true">${escapeHtml(step.number)}</span><span class="validation-step-copy" aria-label="Instrucción completa del paso ${escapeHtml(step.number)}">${escapeHtml(step.text)}${step.sourceNote ? `<small class="validation-source-note">${escapeHtml(step.sourceNote)}</small>` : ""}</span>
+      <span class="validation-step-number" aria-hidden="true">${escapeHtml(step.number)}</span><span class="validation-step-copy" aria-label="Instrucción completa del paso ${escapeHtml(step.number)}">${escapeHtml(step.text)}${step.sourceNote ? `<small class="validation-source-note">${escapeHtml(step.sourceNote)}</small>` : ""}${auditLabel}</span>
     </div>`;
   }).join("");
 }

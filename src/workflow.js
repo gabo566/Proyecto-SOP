@@ -105,6 +105,16 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
         state.workItems = readWorkItems();
         state.workError = "No se pudo guardar. Revisa el almacenamiento local del navegador.";
       } else {
+        recordLocalAuditEvent(isRework ? "rework_required" : "work_paused", {
+          serial: item.serial,
+          nodeNumber: item.nodeNumber,
+          procedureId: item.procedureId,
+          procedureTitle: item.procedureTitle,
+          sheet: item.sheet,
+          workItemId: item.id,
+          step: item.failedStep,
+          details: `${reasonLabel}: ${note}`,
+        });
         state.activeWorkId = "";
         state.completedSteps = [];
         state.form = createEmptyForm();
@@ -153,6 +163,15 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
       showToast("No se pudo registrar la reanudación en este navegador.", "warning");
       return;
     }
+    recordLocalAuditEvent("work_resumed", {
+      serial: item.serial,
+      nodeNumber: item.nodeNumber,
+      procedureId: item.procedureId,
+      procedureTitle: item.procedureTitle,
+      sheet: item.sheet,
+      workItemId: item.id,
+      step: item.failedStep,
+    });
     state.activeSection = "production";
     render();
     document.getElementById("production")?.scrollIntoView({ behavior: "smooth", block: "start" });
