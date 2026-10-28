@@ -124,6 +124,7 @@ function bindInteractions(app, handlers) {
         else if (event.target.id === "work-item-dialog") closeWorkItemDialog();
         else if (event.target.id === "validation-dialog") event.target.close();
         else if (event.target.id === "evidence-review-dialog") closeEvidenceReview();
+        else if (event.target.id === "help-dialog") event.target.close();
         else closeDialog("recordsDialogOpen");
       }
       return;
@@ -136,6 +137,12 @@ function bindInteractions(app, handlers) {
       case "close-menu": state.navOpen = false; render(); break;
       case "brand-home": state.navOpen = false; render(); break;
       case "logout-local-user": endLocalUserSession(); break;
+      case "open-help":
+        state.dialogTriggerFocusKey = action.dataset.focusKey || "help-open";
+        state.helpDialogOpen = true;
+        render({ focusDialog: true });
+        break;
+      case "close-help": document.querySelector("#help-dialog")?.close(); break;
       case "previous-procedure": moveProcedure(-1); break;
       case "next-procedure": moveProcedure(1); break;
       case "sop-page-zoom-out": state.sopPageZoom = Math.max(50, state.sopPageZoom - 10); render(); break;

@@ -34,7 +34,7 @@ function renderRecordEvidenceCell(record, workItems) {
 function renderSerialRows(records, workItems = []) {
   return records.map((record) => `<tr>
     <td><span>${escapeHtml(record.displayDate ?? TODAY_DATE_LABEL)}</span><small>${escapeHtml(record.time)}</small></td>
-    <td class="serial-cell">${escapeHtml(record.serial)}</td><td>${escapeHtml(record.nodePartNumber)}</td>
+    <td class="serial-cell">${escapeHtml(record.serial)}${isDemoRecord(record) ? '<small class="record-origin record-origin--demo">DEMO</small>' : ""}</td><td>${escapeHtml(record.nodePartNumber)}</td>
     <td>${escapeHtml(record.operation ?? record.category)}<small>${escapeHtml(record.category)} · hoja ${escapeHtml(record.sheet ?? "—")}</small></td>
     <td>${escapeHtml(record.repairType ?? "—")}</td><td>${escapeHtml(record.componentPartNumber ?? "—")}</td><td>${escapeHtml(record.componentSerial ?? "—")}</td>
     <td>${escapeHtml(record.sheet ?? "—")}</td><td><span>${escapeHtml(record.operator)}</span></td><td>${escapeHtml(record.employeeNumber)}</td><td>${escapeHtml(record.position ?? "Técnico de FA")}</td>

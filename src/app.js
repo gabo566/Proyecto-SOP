@@ -31,7 +31,17 @@ const state = {
   reviewError: "",
   reviewNote: "",
   recordsDialogOpen: false,
+  helpDialogOpen: false,
   activeSection: "overview",
+  includeDemoData: false,
+  reportFilters: { dateFrom: "", dateTo: "", shift: "all", category: "all", employeeNumber: "all" },
+  reportPage: 1,
+  traceabilityFilters: { query: "", dateFrom: "", dateTo: "", shift: "all", category: "all", employeeNumber: "all" },
+  traceabilityPage: 1,
+  sopPdfUrl: "",
+  sopPdfName: "",
+  sopPdfUpdatedAt: "",
+  sopPdfUpdating: false,
   navOpen: false,
   loginError: "",
   loginUsername: "",
@@ -71,15 +81,6 @@ function getProcedure() {
   return SOP_SHEETS.find((item) => item.id === state.selectedId) ?? SOP_SHEETS[0];
 }
 
-function getFocusState() {
-  const active = document.activeElement;
-  return {
-    key: active?.dataset?.focusKey ?? "",
-    start: typeof active?.selectionStart === "number" ? active.selectionStart : null,
-    end: typeof active?.selectionEnd === "number" ? active.selectionEnd : null,
-  };
-}
-
 function render({ focusKey, focusDialog = false, initial = false } = {}) {
   if (!getAuthenticatedLocalUser()) {
     app.innerHTML = renderLoginView({ error: state.loginError, username: state.loginUsername });
@@ -87,24 +88,26 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     return;
   }
   const previousFocus = focusKey === undefined ? getFocusState() : { key: focusKey, start: null, end: null };
-  const records = getRecords();
-  const todayRecords = records.filter((record) => record.date === TODAY_DATE_KEY);
-  const dashboard = state.activeSection === "traceability"
-    ? renderActivityPanel(todayRecords)
+  const allRecords = getRecords();
+  const records = filterDemoRecords(allRecords, state.activeSection === "traceability" && state.includeDemoData);
+  const operationalRecords = filterDemoRecords(allRecords, false);
+  const todayKey = getLocalDateKey();
+  const todayRecords = operationalRecords.filter((record) => record.date === todayKey);
+  const dashboard = state.activeSection === "overview"
+    ? `${renderSummaryMetrics(todayRecords, state)}
+      <div class="production-layout production-layout--sheet" id="production">${renderProcedurePanel(getProcedure(), state)}</div>`
+    : state.activeSection === "production"
+    ? renderProductionView(todayRecords, state)
+    : state.activeSection === "traceability"
+    ? renderTraceabilityView(records, state.workItems, state)
     : state.activeSection === "reports"
-    ? `${renderWorkItemsPanel(state.workItems, state.activeWorkId)}${renderSerialTable(records, state.serialQuery, state.workItems)}`
+    ? renderReportsView(allRecords, state, state.workItems)
     : state.activeSection === "users"
     ? renderLocalUsersPanel()
-    : `${renderSummaryMetrics(todayRecords, state)}
-      <div class="production-layout production-layout--sheet" id="production">
-        ${renderProcedurePanel(getProcedure(), state)}
-      </div>
-      ${renderWorkItemsPanel(state.workItems, state.activeWorkId)}
-      ${renderSerialTable(records, state.serialQuery, state.workItems)}
-      ${renderActivityPanel(todayRecords)}`;
+    : renderSummaryMetrics(todayRecords, state);
   app.innerHTML = `${renderSidebar(state)}<main class="main-area" id="main-content">
     ${renderTopbar()}<div class="dashboard-content">${dashboard}${renderFooter()}</div></main>
-    ${renderOperatorValidationDialog(getProcedure(), state)}${renderRecordsDialog(records, state.recordsQuery, state.workItems)}${renderWorkItemDialog(state)}${renderEvidenceReviewDialog(state)}${renderEvidenceImageDialog(state)}${renderStepImageDialog()}
+    ${renderOperatorValidationDialog(getProcedure(), state)}${renderRecordsDialog(records, state.recordsQuery, state.workItems)}${renderWorkItemDialog(state)}${renderEvidenceReviewDialog(state)}${renderEvidenceImageDialog(state)}${renderStepImageDialog()}${renderHelpDialog()}
     ${renderToast()}`;
 
   const recordsDialog = document.querySelector("#records-dialog");
@@ -120,14 +123,20 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     state.evidenceImageDialogOpen = false;
     state.zoomedEvidence = null;
   });
+  const helpDialog = document.querySelector("#help-dialog");
+  helpDialog.addEventListener("close", () => handleNativeDialogClose("helpDialogOpen"));
 
   if (state.recordsDialogOpen) recordsDialog.showModal();
   if (state.validationDialogOpen) validationDialog.showModal();
   if (state.workDialogOpen) workDialog.showModal();
   if (state.evidenceReviewDialogOpen) evidenceReviewDialog.showModal();
   if (state.evidenceImageDialogOpen) evidenceImageDialog.showModal();
-  restoreFocus(previousFocus, { focusDialog, initial });
-  drawCompletionChart(document.querySelector("#completion-chart"), todayRecords);
+  if (state.helpDialogOpen) helpDialog.showModal();
+  restoreFocus(previousFocus, { focusDialog, initial }, state);
+  const reportRecords = state.activeSection === "reports"
+    ? getReportRecords(allRecords, state.reportFilters, state.includeDemoData)
+    : todayRecords;
+  drawCompletionChart(document.querySelector("#completion-chart"), reportRecords);
   if (!localStorage.getItem("sop-operador-audit-session-v1")) localStorage.setItem("sop-operador-audit-session-v1", state.auditSessionId);
 }
 
@@ -136,30 +145,6 @@ function renderToast() {
   const icon = state.toast.kind === "warning" ? "warning" : "check_circle";
   return `<div class="toast toast--${state.toast.kind}" role="status"><span class="material-symbols-rounded" aria-hidden="true">${icon}</span>
     ${escapeHtml(state.toast.message)}<button type="button" data-action="close-toast" aria-label="Cerrar aviso"><span class="material-symbols-rounded" aria-hidden="true">close</span></button></div>`;
-}
-
-function restoreFocus(previousFocus, { focusDialog, initial }) {
-  if (focusDialog && state.recordsDialogOpen) {
-    document.querySelector('[data-focus-key="records-search"]')?.focus();
-    return;
-  }
-  if (focusDialog && state.validationDialogOpen) {
-    (document.querySelector("#completion-form [data-step]:not(:checked)") ?? document.querySelector('#completion-form [name="serial"]'))?.focus();
-    return;
-  }
-  if (!previousFocus.key) {
-    if (!initial && !state.recordsDialogOpen && state.dialogTriggerFocusKey) {
-      document.querySelector(`[data-focus-key="${CSS.escape(state.dialogTriggerFocusKey)}"]`)?.focus();
-      state.dialogTriggerFocusKey = "";
-    }
-    return;
-  }
-  const element = document.querySelector(`[data-focus-key="${CSS.escape(previousFocus.key)}"]`);
-  if (!element) return;
-  element.focus();
-  if (previousFocus.start !== null && typeof element.setSelectionRange === "function") {
-    element.setSelectionRange(previousFocus.start, previousFocus.end);
-  }
 }
 
 function handleNativeDialogClose(stateKey) {
@@ -274,6 +259,7 @@ function saveCompletion() {
   const procedure = getProcedure();
   const user = getActiveLocalUser();
   const now = new Date();
+  const time = new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false }).format(now);
   const record = {
     id: `local-${now.getTime()}`,
     category: procedure.category,
@@ -293,9 +279,11 @@ function saveCompletion() {
     auditEventIds: readLocalAuditTrail().filter((event) => event.sessionId === state.auditSessionId && event.procedureId === procedure.id).map((event) => event.id),
     position: user.position || "Técnico de FA",
     repairType: state.form.repairType,
-    date: TODAY_DATE_KEY,
-    displayDate: TODAY_DATE_LABEL,
-    time: new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false }).format(now),
+    source: "local",
+    date: getLocalDateKey(now),
+    displayDate: getLocalDateLabel(now),
+    time,
+    shift: getShiftForTime(time),
     status: "Completado",
     recordType: "Validación del operador",
     declared: true,
@@ -341,7 +329,7 @@ function saveCompletion() {
 bindInteractions(app, {
   state,
   navItems: NAV_ITEMS,
-  getRecords,
+  getRecords: () => filterDemoRecords(getRecords(), state.activeSection === "traceability" && state.includeDemoData),
   getProcedure,
   render,
   showToast,
@@ -370,6 +358,7 @@ bindInteractions(app, {
     state.validationEvidenceFiles = [];
     state.workDialogOpen = false;
     state.recordsDialogOpen = false;
+    state.helpDialogOpen = false;
     state.evidenceReviewDialogOpen = false;
     state.evidenceImageDialogOpen = false;
     state.zoomedEvidence = null;
@@ -415,5 +404,17 @@ bindInteractions(app, {
   openRecordEvidence: workflow.openRecordEvidence,
 });
 
+bindReportInteractions(app, {
+  state,
+  getAllRecords: getRecords,
+  render,
+  showToast,
+});
+
+bindSopSourceInteractions(app, { state, render, showToast });
+
 startCurrentShiftClock();
 render({ initial: true });
+restoreStoredSopSource(state).then((restored) => {
+  if (restored) render();
+}).catch(() => {});
