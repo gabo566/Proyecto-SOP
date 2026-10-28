@@ -53,6 +53,7 @@ Estas notas son advertencias editoriales del prototipo, no una resolución de in
 - Elegir cualquiera de las 42 secciones desde el selector o avanzar y retroceder entre ellas.
 - Consultar categoría, título, hoja, secuencia, instrucciones, imágenes y datos generales de la SOP.
 - Ver la hoja completa de la SOP usando casi todo el ancho del panel; se recortan levemente los márgenes blancos propios del escaneo, sin deformar el contenido.
+- Ajustar la hoja completa desde «Tamaño de la hoja SOP»: ampliar o reducir en pasos de 10% (50–150%) y volver al ajuste de 100%.
 - Encontrar «Registrar validación» y «Detener / registrar retrabajo» antes de la hoja; la barra permanece visible en todas las hojas y bajo el encabezado al desplazarse. En las hojas informativas 1–4 los botones se muestran deshabilitados porque no contienen pasos para validar.
 - En pantallas de escritorio de poca altura, la interfaz aplica una escala compacta para facilitar el acceso a los controles principales.
 - Abrir las referencias visuales con un ajuste inicial de 90% para mostrar un poco más de la hoja; los controles permiten acercar, alejar y volver al ajuste inicial.
@@ -88,7 +89,19 @@ Los datos iniciales son 19 registros ficticios distribuidos entre BMC, Busbar, C
 
 ### Perfiles y bitácora local
 
-El prototipo incluye tres perfiles de ejemplo para recorrer la interfaz: Operador Demo (`DEMO-001`), Supervisor Demo (`DEMO-002`) y Administrador Demo (`DEMO-003`). El selector «Usuario de demostración» permite cambiar el perfil; en la sección «Usuarios», el perfil administrador puede agregar perfiles ficticios y activar o desactivar los perfiles agregados desde esa pantalla. Los tres perfiles de ejemplo iniciales están protegidos y no se pueden desactivar.
+El inicio de sesión utiliza el número de empleado como usuario. Las cuentas iniciales disponibles son:
+
+| Nombre | Usuario | Contraseña | Puesto | Rol |
+| --- | --- | --- | --- | --- |
+| Operador Demo | `140785` | `0785` | Técnico de FA | Operador |
+| Gabriel Medina Ramirez | `140784` | `0784` | Ing FA JR | Supervisor |
+| Administrador Demo | `140783` | `0783` | Administrador | Administrador |
+| Tania Azucena Zafra Santos | `140860` | `0860` | DEBUGGER SR | Operador |
+| Miguel Angel Ruvalcaba Marron | `140123` | `0123` | DEBUGGER SR | Operador |
+| Julio Cesar Rojo Rodriguez | `141090` | `1090` | DEBUGGER SR | Operador |
+| Jesus Humberto Ortega Mejia | `121907` | `1907` | DEBUGGER SR | Operador |
+
+Las cuatro cuentas DEBUGGER SR usan como contraseña los últimos cuatro dígitos de su número de empleado. Desde «Usuarios», un administrador puede agregar perfiles locales y activar o desactivar los que haya agregado. Las cuentas precargadas están protegidas y no se pueden desactivar.
 
 | Rol | Flujo que representa |
 | --- | --- |
@@ -98,11 +111,11 @@ El prototipo incluye tres perfiles de ejemplo para recorrer la interfaz: Operado
 
 Al marcar o reabrir un paso se registra el usuario activo, número de empleado y rol, fecha/hora, paso, sección SOP y serial si ya se capturó. La bitácora también registra validaciones, detenciones, retrabajos, reanudaciones, carga/retiro de fotos, revisiones y acciones de gestión de usuarios. La vista de evidencia muestra quién agregó cada foto cuando esa información está disponible. El historial local conserva como máximo los últimos 1,000 eventos.
 
-**Estos perfiles no inician sesión.** Cualquier persona que abra la aplicación puede cambiar el perfil de demostración, incluidos los perfiles de supervisor y administrador. Los perfiles, permisos y bitácora se guardan en el navegador y pueden alterarse o borrarse desde él; no acreditan quién realizó una operación. Microsoft Entra ID, las cuentas corporativas y los permisos protegidos por un servidor siguen pendientes de integración.
+**El inicio de sesión es una simulación local.** Las credenciales iniciales se guardan en el código del prototipo y las contraseñas de cuentas nuevas quedan en `localStorage`. No acredita identidad real ni protege datos. Los perfiles y la bitácora pueden modificarse desde el navegador; Microsoft Entra ID y la autenticación segura en servidor siguen pendientes.
 
 ## Persistencia y límites
 
-La aplicación no tiene backend. Los registros de validación, trabajos, perfiles de demostración y bitácora se guardan en `localStorage`; los archivos de evidencia se guardan en IndexedDB. Las claves locales de perfiles/bitácora incluyen `sop-operador-local-users-v1`, `sop-operador-active-user-v1`, `sop-operador-audit-trail-v1` y `sop-operador-audit-session-v1`. Esto significa que:
+La aplicación no tiene backend. Los registros de validación, trabajos, perfiles de demostración y bitácora se guardan en `localStorage`; la sesión activa vive en `sessionStorage`; los archivos de evidencia se guardan en IndexedDB. Las claves locales de perfiles/bitácora incluyen `sop-operador-local-users-v1`, `sop-operador-active-user-v1`, `sop-operador-auth-session-v1`, `sop-operador-audit-trail-v1` y `sop-operador-audit-session-v1`. Esto significa que:
 
 - Los datos pertenecen al perfil de navegador y al origen local que se usó para abrir la aplicación.
 - No se comparten entre operadores, equipos, navegadores ni instalaciones.

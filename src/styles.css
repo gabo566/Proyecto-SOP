@@ -174,6 +174,13 @@ button { color: inherit; }
 .procedure-selector-panel .selector-fields label { margin: 0; color: #46566a; font-size: 11px; white-space: nowrap; }
 .procedure-selector-panel .selector-fields select { min-height: 34px; padding: 0 28px 0 9px; font-size: 11px; }
 .procedure-selector-panel .source-link { min-height: 34px; margin: 0; padding: 0 5px; gap: 4px; font-size: 11px; }
+.sop-page-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 3px 2px; color: #46566a; }
+.sop-page-toolbar > strong { font-size: 11px; }
+.sop-page-zoom-controls { display: inline-flex; align-items: center; gap: 5px; }
+.sop-page-zoom-controls .icon-button { width: 32px; height: 32px; }
+.sop-page-zoom-controls .icon-button:disabled { cursor: not-allowed; opacity: .45; }
+.sop-page-zoom-controls output { min-width: 42px; color: var(--muted); font-size: 11px; font-weight: 700; text-align: center; }
+.sop-page-preview.sop-page-preview--zoomed { max-height: min(72vh, 900px); overflow: auto; }
 .sop-page-preview { min-width: 0; width: 100%; height: auto; min-height: 0; display: block; flex: 0 0 auto; overflow: hidden; scroll-margin-top: 108px; border: 1px solid var(--outline); border-radius: 8px; background: #fff; }
 .sop-page-preview img { display: block; width: 106%; height: auto; max-width: none; margin: 0 0 0 -3%; object-fit: contain; }
 .procedure-action-bar { position: sticky; top: 102px; z-index: 15; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; margin-top: 2px; padding: 8px 10px; border: 1px solid var(--outline); border-radius: 10px; background: var(--surface-soft); box-shadow: 0 3px 10px rgba(22,29,40,.08); }

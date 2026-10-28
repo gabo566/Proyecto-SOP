@@ -7,6 +7,7 @@ const restorableWork = storedWorkItems
   .sort((a, b) => b.updatedAt - a.updatedAt)[0];
 const state = {
   selectedId: restorableWork?.procedureId ?? PROCEDURES[0].id,
+  sopPageZoom: 100,
   completedSteps: restorableWork?.completedSteps ?? [],
   savedRecords: readSavedRecords(),
   workItems: storedWorkItems,
@@ -96,7 +97,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     ? renderLocalUsersPanel()
     : `${renderSummaryMetrics(todayRecords, state)}
       <div class="production-layout production-layout--sheet" id="production">
-        ${renderProcedurePanel(getProcedure())}
+        ${renderProcedurePanel(getProcedure(), state)}
       </div>
       ${renderWorkItemsPanel(state.workItems, state.activeWorkId)}
       ${renderSerialTable(records, state.serialQuery, state.workItems)}

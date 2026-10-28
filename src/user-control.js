@@ -12,6 +12,10 @@ const INITIAL_LOCAL_USERS = [
   { id: "demo-operator", name: "Operador Demo", username: "140785", password: "0785", employeeNumber: "140785", position: "Técnico de FA", email: "operador.demo@example.local", role: "operator", active: true, demo: true },
   { id: "demo-supervisor", name: "Gabriel Medina Ramirez", username: "140784", password: "0784", employeeNumber: "140784", position: "Ing FA JR", email: "supervisor.demo@example.local", role: "supervisor", active: true, demo: true },
   { id: "demo-admin", name: "Administrador Demo", username: "140783", password: "0783", employeeNumber: "140783", position: "Administrador", email: "admin.demo@example.local", role: "admin", active: true, demo: true },
+  { id: "demo-debugger-140860", name: "Tania Azucena Zafra Santos", username: "140860", password: "0860", employeeNumber: "140860", position: "DEBUGGER SR", email: "debugger.140860@example.local", role: "operator", active: true, demo: true },
+  { id: "demo-debugger-140123", name: "Miguel Angel Ruvalcaba Marron", username: "140123", password: "0123", employeeNumber: "140123", position: "DEBUGGER SR", email: "debugger.140123@example.local", role: "operator", active: true, demo: true },
+  { id: "demo-debugger-141090", name: "Julio Cesar Rojo Rodriguez", username: "141090", password: "1090", employeeNumber: "141090", position: "DEBUGGER SR", email: "debugger.141090@example.local", role: "operator", active: true, demo: true },
+  { id: "demo-debugger-121907", name: "Jesus Humberto Ortega Mejia", username: "121907", password: "1907", employeeNumber: "121907", position: "DEBUGGER SR", email: "debugger.121907@example.local", role: "operator", active: true, demo: true },
 ];
 
 function readLocalUsers() {

@@ -137,6 +137,9 @@ function bindInteractions(app, handlers) {
       case "logout-local-user": endLocalUserSession(); break;
       case "previous-procedure": moveProcedure(-1); break;
       case "next-procedure": moveProcedure(1); break;
+      case "sop-page-zoom-out": state.sopPageZoom = Math.max(50, state.sopPageZoom - 10); render(); break;
+      case "sop-page-zoom-in": state.sopPageZoom = Math.min(150, state.sopPageZoom + 10); render(); break;
+      case "sop-page-zoom-reset": state.sopPageZoom = 100; render(); break;
       case "open-validation-dialog":
         state.dialogTriggerFocusKey = action.dataset.focusKey || "register-validation";
         state.validationDialogOpen = true;
