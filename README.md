@@ -94,8 +94,8 @@ El inicio de sesión utiliza el número de empleado como usuario. Las cuentas in
 | Nombre | Usuario | Contraseña | Puesto | Rol |
 | --- | --- | --- | --- | --- |
 | Operador Demo | `140785` | `0785` | Técnico de FA | Operador |
-| Gabriel Medina Ramirez | `140784` | `0784` | Ing FA JR | Supervisor |
-| Administrador Demo | `140783` | `0783` | Administrador | Administrador |
+| Gabriel Medina Ramirez | `140784` | `0784` | Ing FA JR | Administrador |
+| Brandon Garcia Olguin | `140783` | `0783` | Ing FA JR | Administrador |
 | Tania Azucena Zafra Santos | `140860` | `0860` | DEBUGGER SR | Operador |
 | Miguel Angel Ruvalcaba Marron | `140123` | `0123` | DEBUGGER SR | Operador |
 | Julio Cesar Rojo Rodriguez | `141090` | `1090` | DEBUGGER SR | Operador |
