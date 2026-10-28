@@ -3,7 +3,7 @@ const NAV_ITEMS = [
   { id: "production", label: "Producción", icon: "precision_manufacturing", target: "production-dashboard-title" },
   { id: "traceability", label: "Trazabilidad", icon: "inventory_2", target: "traceability-title" },
   { id: "reports", label: "Reportes", icon: "bar_chart", target: "reports-title" },
-  { id: "users", label: "Crear usuarios", icon: "person_add", target: "users-panel" },
+  { id: "users", label: "Usuarios y accesos", icon: "manage_accounts", target: "users-panel" },
 ];
 
 function renderSidebar(state) {
@@ -98,28 +98,6 @@ function renderSopSelector(selectedId, pageZoom = 100, state = {}) {
       ${canUpdateSop ? `<button class="text-button sop-update-button" type="button" data-action="select-sop-pdf" data-focus-key="update-sop" ${state.sopPdfUpdating ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">upload_file</span>${state.sopPdfUpdating ? "Guardando PDF…" : "Actualizar SOP"}</button><input id="sop-pdf-input" class="sop-upload-input" type="file" accept="application/pdf,.pdf" hidden aria-label="Seleccionar PDF actualizado de la SOP" />` : ""}
     </div>
   </section>`;
-}
-
-function renderSummaryMetrics(todayRecords, state) {
-  const completedRecords = todayRecords.filter((record) => record.status === "Completado");
-  const completedProcedureIds = new Set(completedRecords.map((record) => record.procedureId).filter(Boolean));
-  const inProgressCount = Boolean(state.activeWorkId || (state.completedSteps.length && !completedProcedureIds.has(state.selectedId))) ? 1 : 0;
-  const pausedCount = state.workItems.filter((item) => item.status === "Detenida").length;
-  const reworkCount = state.workItems.filter((item) => ["Retrabajo requerido", "Retrabajo en proceso"].includes(item.status)).length;
-  const reviewCount = state.workItems.filter((item) => item.status === "Pendiente de revisión").length;
-  const attentionCount = pausedCount + reworkCount + reviewCount;
-  const metrics = [
-    { tone: "total", label: "Hojas de SOP (GB200)", value: String(SOP_DOCUMENT.totalSheets), unit: `${SOP_DOCUMENT.processSheets} procedimientos · ${SOP_STEP_COUNT} pasos`, icon: "description" },
-    { tone: "completed", label: "Validaciones locales hoy", value: String(completedRecords.length), unit: `${TODAY_DATE_LABEL} · este navegador`, icon: "check_circle" },
-    { tone: "progress", label: "En proceso", value: String(inProgressCount), unit: `${state.completedSteps.length} pasos marcados`, icon: "donut_large" },
-    { tone: "pending", label: "Atención requerida", value: String(attentionCount), unit: `${pausedCount} detenidos · ${reworkCount} retrabajos · ${reviewCount} por revisar`, icon: "priority_high" },
-    { tone: "current", label: "SOP actual", value: SOP_DOCUMENT.id, unit: `Rev. ${SOP_DOCUMENT.revision}`, icon: "description" },
-  ];
-
-  return `<div class="metric-grid" aria-label="Resumen de procedimientos GB200">${metrics.map((metric) => `
-    <article class="metric-card metric-card--${metric.tone}"><span class="metric-icon material-symbols-rounded" aria-hidden="true">${metric.icon}</span>
-      <div class="metric-copy"><span>${metric.label}</span><div class="metric-value"><strong>${metric.value}</strong><small>${escapeHtml(metric.unit)}</small></div></div>
-    </article>`).join("")}</div>`;
 }
 
 function renderFooter() {
