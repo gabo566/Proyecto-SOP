@@ -14,11 +14,13 @@ function bindReportInteractions(app, { state, getAllRecords, render, showToast }
     if (target.matches("[data-demo-data-toggle]")) {
       state.includeDemoData = target.checked;
       state.traceabilityPage = 1;
+      state.reportPage = 1;
       render();
       return;
     }
     if (target.matches("[data-report-filter]")) {
       state.reportFilters[target.dataset.reportFilter] = target.value;
+      state.reportPage = 1;
       render();
       return;
     }
@@ -43,6 +45,11 @@ function bindReportInteractions(app, { state, getAllRecords, render, showToast }
       const events = getFilteredTraceabilityEvents(records, state.workItems, state.traceabilityFilters);
       if (!downloadTraceabilityCsv(events)) showToast("No hay eventos para exportar con estos filtros.", "warning");
       else showToast("Trazabilidad CSV descargada. Las fotos no se incluyen.", "success");
+      return;
+    }
+    if (action.dataset.action === "report-page") {
+      state.reportPage = Math.max(1, state.reportPage + (action.dataset.direction === "next" ? 1 : -1));
+      render();
       return;
     }
     if (action.dataset.action === "traceability-page") {

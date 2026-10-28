@@ -63,13 +63,15 @@ function renderWorkItem(item, activeWorkId) {
 
 function renderWorkItemsPanel(workItems, activeWorkId) {
   const openItems = [...workItems].filter((item) => item.status !== "Completado").sort((a, b) => b.updatedAt - a.updatedAt);
+  const recentClosed = [...workItems].filter((item) => item.status === "Completado").sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 3);
   const pausedCount = openItems.filter((item) => item.status === "Detenida").length;
   const reworkCount = openItems.filter((item) => ["Retrabajo requerido", "Retrabajo en proceso"].includes(item.status)).length;
   const reviewCount = openItems.filter((item) => item.status === "Pendiente de revisión").length;
   const body = openItems.length
     ? openItems.map((item) => renderWorkItem(item, activeWorkId)).join("")
-    : '<div class="work-items-empty"><span class="material-symbols-rounded" aria-hidden="true">task_alt</span><div><strong>No hay trabajos abiertos</strong><p>Los trabajos activos, detenidos o en retrabajo aparecerán aquí.</p></div></div>';
-  return `<section class="work-items-panel" id="work-items" aria-labelledby="work-items-heading"><div class="section-heading work-items-heading"><div class="section-title"><span class="heading-icon material-symbols-rounded" aria-hidden="true">precision_manufacturing</span><div><p class="eyebrow">Continuidad del trabajo</p><h2 id="work-items-heading">Cola de trabajos abiertos</h2></div></div><div class="work-items-counts"><span><strong>${pausedCount}</strong> detenidos</span><span><strong>${reworkCount}</strong> en retrabajo</span><span><strong>${reviewCount}</strong> por revisar</span></div></div><div class="work-items-list">${body}</div></section>`;
+    : '<div class="work-items-empty"><span class="material-symbols-rounded" aria-hidden="true">task_alt</span><div><strong>Sin trabajos detenidos o en retrabajo</strong><p>Al detener una SOP o reportar una falla, aparecerá aquí para reanudarla.</p></div></div>';
+  const closedBody = recentClosed.length ? `<div class="work-items-closed"><h3>Últimos trabajos cerrados</h3><div class="work-items-list">${recentClosed.map((item) => renderWorkItem(item, activeWorkId)).join("")}</div></div>` : "";
+  return `<section class="work-items-panel" id="work-items" aria-labelledby="work-items-heading"><div class="section-heading work-items-heading"><div class="section-title"><span class="heading-icon material-symbols-rounded" aria-hidden="true">pause_circle</span><div><p class="eyebrow">Continuidad del trabajo</p><h2 id="work-items-heading">Detenidos y retrabajos</h2></div></div><div class="work-items-counts"><span><strong>${pausedCount}</strong> detenidos</span><span><strong>${reworkCount}</strong> en retrabajo</span><span><strong>${reviewCount}</strong> por revisar</span></div></div><div class="work-items-list">${body}</div>${closedBody}</section>`;
 }
 
 function renderEvidenceReviewDialog(state) {

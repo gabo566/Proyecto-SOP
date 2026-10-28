@@ -1,7 +1,12 @@
-function renderReportsView(allRecords, state) {
+const REPORT_PAGE_SIZE = 25;
+
+function renderReportsView(allRecords, state, workItems) {
   const { reportFilters, includeDemoData } = state;
   const filtered = getReportRecords(allRecords, reportFilters, includeDemoData);
   const summary = getReportSummary(filtered);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / REPORT_PAGE_SIZE));
+  const page = Math.min(Math.max(1, state.reportPage), pageCount);
+  const visible = filtered.slice((page - 1) * REPORT_PAGE_SIZE, page * REPORT_PAGE_SIZE);
   const availableRecords = filterDemoRecords(allRecords, includeDemoData);
   const categories = [...new Set(availableRecords.map((record) => record.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es-MX"));
   const employees = [...new Map(availableRecords.filter((record) => record.employeeNumber).map((record) => [record.employeeNumber, record.operator]))];
@@ -13,6 +18,8 @@ function renderReportsView(allRecords, state) {
   ];
   const categoryOptions = categories.map((category) => `<option value="${escapeHtml(category)}" ${reportFilters.category === category ? "selected" : ""}>${escapeHtml(category)}</option>`).join("");
   const employeeOptions = employees.map(([id, name]) => `<option value="${escapeHtml(id)}" ${reportFilters.employeeNumber === id ? "selected" : ""}>${escapeHtml(name)} · ${escapeHtml(id)}</option>`).join("");
+  const rows = visible.length ? renderSerialRows(visible, workItems) : '<tr><td class="empty-row" colspan="13">No hay registros en este periodo. Amplía las fechas o incluye demostraciones.</td></tr>';
+  const pageLabel = filtered.length ? `Registros ${((page - 1) * REPORT_PAGE_SIZE) + 1}–${Math.min(page * REPORT_PAGE_SIZE, filtered.length)} de ${filtered.length}` : "0 registros";
   const periodLabel = reportFilters.dateFrom || reportFilters.dateTo
     ? `${reportFilters.dateFrom || "inicio"} – ${reportFilters.dateTo || "hoy"}`
     : "todo el historial";
@@ -29,7 +36,10 @@ function renderReportsView(allRecords, state) {
       <label class="demo-toggle"><input type="checkbox" data-demo-data-toggle data-focus-key="demo-data-toggle" ${includeDemoData ? "checked" : ""} /> Incluir datos demo</label>
     </div>
     <dl class="report-summary-strip">${metrics.map((metric) => `<div><dt>${metric.label}</dt><dd>${metric.value}</dd></div>`).join("")}</dl>
-    <div class="report-data-note-row"><p class="report-data-note">${includeDemoData ? "Incluye registros ilustrativos DEMO." : "Los registros ilustrativos DEMO están excluidos."} El turno se calcula desde la hora guardada. El CSV contiene el conjunto completo filtrado.</p><button class="button button--outlined" type="button" data-action="navigate" data-nav-id="traceability" data-focus-key="nav-traceability"><span class="material-symbols-rounded" aria-hidden="true">manage_search</span>Consultar detalle en Trazabilidad</button></div>
+    <p class="report-data-note">${includeDemoData ? "Incluye registros ilustrativos DEMO." : "Los registros ilustrativos DEMO están excluidos."} El turno se calcula desde la hora guardada; el CSV contiene el conjunto completo filtrado.</p>
     ${filtered.length ? `<div class="reports-chart-grid"><section class="report-chart-panel" aria-labelledby="report-chart-title"><h3 id="report-chart-title">Validaciones por tipo de SOP</h3><div class="chart-canvas-wrap"><div class="chart-bars" id="completion-chart" role="img" aria-label="Validaciones por tipo de SOP para ${escapeHtml(periodLabel)}"></div></div></section>${renderOperatorCounts(filtered, periodLabel)}</div>` : '<div class="report-empty"><strong>Sin actividad en este periodo</strong><p>Intenta con otras fechas o activa los datos demo para explorar el reporte.</p></div>'}
+    <section class="report-table-panel" aria-labelledby="report-table-title"><div class="section-heading"><div><h3 id="report-table-title">Detalle de registros</h3><span>${pageLabel}</span></div><div><button class="button button--outlined" type="button" data-action="report-page" data-direction="previous" ${page <= 1 ? "disabled" : ""}>Anterior</button> <button class="button button--outlined" type="button" data-action="report-page" data-direction="next" ${page >= pageCount ? "disabled" : ""}>Siguiente</button></div></div>
+      <div class="table-scroll"><table><thead><tr><th>Fecha y hora</th><th>N° de serie del nodo</th><th>N° de parte del nodo</th><th>Tipo de SOP utilizada</th><th>Tipo de reparación</th><th>N° de parte del componente</th><th>N° de serie del componente</th><th>Hoja</th><th>Operador</th><th>N° empleado</th><th>Puesto</th><th>Estado</th><th>Evidencia</th></tr></thead><tbody>${rows}</tbody></table></div>
+    </section>
   </section>`;
 }
