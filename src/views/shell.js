@@ -1,8 +1,8 @@
 const NAV_ITEMS = [
   { id: "overview", label: "Seguimiento SOP", icon: "space_dashboard", target: "top" },
-  { id: "production", label: "Producción", icon: "precision_manufacturing", target: "production" },
-  { id: "traceability", label: "Trazabilidad", icon: "inventory_2", target: "activity-heading" },
-  { id: "reports", label: "Reportes", icon: "bar_chart", target: "work-items-heading" },
+  { id: "production", label: "Producción", icon: "precision_manufacturing", target: "production-dashboard-title" },
+  { id: "traceability", label: "Trazabilidad", icon: "inventory_2", target: "traceability-title" },
+  { id: "reports", label: "Reportes", icon: "bar_chart", target: "reports-title" },
   { id: "users", label: "Crear usuarios", icon: "person_add", target: "users-panel" },
 ];
 
@@ -25,7 +25,6 @@ function renderSidebar(state) {
         <img class="brand-mark" src="./public/assets/ingrasys-emblem.png" alt="" aria-hidden="true" />
       </a>
       <nav class="side-nav">${navItems}</nav>
-      <div class="sidebar-bottom"><span class="demo-pulse"></span><div><strong>Entorno de muestra</strong><small>Sin conexión a producción</small></div><button class="sidebar-logout" type="button" data-action="logout-local-user" aria-label="Cerrar sesión de ${escapeHtml(user.name)}" title="Cerrar sesión"><span class="material-symbols-rounded" aria-hidden="true">logout</span><span>Salir</span></button></div>
     </aside>`;
 }
 
@@ -40,20 +39,28 @@ function renderTopbar() {
       <div class="topbar-title-copy"><span class="topbar-kicker">SOP actual</span><h1>Desensamble General de Compu Tray Modelo 2000 Rev 2</h1><p>Control de ejecución, validación y trazabilidad</p></div>
     </div>
     <div class="topbar-profile">
-      <div class="profile-chip"><span class="profile-avatar">${escapeHtml(user.name.slice(0, 2).toLocaleUpperCase("es-MX"))}</span><span><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(LOCAL_USER_ROLES[user.role])} · perfil simulado</small></span></div>
+      <details class="profile-menu">
+        <summary class="profile-chip" aria-label="Opciones de ${escapeHtml(user.name)}">
+          <span class="profile-avatar">${escapeHtml(user.name.slice(0, 2).toLocaleUpperCase("es-MX"))}</span>
+        <span class="profile-copy"><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.position || "Técnico de FA")}</small></span>
+          <span class="material-symbols-rounded profile-menu-chevron" aria-hidden="true">expand_more</span>
+        </summary>
+        <div class="profile-dropdown"><span class="profile-dropdown-role">${escapeHtml(LOCAL_USER_ROLES[user.role])}</span><button class="profile-logout" type="button" data-action="logout-local-user"><span class="material-symbols-rounded" aria-hidden="true">logout</span>Cerrar sesión</button></div>
+      </details>
     </div>
     <div class="topbar-meta">
       <div class="date-chip"><span class="material-symbols-rounded" aria-hidden="true">calendar_today</span><span>${escapeHtml(TODAY_DATE_LABEL)}</span></div>
       <div class="shift-chip" aria-label="Turno actual"><span class="material-symbols-rounded" aria-hidden="true">groups</span><span id="current-shift-label">${getCurrentShiftLabel()}</span></div>
+      <button class="icon-button help-button" type="button" data-action="open-help" data-focus-key="help-open" aria-label="Ayuda sobre almacenamiento local" title="Ayuda"><span class="material-symbols-rounded" aria-hidden="true">help</span></button>
     </div>
   </header>`;
 }
 
 function getCurrentShiftLabel(date = new Date()) {
   const minutes = date.getHours() * 60 + date.getMinutes();
-  if (minutes >= 7 * 60 && minutes < 15 * 60) return "Turno 1 (T1)";
-  if (minutes >= 15 * 60 && minutes < 22 * 60 + 30) return "Turno 2 (T2)";
-  if (minutes >= 22 * 60 + 30 || minutes <= 5 * 60 + 30) return "Turno 3 (T3)";
+  if (minutes >= 7 * 60 && minutes < 15 * 60) return "Turno 1";
+  if (minutes >= 15 * 60 && minutes < 22 * 60 + 30) return "Turno 2";
+  if (minutes >= 22 * 60 + 30 || minutes <= 5 * 60 + 30) return "Turno 3";
   return "Sin turno";
 }
 
@@ -70,16 +77,26 @@ function startCurrentShiftClock() {
   }, refreshAtNextMinute);
 }
 
-function renderSopSelector(selectedId) {
+function renderSopSelector(selectedId, pageZoom = 100, state = {}) {
   const options = SOP_SHEETS.map((procedure) => `<option value="${escapeHtml(procedure.id)}" ${procedure.id === selectedId ? "selected" : ""}>${escapeHtml(procedure.category)} · ${escapeHtml(procedure.title)} · hoja ${procedure.sheet}</option>`).join("");
   const procedure = SOP_SHEETS.find((item) => item.id === selectedId) ?? SOP_SHEETS[0];
-  const sourceUrl = `${SOP_DOCUMENT.pdfPath}#page=${procedure.sheet}`;
+  const pdfPath = state.sopPdfUrl || SOP_DOCUMENT.pdfPath;
+  const sourceUrl = `${pdfPath}#page=${procedure.sheet}`;
+  const canUpdateSop = ["supervisor", "admin"].includes(getActiveLocalUser().role);
 
   return `<section class="selector-panel procedure-selector-panel" aria-label="Selección de SOP y hoja">
-    <div class="selector-fields"><label for="procedure-select">SOP / hoja</label>
+    <div class="selector-fields"><label for="procedure-select">Seleccionar SOP</label>
       <select id="procedure-select" data-action="select-procedure" data-focus-key="procedure-select">${options}</select>
     </div>
-    <a class="text-button source-link" href="${sourceUrl}" target="_blank" rel="noreferrer"><span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>Ver PDF</a>
+    <div class="sop-page-zoom-controls" role="group" aria-label="Controles para ampliar o reducir la hoja SOP">
+      <button class="icon-button" type="button" data-action="sop-page-zoom-out" data-focus-key="sop-page-zoom-out" aria-label="Reducir hoja SOP" title="Reducir hoja SOP" ${pageZoom <= 50 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">remove</span></button>
+      <output id="sop-page-zoom-level" aria-live="polite">${pageZoom}%</output>
+      <button class="icon-button" type="button" data-action="sop-page-zoom-in" data-focus-key="sop-page-zoom-in" aria-label="Ampliar hoja SOP" title="Ampliar hoja SOP" ${pageZoom >= 150 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">add</span></button>
+      <button class="text-button" type="button" data-action="sop-page-zoom-reset" data-focus-key="sop-page-zoom-reset" aria-label="Ajustar hoja al panel">Ajustar</button>
+    </div>
+    <div class="sop-source-actions"><a class="text-button source-link" href="${sourceUrl}" target="_blank" rel="noreferrer"><span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>${state.sopPdfName ? "Ver PDF local" : "Ver PDF"}</a>
+      ${canUpdateSop ? `<button class="text-button sop-update-button" type="button" data-action="select-sop-pdf" data-focus-key="update-sop" ${state.sopPdfUpdating ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">upload_file</span>${state.sopPdfUpdating ? "Guardando PDF…" : "Actualizar SOP"}</button><input id="sop-pdf-input" class="sop-upload-input" type="file" accept="application/pdf,.pdf" hidden aria-label="Seleccionar PDF actualizado de la SOP" />` : ""}
+    </div>
   </section>`;
 }
 
@@ -93,7 +110,7 @@ function renderSummaryMetrics(todayRecords, state) {
   const attentionCount = pausedCount + reworkCount + reviewCount;
   const metrics = [
     { tone: "total", label: "Hojas de SOP (GB200)", value: String(SOP_DOCUMENT.totalSheets), unit: `${SOP_DOCUMENT.processSheets} procedimientos · ${SOP_STEP_COUNT} pasos`, icon: "description" },
-    { tone: "completed", label: "Completados hoy", value: String(completedRecords.length), unit: `${TODAY_DATE_LABEL} · demostración`, icon: "check_circle" },
+    { tone: "completed", label: "Validaciones locales hoy", value: String(completedRecords.length), unit: `${TODAY_DATE_LABEL} · este navegador`, icon: "check_circle" },
     { tone: "progress", label: "En proceso", value: String(inProgressCount), unit: `${state.completedSteps.length} pasos marcados`, icon: "donut_large" },
     { tone: "pending", label: "Atención requerida", value: String(attentionCount), unit: `${pausedCount} detenidos · ${reworkCount} retrabajos · ${reviewCount} por revisar`, icon: "priority_high" },
     { tone: "current", label: "SOP actual", value: SOP_DOCUMENT.id, unit: `Rev. ${SOP_DOCUMENT.revision}`, icon: "description" },

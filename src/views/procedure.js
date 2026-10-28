@@ -29,11 +29,12 @@ function renderProcedurePanel(procedure, state) {
   const user = getActiveLocalUser();
   const pageImageUrl = `./public/assets/sop-pages/sop-page-${String(procedure.sheet).padStart(2, "0")}.jpg?resolution=200dpi`;
   const pageZoom = Math.max(50, Math.min(150, Number(state.sopPageZoom) || 100));
-  const pageWidth = 106 * pageZoom / 100;
+  const pageWidth = pageZoom;
   const pageMargin = pageZoom > 100 ? 0 : (100 - pageWidth) / 2;
 
   return `<section class="procedure-panel" aria-label="SOP seleccionada">
-    ${renderSopSelector(procedure.id)}
+    ${renderSopSelector(procedure.id, pageZoom, state)}
+    ${renderSopSourceNotice(state)}
     <div class="procedure-action-bar">
       <div class="procedure-identity-chip"><span class="material-symbols-rounded" aria-hidden="true">person</span><span><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.employeeNumber)} · ${escapeHtml(user.position || "Técnico de FA")}</small></span></div>
       <div class="procedure-action-buttons">
@@ -42,14 +43,18 @@ function renderProcedurePanel(procedure, state) {
       </div>
       ${procedure.steps.length ? "" : '<small class="procedure-actions-note">Esta hoja es informativa. Selecciona una hoja con pasos para habilitar las acciones.</small>'}
     </div>
-    <div class="sop-page-toolbar"><strong>Tamaño de la hoja SOP</strong><div class="sop-page-zoom-controls" role="group" aria-label="Controles para ampliar o reducir la hoja SOP">
-      <button class="icon-button" type="button" data-action="sop-page-zoom-out" data-focus-key="sop-page-zoom-out" aria-label="Reducir hoja SOP" title="Reducir hoja SOP" ${pageZoom <= 50 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">remove</span></button>
-      <output id="sop-page-zoom-level" aria-live="polite">${pageZoom}%</output>
-      <button class="icon-button" type="button" data-action="sop-page-zoom-in" data-focus-key="sop-page-zoom-in" aria-label="Ampliar hoja SOP" title="Ampliar hoja SOP" ${pageZoom >= 150 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">add</span></button>
-      <button class="text-button" type="button" data-action="sop-page-zoom-reset" data-focus-key="sop-page-zoom-reset" aria-label="Ajustar hoja al panel">Ajustar</button>
-    </div></div>
-    <div class="sop-page-preview ${pageZoom > 100 ? "sop-page-preview--zoomed" : ""}" id="sop-page-preview"><img src="${pageImageUrl}" alt="${escapeHtml(SOP_DOCUMENT.title)} · hoja ${procedure.sheet} completa" style="width:${pageWidth}%;margin-left:${pageMargin}%" loading="eager" decoding="async" /></div>
+    <div class="sop-page-preview ${pageZoom > 100 ? "sop-page-preview--zoomed" : ""}" id="sop-page-preview">${state.sopPdfUrl
+      ? `<iframe class="sop-pdf-page-preview" src="${escapeHtml(state.sopPdfUrl)}#page=${procedure.sheet}&zoom=${pageZoom === 100 ? "page-fit" : pageZoom}" title="PDF SOP local · hoja ${procedure.sheet}" loading="eager"></iframe>`
+      : `<img src="${pageImageUrl}" alt="${escapeHtml(SOP_DOCUMENT.title)} · hoja ${procedure.sheet} completa" style="width:${pageWidth}%;margin-left:${pageMargin}%" loading="eager" decoding="async" />`}</div>
   </section>`;
+}
+
+function renderSopSourceNotice(state) {
+  const discrepancyCount = PROCEDURES.reduce((count, procedure) => count + procedure.steps.filter((step) => step.sourceNote).length, 0);
+  const savedSource = state.sopPdfName
+    ? `<strong>PDF local:</strong> ${escapeHtml(state.sopPdfName)}. El PDF cambia en este navegador; el texto y las imágenes por paso del catálogo permanecen como estaban y requieren cotejo manual.`
+    : "Selecciona un PDF controlado para actualizar la referencia local.";
+  return `<aside class="sop-source-notice" role="note"><span class="material-symbols-rounded" aria-hidden="true">fact_check</span><span><strong>Revisión de la fuente pendiente.</strong> El título visible indica Rev. 2 y el catálogo Rev. ${escapeHtml(SOP_DOCUMENT.revision)}; ${discrepancyCount} pasos tienen discrepancias de P/N anotadas. ${savedSource}</span></aside>`;
 }
 
 function renderStepImageDialog() {
