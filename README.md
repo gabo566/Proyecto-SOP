@@ -101,7 +101,7 @@ El inicio de sesión utiliza el número de empleado como usuario. Las cuentas in
 | Julio Cesar Rojo Rodriguez | `141090` | `1090` | DEBUGGER SR | Operador |
 | Jesus Humberto Ortega Mejia | `121907` | `1907` | DEBUGGER SR | Operador |
 
-Las cuatro cuentas DEBUGGER SR usan como contraseña los últimos cuatro dígitos de su número de empleado. Desde «Usuarios», un administrador puede dar de alta operadores y otros perfiles, activar o desactivar las cuentas que haya creado y asignar una nueva contraseña a cualquier cuenta, incluidas las precargadas. El formulario de cambio solicita elegir la cuenta y capturar una contraseña nueva de al menos cuatro caracteres; nunca muestra la anterior. Las cuentas precargadas no se pueden desactivar.
+Las cuatro cuentas DEBUGGER SR usan como contraseña los últimos cuatro dígitos de su número de empleado. Desde «Crear usuarios» en la barra lateral, un administrador puede registrar nombre, número de empleado, puesto, contraseña inicial y tipo de usuario (usuario común u administrador). Los números de empleado deben ser únicos. En la misma sección puede activar o desactivar las cuentas creadas y asignar una nueva contraseña a cualquier cuenta, incluidas las precargadas. El formulario de cambio solicita elegir la cuenta y capturar una contraseña nueva de al menos cuatro caracteres; nunca muestra la anterior. Las cuentas precargadas no se pueden desactivar.
 
 | Rol | Flujo que representa |
 | --- | --- |

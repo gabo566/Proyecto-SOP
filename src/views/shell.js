@@ -3,7 +3,7 @@ const NAV_ITEMS = [
   { id: "production", label: "Producción", icon: "precision_manufacturing", target: "production" },
   { id: "traceability", label: "Trazabilidad", icon: "inventory_2", target: "activity-heading" },
   { id: "reports", label: "Reportes", icon: "bar_chart", target: "work-items-heading" },
-  { id: "users", label: "Usuarios", icon: "manage_accounts", target: "users-panel" },
+  { id: "users", label: "Crear usuarios", icon: "person_add", target: "users-panel" },
 ];
 
 function renderSidebar(state) {
