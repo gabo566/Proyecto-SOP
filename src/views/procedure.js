@@ -31,13 +31,14 @@ function renderProcedurePanel(procedure) {
 
   return `<section class="procedure-panel" aria-label="SOP seleccionada">
     ${renderSopSelector(procedure.id)}
-    ${procedure.steps.length ? `<div class="procedure-action-bar">
+    <div class="procedure-action-bar">
       <div class="procedure-identity-chip"><span class="material-symbols-rounded" aria-hidden="true">person</span><span><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.employeeNumber)} · ${escapeHtml(user.position || "Técnico de FA")}</small></span></div>
       <div class="procedure-action-buttons">
-        <button class="button button--primary procedure-register-button" type="button" data-action="open-validation-dialog" data-focus-key="register-validation"><span class="material-symbols-rounded" aria-hidden="true">task_alt</span>Registrar validación</button>
-        <button class="button button--secondary procedure-stop-button" type="button" data-action="open-work-item-dialog"><span class="material-symbols-rounded" aria-hidden="true">pause_circle</span>Detener / registrar retrabajo</button>
+        <button class="button button--primary procedure-register-button" type="button" data-action="open-validation-dialog" data-focus-key="register-validation" ${procedure.steps.length ? "" : 'disabled title="Esta hoja informativa no tiene pasos para validar"'}><span class="material-symbols-rounded" aria-hidden="true">task_alt</span>Registrar validación</button>
+        <button class="button button--secondary procedure-stop-button" type="button" data-action="open-work-item-dialog" ${procedure.steps.length ? "" : 'disabled title="Selecciona una hoja con pasos para detener o registrar un retrabajo"'}><span class="material-symbols-rounded" aria-hidden="true">pause_circle</span>Detener / registrar retrabajo</button>
       </div>
-    </div>` : ""}
+      ${procedure.steps.length ? "" : '<small class="procedure-actions-note">Esta hoja es informativa. Selecciona una hoja con pasos para habilitar las acciones.</small>'}
+    </div>
     <div class="sop-page-preview" id="sop-page-preview"><img src="${pageImageUrl}" alt="${escapeHtml(SOP_DOCUMENT.title)} · hoja ${procedure.sheet} completa" loading="eager" decoding="async" /></div>
   </section>`;
 }
