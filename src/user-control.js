@@ -122,9 +122,10 @@ function changeLocalUserPassword(userId, password) {
 }
 
 function setLocalUserActive(id, active) {
+  if (getActiveLocalUser().role !== "admin") return "forbidden";
   const users = listLocalUsers();
   const target = users.find((user) => user.id === id);
-  if (!target || target.demo) return "protected";
+  if (!target) return "missing";
   if (!active && getActiveLocalUser().id === id) return "active-user";
   const activeAdmins = users.filter((user) => user.active && user.role === "admin");
   if (!active && target.active && target.role === "admin" && activeAdmins.length <= 1) return "last-admin";
@@ -167,7 +168,7 @@ function recordLocalAuditEvent(action, details = {}) {
 
 function renderLocalUsersPanel() {
   const users = listLocalUsers();
-  const rows = users.map((user) => `<tr><td><strong>${escapeHtml(user.name)}</strong></td><td>${escapeHtml(user.employeeNumber)}</td><td>${escapeHtml(user.position || "Técnico de FA")}</td><td>${escapeHtml(LOCAL_USER_ROLES[user.role] ?? user.role)}</td><td><span class="local-user-status ${user.active ? "is-active" : ""}">${user.active ? "Activo" : "Desactivado"}</span></td><td>${user.demo ? "Cuenta de ejemplo" : `<button class="text-button" type="button" data-action="toggle-local-user" data-user-id="${escapeHtml(user.id)}" data-active="${user.active ? "false" : "true"}">${user.active ? "Desactivar" : "Activar"}</button>`}</td></tr>`).join("");
+  const rows = users.map((user) => `<tr><td><strong>${escapeHtml(user.name)}</strong></td><td>${escapeHtml(user.employeeNumber)}</td><td>${escapeHtml(user.position || "Técnico de FA")}</td><td>${escapeHtml(LOCAL_USER_ROLES[user.role] ?? user.role)}</td><td><span class="local-user-status ${user.active ? "is-active" : ""}">${user.active ? "Activo" : "Desactivado"}</span></td><td><button class="text-button" type="button" data-action="toggle-local-user" data-user-id="${escapeHtml(user.id)}" data-active="${user.active ? "false" : "true"}">${user.active ? "Desactivar acceso" : "Reactivar acceso"}</button></td></tr>`).join("");
   const passwordOptions = users.map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.name)} · ${escapeHtml(user.employeeNumber)}${user.active ? "" : " · Desactivado"}</option>`).join("");
   return `<section class="users-panel" id="users-panel"><div class="section-heading"><div><p class="eyebrow">Administración de cuentas locales</p><h2>Crear usuarios</h2></div><span>${users.filter((user) => user.active).length} activos</span></div>
     <div class="local-prototype-notice" role="note">Los perfiles y roles se simulan en este navegador. No validan identidad ni protegen datos; no uses información real.</div>

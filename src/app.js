@@ -399,7 +399,7 @@ bindInteractions(app, {
   },
   toggleLocalUser: (id, active) => {
     const result = setLocalUserActive(id, active);
-    showToast(result === "ok" ? `Usuario ${active ? "activado" : "desactivado"} en esta demostración.` : result === "last-admin" ? "Debe quedar al menos un administrador activo." : result === "active-user" ? "Cambia el perfil activo antes de desactivarlo." : "Las cuentas de ejemplo no se pueden cambiar.", "warning");
+    showToast(result === "ok" ? `Acceso ${active ? "reactivado" : "desactivado"}.` : result === "last-admin" ? "Debe quedar al menos un administrador activo." : result === "active-user" ? "No puedes desactivar la cuenta con la que tienes la sesión abierta." : result === "forbidden" ? "Solo un administrador puede cambiar el acceso de los usuarios." : "No se encontró esa cuenta.", "warning");
     render();
   },
   addEvidence: workflow.addEvidence,
