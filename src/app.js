@@ -388,6 +388,15 @@ bindInteractions(app, {
     else showToast(result === "email" ? "Ese correo ya existe." : result === "employee" ? "Ese número de empleado ya existe." : result === "password" ? "La contraseña debe tener al menos 4 caracteres." : "No se pudo crear el perfil.", "warning");
     render();
   },
+  changeLocalUserPassword: (formData) => {
+    const result = changeLocalUserPassword(
+      String(formData.get("passwordUserId") ?? ""),
+      String(formData.get("newPassword") ?? ""),
+    );
+    if (result === "ok") showToast("Contraseña actualizada en este navegador.", "success");
+    else showToast(result === "password" ? "La contraseña debe tener al menos 4 caracteres." : "No se pudo cambiar la contraseña.", "warning");
+    render();
+  },
   toggleLocalUser: (id, active) => {
     const result = setLocalUserActive(id, active);
     showToast(result === "ok" ? `Usuario ${active ? "activado" : "desactivado"} en esta demostración.` : result === "last-admin" ? "Debe quedar al menos un administrador activo." : result === "active-user" ? "Cambia el perfil activo antes de desactivarlo." : "Las cuentas de ejemplo no se pueden cambiar.", "warning");

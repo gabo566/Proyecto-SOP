@@ -101,7 +101,7 @@ El inicio de sesión utiliza el número de empleado como usuario. Las cuentas in
 | Julio Cesar Rojo Rodriguez | `141090` | `1090` | DEBUGGER SR | Operador |
 | Jesus Humberto Ortega Mejia | `121907` | `1907` | DEBUGGER SR | Operador |
 
-Las cuatro cuentas DEBUGGER SR usan como contraseña los últimos cuatro dígitos de su número de empleado. Desde «Usuarios», un administrador puede agregar perfiles locales y activar o desactivar los que haya agregado. Las cuentas precargadas están protegidas y no se pueden desactivar.
+Las cuatro cuentas DEBUGGER SR usan como contraseña los últimos cuatro dígitos de su número de empleado. Desde «Usuarios», un administrador puede dar de alta operadores y otros perfiles, activar o desactivar las cuentas que haya creado y asignar una nueva contraseña a cualquier cuenta, incluidas las precargadas. El formulario de cambio solicita elegir la cuenta y capturar una contraseña nueva de al menos cuatro caracteres; nunca muestra la anterior. Las cuentas precargadas no se pueden desactivar.
 
 | Rol | Flujo que representa |
 | --- | --- |
@@ -111,7 +111,7 @@ Las cuatro cuentas DEBUGGER SR usan como contraseña los últimos cuatro dígito
 
 Al marcar o reabrir un paso se registra el usuario activo, número de empleado y rol, fecha/hora, paso, sección SOP y serial si ya se capturó. La bitácora también registra validaciones, detenciones, retrabajos, reanudaciones, carga/retiro de fotos, revisiones y acciones de gestión de usuarios. La vista de evidencia muestra quién agregó cada foto cuando esa información está disponible. El historial local conserva como máximo los últimos 1,000 eventos.
 
-**El inicio de sesión es una simulación local.** Las credenciales iniciales se guardan en el código del prototipo y las contraseñas de cuentas nuevas quedan en `localStorage`. No acredita identidad real ni protege datos. Los perfiles y la bitácora pueden modificarse desde el navegador; Microsoft Entra ID y la autenticación segura en servidor siguen pendientes.
+**El inicio de sesión es una simulación local.** Las credenciales iniciales se guardan en el código del prototipo y las contraseñas nuevas o modificadas quedan en `localStorage`. No acredita identidad real ni protege datos. Los perfiles y la bitácora pueden modificarse desde el navegador; Microsoft Entra ID y la autenticación segura en servidor siguen pendientes.
 
 ## Persistencia y límites
 

@@ -25,7 +25,7 @@ function readLocalUsers() {
     const migratedUsers = users.map((user) => {
       const seeded = INITIAL_LOCAL_USERS.find((item) => item.id === user.id);
       return seeded
-        ? { ...seeded, ...user, name: seeded.name, position: user.position || seeded.position, username: seeded.username, password: seeded.password, employeeNumber: seeded.employeeNumber, role: seeded.role, demo: true }
+        ? { ...seeded, ...user, name: seeded.name, position: user.position || seeded.position, username: seeded.username, password: user.password || seeded.password, employeeNumber: seeded.employeeNumber, role: seeded.role, demo: true }
         : { ...user, username: user.username || user.employeeNumber, password: user.password || "" };
     });
     INITIAL_LOCAL_USERS.forEach((seeded) => {
@@ -107,6 +107,19 @@ function addLocalUser({ name, employeeNumber, email, role, password, position })
   return "ok";
 }
 
+function changeLocalUserPassword(userId, password) {
+  if (getActiveLocalUser().role !== "admin") return "forbidden";
+  const normalizedPassword = String(password ?? "").trim();
+  if (normalizedPassword.length < 4) return "password";
+  const users = listLocalUsers();
+  const target = users.find((user) => user.id === userId);
+  if (!target) return "missing";
+  target.password = normalizedPassword;
+  persistLocalUsers(users);
+  recordLocalAuditEvent("local_user_password_changed", { targetUserId: target.id, targetUserName: target.name, targetRole: target.role });
+  return "ok";
+}
+
 function setLocalUserActive(id, active) {
   const users = listLocalUsers();
   const target = users.find((user) => user.id === id);
@@ -154,9 +167,11 @@ function recordLocalAuditEvent(action, details = {}) {
 function renderLocalUsersPanel() {
   const users = listLocalUsers();
   const rows = users.map((user) => `<tr><td><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.email)}</small></td><td>${escapeHtml(user.employeeNumber)}</td><td>${escapeHtml(user.position || "Técnico de FA")}</td><td>${escapeHtml(LOCAL_USER_ROLES[user.role] ?? user.role)}</td><td><span class="local-user-status ${user.active ? "is-active" : ""}">${user.active ? "Activo" : "Desactivado"}</span></td><td>${user.demo ? "Cuenta de ejemplo" : `<button class="text-button" type="button" data-action="toggle-local-user" data-user-id="${escapeHtml(user.id)}" data-active="${user.active ? "false" : "true"}">${user.active ? "Desactivar" : "Activar"}</button>`}</td></tr>`).join("");
+  const passwordOptions = users.map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.name)} · ${escapeHtml(user.employeeNumber)}${user.active ? "" : " · Desactivado"}</option>`).join("");
   return `<section class="users-panel" id="users-panel"><div class="section-heading"><div><p class="eyebrow">Control local · sin cuentas Microsoft</p><h2>Usuarios de demostración</h2></div><span>${users.filter((user) => user.active).length} activos</span></div>
     <div class="local-prototype-notice" role="note">Los perfiles y roles se simulan en este navegador. No validan identidad ni protegen datos; no uses información real.</div>
     <form class="local-user-form" id="local-user-form"><label>Nombre completo<input name="userName" required maxlength="100" autocomplete="off" /></label><label>Número de empleado / usuario<input name="employeeNumber" required maxlength="40" autocomplete="username" /></label><label>Puesto<input name="userPosition" required maxlength="80" autocomplete="organization-title" /></label><label>Contraseña inicial<input name="userPassword" type="password" required minlength="4" maxlength="80" autocomplete="new-password" /></label><label>Correo de referencia<input name="userEmail" type="email" required maxlength="160" autocomplete="off" /></label><label>Rol<select name="userRole"><option value="operator">Operador</option><option value="supervisor">Supervisor</option><option value="admin">Administrador</option></select></label><button class="button button--primary" type="submit">Agregar usuario de demostración</button></form>
+    <form class="local-password-form" id="local-password-form"><label>Cuenta<select name="passwordUserId" required>${passwordOptions}</select></label><label>Nueva contraseña<input name="newPassword" type="password" required minlength="4" maxlength="80" autocomplete="new-password" /></label><button class="button button--secondary" type="submit">Cambiar contraseña</button><small>La contraseña anterior no se muestra. Usa al menos 4 caracteres.</small></form>
     <div class="table-scroll"><table><thead><tr><th>Usuario</th><th>N° empleado</th><th>Puesto</th><th>Rol</th><th>Estado</th><th>Acción</th></tr></thead><tbody>${rows}</tbody></table></div></section>
     <section class="audit-panel" id="audit-panel"><div class="section-heading"><div><p class="eyebrow">Eventos guardados en este navegador</p><h2>Actividad de usuarios</h2></div><span>${readLocalAuditTrail().length} eventos · máximo 1,000</span></div>${renderLocalAuditTable()}</section>`;
 }
@@ -176,6 +191,7 @@ function renderLocalAuditTable() {
     evidence_review_correction_requested: "Solicitó corrección",
     local_login: "Ingresó al sistema",
     local_logout: "Cerró sesión",
+    local_user_password_changed: "Cambió la contraseña de un usuario",
     demo_user_created: "Creó usuario de demostración",
     demo_user_activated: "Activó usuario de demostración",
     demo_user_deactivated: "Desactivó usuario de demostración",

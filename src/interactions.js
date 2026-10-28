@@ -30,6 +30,7 @@ function bindInteractions(app, handlers) {
     authenticateLocalUser,
     endLocalUserSession,
     createLocalUser,
+    changeLocalUserPassword,
     toggleLocalUser,
   } = handlers;
   let stepImageViewer = { zoom: 100 };
@@ -299,6 +300,10 @@ function bindInteractions(app, handlers) {
       event.preventDefault();
       if (getActiveLocalUser().role !== "admin") return;
       createLocalUser(new FormData(event.target));
+    } else if (event.target.matches("#local-password-form")) {
+      event.preventDefault();
+      if (getActiveLocalUser().role !== "admin") return;
+      changeLocalUserPassword(new FormData(event.target));
     }
   });
 }

@@ -681,6 +681,11 @@ td small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px;
 .local-user-form label { display: grid; gap: 6px; color: #526272; font-size: 0.8rem; font-weight: 600; }
 .local-user-form input, .local-user-form select { min-width: 0; padding: 9px 10px; border: 1px solid #cbd5df; border-radius: 7px; color: #263543; background: #fff; font: inherit; font-weight: 400; }
 .local-user-form button { min-height: 40px; white-space: nowrap; }
+.local-password-form { display: grid; grid-template-columns: minmax(220px, 1.2fr) minmax(180px, 1fr) auto; align-items: end; gap: 12px; margin: 0 0 20px; padding: 16px; border: 1px solid #dce3ea; border-radius: 10px; background: #f7f9fb; }
+.local-password-form label { display: grid; gap: 6px; color: #526272; font-size: 0.8rem; font-weight: 600; }
+.local-password-form input, .local-password-form select { min-width: 0; min-height: 40px; padding: 9px 10px; border: 1px solid #cbd5df; border-radius: 7px; color: #263543; background: #fff; font: inherit; font-weight: 400; }
+.local-password-form button { min-height: 40px; white-space: nowrap; }
+.local-password-form > small { grid-column: 1 / -1; margin-top: -5px; color: #718090; font-size: 0.74rem; }
 .users-panel .table-scroll, .audit-panel .table-scroll { overflow-x: auto; }
 .users-panel table, .audit-panel table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.84rem; }
 .users-panel th, .users-panel td, .audit-panel th, .audit-panel td { padding: 10px 12px; border-bottom: 1px solid #e7ecf1; vertical-align: top; }
@@ -690,6 +695,6 @@ td small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px;
 .local-user-status.is-active { color: #256944; background: #e5f4eb; }
 .logout-button { padding: 8px 12px; border: 1px solid #cbd5df; border-radius: 999px; color: #34495e; background: #fff; cursor: pointer; font-size: 0.78rem; }
 .audit-empty { padding: 16px 0; color: #718090; }
-@media (max-width: 1100px) { .local-user-form { grid-template-columns: repeat(2, minmax(150px, 1fr)); } }
-@media (max-width: 700px) { .local-user-form { grid-template-columns: 1fr; } .users-panel, .audit-panel { padding: 15px; } }
+@media (max-width: 1100px) { .local-user-form { grid-template-columns: repeat(2, minmax(150px, 1fr)); } .local-password-form { grid-template-columns: repeat(2, minmax(150px, 1fr)); } }
+@media (max-width: 700px) { .local-user-form, .local-password-form { grid-template-columns: 1fr; } .local-password-form > small { grid-column: auto; } .users-panel, .audit-panel { padding: 15px; } }
 @media (max-width: 650px) { .sidebar-bottom { flex-wrap: wrap; justify-content: flex-start; } .sidebar-logout { width: auto; min-width: 64px; margin-left: auto; padding: 0 8px; } .sidebar-logout > span:last-child { display: inline; } }
