@@ -176,7 +176,7 @@ button { color: inherit; }
 .procedure-selector-panel .source-link { min-height: 34px; margin: 0; padding: 0 5px; gap: 4px; font-size: 11px; }
 .sop-page-preview { min-width: 0; width: 100%; height: auto; min-height: 0; display: block; flex: 0 0 auto; overflow: hidden; scroll-margin-top: 108px; border: 1px solid var(--outline); border-radius: 8px; background: #fff; }
 .sop-page-preview img { display: block; width: 106%; height: auto; max-width: none; margin: 0 0 0 -3%; object-fit: contain; }
-.procedure-action-bar { position: sticky; top: 102px; z-index: 15; display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 2px; padding: 8px 10px; border: 1px solid var(--outline); border-radius: 10px; background: var(--surface-soft); box-shadow: 0 3px 10px rgba(22,29,40,.08); }
+.procedure-action-bar { position: sticky; top: 102px; z-index: 15; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; margin-top: 2px; padding: 8px 10px; border: 1px solid var(--outline); border-radius: 10px; background: var(--surface-soft); box-shadow: 0 3px 10px rgba(22,29,40,.08); }
 .procedure-identity-chip { min-width: 0; display: flex; align-items: center; gap: 9px; color: #345474; }
 .procedure-identity-chip > .material-symbols-rounded { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; border-radius: 50%; background: #e7eef6; }
 .procedure-identity-chip > span:last-child { min-width: 0; display: grid; gap: 2px; }
@@ -184,6 +184,8 @@ button { color: inherit; }
 .procedure-identity-chip small { color: var(--muted); font-size: 10px; }
 .procedure-action-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .procedure-action-buttons .button { min-height: 42px; font-size: 11px; }
+.procedure-action-buttons .button:disabled { cursor: not-allowed; opacity: .52; box-shadow: none; }
+.procedure-actions-note { flex: 1 0 100%; color: var(--muted); font-size: 11px; text-align: right; }
 .procedure-steps-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0 6px; }
 .procedure-steps-heading h3 { margin: 0; color: #273141; font-size: 12px; }
 .procedure-scroll-hint { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
