@@ -61,7 +61,7 @@ button { color: inherit; }
 .brand img { display: block; width: 100%; height: auto; max-height: 62px; object-fit: contain; object-position: center; }
 .brand .brand-full { mix-blend-mode: screen; }
 .brand .brand-mark { display: none; }
-.side-nav { display: grid; align-content: start; gap: 7px; margin-top: 16px; }
+.side-nav { display: grid; align-content: start; gap: 7px; margin-top: 32px; }
 .nav-item { position: relative; display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 50px; padding: 0 8px; border: 0; border-radius: 9px; color: #d1d8e0; background: transparent; text-align: center; cursor: pointer; font-size: 15px; font-weight: 500; transition: background-color 160ms ease, color 160ms ease; }
 .nav-item .material-symbols-rounded { font-size: 21px; }
 .nav-item:hover { background: rgba(255, 255, 255, .08); color: #fff; }
