@@ -715,7 +715,7 @@ td small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px;
 .production-dashboard-heading, .reports-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .production-dashboard-heading h2, .traceability-view h2, .reports-view h2 { margin: 0; color: var(--ink); font-size: 18px; line-height: 1.25; }
 .production-dashboard-heading p, .traceability-subtitle, .reports-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
-.production-status-strip, .report-summary-strip { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); margin: 0; border-top: 1px solid var(--outline); border-bottom: 1px solid var(--outline); background: var(--surface); }
+.production-status-strip, .report-summary-strip { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); margin: 0; border-top: 1px solid var(--outline); border-bottom: 1px solid var(--outline); background: var(--surface); }
 .production-status-strip > div, .report-summary-strip > div { min-width: 0; display: grid; align-content: center; gap: 4px; padding: 11px 14px; border-right: 1px solid var(--outline); }
 .production-status-strip > div:last-child, .report-summary-strip > div:last-child { border-right: 0; }
 .production-status-strip dt, .report-summary-strip dt { color: var(--muted); font-size: 10px; font-weight: 550; }
@@ -741,12 +741,11 @@ td small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px;
 .report-summary-strip dd { font-size: 17px; }
 .reports-chart-grid { display: grid; grid-template-columns: minmax(260px,.85fr) minmax(0,1.3fr); align-items: start; gap: 14px; }
 .report-chart-panel { min-width: 0; padding: 8px 12px; border-bottom: 1px solid var(--outline); }
-.report-chart-panel h3, .report-table-panel h3 { margin: 0; color: var(--ink); font-size: 13px; }
+.report-chart-panel h3 { margin: 0; color: var(--ink); font-size: 13px; }
 .report-chart-panel .chart-canvas-wrap { height: 230px; }
 .reports-chart-grid .operator-activity { margin: 0; }
-.report-table-panel { min-width: 0; }
-.report-table-panel .section-heading { margin-bottom: 8px; }
-.report-table-panel .section-heading > div { display: flex; align-items: baseline; gap: 10px; color: var(--muted); font-size: 10px; }
+.report-data-note-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.report-data-note-row .button { min-height: 34px; font-size: 11px; }
 .report-empty { padding: 24px 12px; text-align: center; color: var(--muted); background: var(--surface-soft); }
 .report-empty strong { color: var(--ink); font-size: 13px; }
 .report-empty p { margin: 5px 0 0; font-size: 11px; }
@@ -792,6 +791,8 @@ td small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px;
   .traceability-filters .search-box { grid-column: 1 / -1; }
   .demo-toggle { justify-content: flex-start; }
   .traceability-view > .section-heading { flex-direction: column; }
+  .report-data-note-row { align-items: stretch; flex-direction: column; }
+  .report-data-note-row .button { width: 100%; }
   .traceability-pagination { align-items: flex-start; flex-direction: column; }
   .traceability-pagination > div { width: 100%; }
   .traceability-pagination .button { flex: 1; }

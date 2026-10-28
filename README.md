@@ -71,7 +71,7 @@ Antes de detener el trabajo, la aplicación requiere el serial del nodo, nombre 
 
 Se puede guardar una detención por bloqueo o declarar que se requiere retrabajo. En ambos casos se conserva localmente el procedimiento, hoja, avance marcado, datos capturados, motivo, nota y un historial de eventos. Una detención queda disponible para reanudarse; un retrabajo identifica el paso con falla. Al iniciar el retrabajo, ese paso se vuelve a abrir para que se corrija y valide de nuevo.
 
-El área «Detenidos y retrabajos» presenta los trabajos abiertos, su estado, avance, responsable, datos del componente, fotos relacionadas e historial. También muestra algunos trabajos cerrados recientemente.
+El apartado «Producción» presenta únicamente los trabajos abiertos, con su estado, avance, responsable, datos del componente, fotos relacionadas e historial. Los trabajos completados se consultan en Trazabilidad y en el resumen de Reportes.
 
 ### Evidencia fotográfica y revisión
 
@@ -84,9 +84,17 @@ El área «Detenidos y retrabajos» presenta los trabajos abiertos, su estado, a
 
 ### Trazabilidad, reportes y búsqueda
 
-La navegación separa «Seguimiento SOP», «Producción», «Trazabilidad» y «Reportes». La interfaz muestra métricas diarias, conteos por categoría y por operador, una gráfica y tablas de validaciones. Se puede buscar por serial, nodo, categoría, operador y otros datos capturados; el diálogo de registros muestra el conjunto filtrado.
+La navegación separa las tareas para evitar repetir el mismo listado en varias pantallas:
 
-Los datos iniciales son 19 registros ficticios distribuidos entre BMC, Busbar, Cold Plate / Manifold y Bianca. Llevan seriales `DEMO-*`, operadores `Operador demo *` y la etiqueta «Demostración». Las métricas del día combinan esos datos ilustrativos con las validaciones que se hayan guardado localmente. No deben interpretarse como producción real.
+- **Seguimiento SOP** es el espacio de ejecución: seleccionar la hoja, consultar instrucciones e imágenes, marcar pasos y registrar, detener o pedir retrabajo. No muestra indicadores ni tablas históricas.
+- **Producción** es la cola operativa de trabajos abiertos. Presenta trabajos en proceso, detenidos, en retrabajo o pendientes de revisión con sus acciones para continuar o revisar. No incluye los trabajos completados.
+- **Trazabilidad** concentra el detalle cronológico por evento: validaciones, pausas y retrabajos. Sus filtros permiten localizar serial, nodo, componente, SOP, operador, turno o fecha; aquí se consulta y exporta el detalle individual.
+- **Reportes** resume los registros filtrados por fecha, turno, SOP y operador mediante indicadores y gráficas. No repite la tabla de detalle; para revisar filas individuales ofrece un acceso a Trazabilidad. El CSV conserva el conjunto completo filtrado.
+- **Usuarios y accesos** está reservado para administradores y concentra altas, roles, contraseñas, activación de cuentas y bitácora local.
+
+Las secciones usan datos del mismo almacenamiento local, pero sirven a tareas distintas. Los filtros de cada vista son independientes salvo el control para incluir registros de demostración.
+
+Los datos iniciales son 19 registros ficticios distribuidos entre BMC, Busbar, Cold Plate / Manifold y Bianca. Llevan seriales `DEMO-*`, operadores `Operador demo *` y la etiqueta «Demostración». En Reportes y Trazabilidad se pueden incluir o excluir con el control «Incluir registros demo»; nunca deben interpretarse como producción real. Producción solo considera trabajos locales abiertos.
 
 ### Perfiles y bitácora local
 
@@ -102,7 +110,7 @@ El inicio de sesión utiliza el número de empleado como usuario. Las cuentas in
 | Julio Cesar Rojo Rodriguez | `141090` | `1090` | DEBUGGER SR | Operador |
 | Jesus Humberto Ortega Mejia | `121907` | `1907` | DEBUGGER SR | Operador |
 
-Las cuatro cuentas DEBUGGER SR usan como contraseña los últimos cuatro dígitos de su número de empleado. Desde «Crear usuarios» en la barra lateral, un administrador puede registrar nombre, número de empleado, puesto, contraseña inicial y tipo de usuario (usuario común u administrador). Los números de empleado deben ser únicos. En la misma sección puede desactivar o reactivar el acceso de cualquier cuenta, incluidas las precargadas, y asignar una nueva contraseña. Una cuenta desactivada no puede iniciar sesión aunque conserve su contraseña; su información se conserva y su acceso puede reactivarse. No se permite desactivar la cuenta que tiene la sesión abierta ni dejar el sistema sin administradores activos. El formulario de cambio solicita elegir la cuenta y capturar una contraseña nueva de al menos cuatro caracteres; nunca muestra la anterior.
+Las cuatro cuentas DEBUGGER SR usan como contraseña los últimos cuatro dígitos de su número de empleado. Desde «Usuarios y accesos» en la barra lateral, un administrador puede registrar nombre, número de empleado, puesto, contraseña inicial y tipo de usuario (usuario común u administrador). Los números de empleado deben ser únicos. En la misma sección puede desactivar o reactivar el acceso de cualquier cuenta, incluidas las precargadas, y asignar una nueva contraseña. Una cuenta desactivada no puede iniciar sesión aunque conserve su contraseña; su información se conserva y su acceso puede reactivarse. No se permite desactivar la cuenta que tiene la sesión abierta ni dejar el sistema sin administradores activos. El formulario de cambio solicita elegir la cuenta y capturar una contraseña nueva de al menos cuatro caracteres; nunca muestra la anterior.
 
 | Rol | Flujo que representa |
 | --- | --- |
@@ -125,7 +133,7 @@ La aplicación no tiene backend. Los registros de validación, trabajos, perfile
 - La persistencia local sirve para probar el flujo de interfaz, no para mantener registros oficiales de manufactura.
 - La bitácora se puede editar desde las herramientas del navegador y solo retiene los últimos 1,000 eventos; no es evidencia de auditoría oficial.
 
-La fecha y hora se obtienen del reloj y la zona horaria del navegador. Las métricas y los registros de demostración se presentan para la fecha actual del dispositivo.
+La fecha y hora se obtienen del reloj y la zona horaria del navegador. Reportes aplica el periodo seleccionado sobre los registros disponibles en este navegador.
 
 ## Cómo abrirlo para desarrollo local
 

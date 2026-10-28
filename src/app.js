@@ -35,7 +35,6 @@ const state = {
   activeSection: "overview",
   includeDemoData: false,
   reportFilters: { dateFrom: "", dateTo: "", shift: "all", category: "all", employeeNumber: "all" },
-  reportPage: 1,
   traceabilityFilters: { query: "", dateFrom: "", dateTo: "", shift: "all", category: "all", employeeNumber: "all" },
   traceabilityPage: 1,
   sopPdfUrl: "",
@@ -90,21 +89,17 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   const previousFocus = focusKey === undefined ? getFocusState() : { key: focusKey, start: null, end: null };
   const allRecords = getRecords();
   const records = filterDemoRecords(allRecords, state.activeSection === "traceability" && state.includeDemoData);
-  const operationalRecords = filterDemoRecords(allRecords, false);
-  const todayKey = getLocalDateKey();
-  const todayRecords = operationalRecords.filter((record) => record.date === todayKey);
   const dashboard = state.activeSection === "overview"
-    ? `${renderSummaryMetrics(todayRecords, state)}
-      <div class="production-layout production-layout--sheet" id="production">${renderProcedurePanel(getProcedure(), state)}</div>`
+    ? `<div class="production-layout production-layout--sheet" id="production">${renderProcedurePanel(getProcedure(), state)}</div>`
     : state.activeSection === "production"
-    ? renderProductionView(todayRecords, state)
+    ? renderProductionView(state)
     : state.activeSection === "traceability"
     ? renderTraceabilityView(records, state.workItems, state)
     : state.activeSection === "reports"
-    ? renderReportsView(allRecords, state, state.workItems)
+    ? renderReportsView(allRecords, state)
     : state.activeSection === "users"
     ? renderLocalUsersPanel()
-    : renderSummaryMetrics(todayRecords, state);
+    : `<div class="production-layout production-layout--sheet" id="production">${renderProcedurePanel(getProcedure(), state)}</div>`;
   app.innerHTML = `${renderSidebar(state)}<main class="main-area" id="main-content">
     ${renderTopbar()}<div class="dashboard-content">${dashboard}${renderFooter()}</div></main>
     ${renderOperatorValidationDialog(getProcedure(), state)}${renderRecordsDialog(records, state.recordsQuery, state.workItems)}${renderWorkItemDialog(state)}${renderEvidenceReviewDialog(state)}${renderEvidenceImageDialog(state)}${renderStepImageDialog()}${renderHelpDialog()}
@@ -135,7 +130,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   restoreFocus(previousFocus, { focusDialog, initial }, state);
   const reportRecords = state.activeSection === "reports"
     ? getReportRecords(allRecords, state.reportFilters, state.includeDemoData)
-    : todayRecords;
+    : [];
   drawCompletionChart(document.querySelector("#completion-chart"), reportRecords);
   if (!localStorage.getItem("sop-operador-audit-session-v1")) localStorage.setItem("sop-operador-audit-session-v1", state.auditSessionId);
 }
