@@ -25,9 +25,12 @@ function renderProcedureSteps(procedure, state, hasMoreSteps) {
     <div class="step-note"><span class="material-symbols-rounded" aria-hidden="true">info</span><span>Revisa cada instrucción y su referencia visual. Marca su validación en el panel del operador.</span></div>`;
 }
 
-function renderProcedurePanel(procedure) {
+function renderProcedurePanel(procedure, state) {
   const user = getActiveLocalUser();
   const pageImageUrl = `./public/assets/sop-pages/sop-page-${String(procedure.sheet).padStart(2, "0")}.jpg?resolution=200dpi`;
+  const pageZoom = Math.max(50, Math.min(150, Number(state.sopPageZoom) || 100));
+  const pageWidth = 106 * pageZoom / 100;
+  const pageMargin = pageZoom > 100 ? 0 : (100 - pageWidth) / 2;
 
   return `<section class="procedure-panel" aria-label="SOP seleccionada">
     ${renderSopSelector(procedure.id)}
@@ -39,7 +42,13 @@ function renderProcedurePanel(procedure) {
       </div>
       ${procedure.steps.length ? "" : '<small class="procedure-actions-note">Esta hoja es informativa. Selecciona una hoja con pasos para habilitar las acciones.</small>'}
     </div>
-    <div class="sop-page-preview" id="sop-page-preview"><img src="${pageImageUrl}" alt="${escapeHtml(SOP_DOCUMENT.title)} · hoja ${procedure.sheet} completa" loading="eager" decoding="async" /></div>
+    <div class="sop-page-toolbar"><strong>Tamaño de la hoja SOP</strong><div class="sop-page-zoom-controls" role="group" aria-label="Controles para ampliar o reducir la hoja SOP">
+      <button class="icon-button" type="button" data-action="sop-page-zoom-out" data-focus-key="sop-page-zoom-out" aria-label="Reducir hoja SOP" title="Reducir hoja SOP" ${pageZoom <= 50 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">remove</span></button>
+      <output id="sop-page-zoom-level" aria-live="polite">${pageZoom}%</output>
+      <button class="icon-button" type="button" data-action="sop-page-zoom-in" data-focus-key="sop-page-zoom-in" aria-label="Ampliar hoja SOP" title="Ampliar hoja SOP" ${pageZoom >= 150 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">add</span></button>
+      <button class="text-button" type="button" data-action="sop-page-zoom-reset" data-focus-key="sop-page-zoom-reset" aria-label="Ajustar hoja al panel">Ajustar</button>
+    </div></div>
+    <div class="sop-page-preview ${pageZoom > 100 ? "sop-page-preview--zoomed" : ""}" id="sop-page-preview"><img src="${pageImageUrl}" alt="${escapeHtml(SOP_DOCUMENT.title)} · hoja ${procedure.sheet} completa" style="width:${pageWidth}%;margin-left:${pageMargin}%" loading="eager" decoding="async" /></div>
   </section>`;
 }
 
