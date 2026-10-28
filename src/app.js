@@ -380,12 +380,12 @@ bindInteractions(app, {
       name: String(formData.get("userName") ?? ""),
       employeeNumber: String(formData.get("employeeNumber") ?? ""),
       position: String(formData.get("userPosition") ?? ""),
-      email: String(formData.get("userEmail") ?? ""),
+      email: "",
       role: String(formData.get("userRole") ?? ""),
       password: String(formData.get("userPassword") ?? ""),
     });
     if (result === "ok") showToast("Usuario agregado a esta demostración.", "warning");
-    else showToast(result === "email" ? "Ese correo ya existe." : result === "employee" ? "Ese número de empleado ya existe." : result === "password" ? "La contraseña debe tener al menos 4 caracteres." : "No se pudo crear el perfil.", "warning");
+    else showToast(result === "employee" ? "Ese número de empleado ya está registrado." : result === "password" ? "La contraseña debe tener al menos 4 caracteres." : "No se pudo crear el perfil.", "warning");
     render();
   },
   changeLocalUserPassword: (formData) => {

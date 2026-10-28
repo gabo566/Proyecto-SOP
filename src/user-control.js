@@ -81,11 +81,12 @@ function persistLocalUsers(users) {
 }
 
 function addLocalUser({ name, employeeNumber, email, role, password, position }) {
+  if (getActiveLocalUser().role !== "admin") return "forbidden";
   const users = listLocalUsers();
-  const normalizedEmail = email.trim().toLocaleLowerCase("es-MX");
+  const normalizedEmail = String(email ?? "").trim().toLocaleLowerCase("es-MX");
   const normalizedEmployee = employeeNumber.trim().toLocaleLowerCase("es-MX");
-  if (users.some((user) => user.email.toLocaleLowerCase("es-MX") === normalizedEmail)) return "email";
   if (users.some((user) => user.employeeNumber.toLocaleLowerCase("es-MX") === normalizedEmployee)) return "employee";
+  if (normalizedEmail && users.some((user) => (user.email || "").toLocaleLowerCase("es-MX") === normalizedEmail)) return "email";
   if (password.trim().length < 4) return "password";
   if (!LOCAL_USER_ROLES[role]) return "role";
   const user = {
@@ -95,7 +96,7 @@ function addLocalUser({ name, employeeNumber, email, role, password, position })
     password: password.trim(),
     employeeNumber: employeeNumber.trim(),
     position: position.trim(),
-    email: email.trim(),
+    email: String(email ?? "").trim(),
     role,
     active: true,
     demo: false,
@@ -166,13 +167,13 @@ function recordLocalAuditEvent(action, details = {}) {
 
 function renderLocalUsersPanel() {
   const users = listLocalUsers();
-  const rows = users.map((user) => `<tr><td><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.email)}</small></td><td>${escapeHtml(user.employeeNumber)}</td><td>${escapeHtml(user.position || "Técnico de FA")}</td><td>${escapeHtml(LOCAL_USER_ROLES[user.role] ?? user.role)}</td><td><span class="local-user-status ${user.active ? "is-active" : ""}">${user.active ? "Activo" : "Desactivado"}</span></td><td>${user.demo ? "Cuenta de ejemplo" : `<button class="text-button" type="button" data-action="toggle-local-user" data-user-id="${escapeHtml(user.id)}" data-active="${user.active ? "false" : "true"}">${user.active ? "Desactivar" : "Activar"}</button>`}</td></tr>`).join("");
+  const rows = users.map((user) => `<tr><td><strong>${escapeHtml(user.name)}</strong></td><td>${escapeHtml(user.employeeNumber)}</td><td>${escapeHtml(user.position || "Técnico de FA")}</td><td>${escapeHtml(LOCAL_USER_ROLES[user.role] ?? user.role)}</td><td><span class="local-user-status ${user.active ? "is-active" : ""}">${user.active ? "Activo" : "Desactivado"}</span></td><td>${user.demo ? "Cuenta de ejemplo" : `<button class="text-button" type="button" data-action="toggle-local-user" data-user-id="${escapeHtml(user.id)}" data-active="${user.active ? "false" : "true"}">${user.active ? "Desactivar" : "Activar"}</button>`}</td></tr>`).join("");
   const passwordOptions = users.map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.name)} · ${escapeHtml(user.employeeNumber)}${user.active ? "" : " · Desactivado"}</option>`).join("");
-  return `<section class="users-panel" id="users-panel"><div class="section-heading"><div><p class="eyebrow">Control local · sin cuentas Microsoft</p><h2>Usuarios de demostración</h2></div><span>${users.filter((user) => user.active).length} activos</span></div>
+  return `<section class="users-panel" id="users-panel"><div class="section-heading"><div><p class="eyebrow">Administración de cuentas locales</p><h2>Crear usuarios</h2></div><span>${users.filter((user) => user.active).length} activos</span></div>
     <div class="local-prototype-notice" role="note">Los perfiles y roles se simulan en este navegador. No validan identidad ni protegen datos; no uses información real.</div>
-    <form class="local-user-form" id="local-user-form"><label>Nombre completo<input name="userName" required maxlength="100" autocomplete="off" /></label><label>Número de empleado / usuario<input name="employeeNumber" required maxlength="40" autocomplete="username" /></label><label>Puesto<input name="userPosition" required maxlength="80" autocomplete="organization-title" /></label><label>Contraseña inicial<input name="userPassword" type="password" required minlength="4" maxlength="80" autocomplete="new-password" /></label><label>Correo de referencia<input name="userEmail" type="email" required maxlength="160" autocomplete="off" /></label><label>Rol<select name="userRole"><option value="operator">Operador</option><option value="supervisor">Supervisor</option><option value="admin">Administrador</option></select></label><button class="button button--primary" type="submit">Agregar usuario de demostración</button></form>
+    <form class="local-user-form" id="local-user-form"><label>Nombre completo<input name="userName" required maxlength="100" autocomplete="off" /></label><label>Número de empleado<input name="employeeNumber" required maxlength="40" autocomplete="username" /></label><label>Puesto<input name="userPosition" required maxlength="80" autocomplete="organization-title" /></label><label>Contraseña inicial<input name="userPassword" type="password" required minlength="4" maxlength="80" autocomplete="new-password" /></label><label>Tipo de usuario<select name="userRole"><option value="operator">Usuario común</option><option value="admin">Administrador</option></select></label><button class="button button--primary" type="submit">Crear usuario</button></form>
     <form class="local-password-form" id="local-password-form"><label>Cuenta<select name="passwordUserId" required>${passwordOptions}</select></label><label>Nueva contraseña<input name="newPassword" type="password" required minlength="4" maxlength="80" autocomplete="new-password" /></label><button class="button button--secondary" type="submit">Cambiar contraseña</button><small>La contraseña anterior no se muestra. Usa al menos 4 caracteres.</small></form>
-    <div class="table-scroll"><table><thead><tr><th>Usuario</th><th>N° empleado</th><th>Puesto</th><th>Rol</th><th>Estado</th><th>Acción</th></tr></thead><tbody>${rows}</tbody></table></div></section>
+    <div class="table-scroll"><table><thead><tr><th>Nombre</th><th>N° empleado</th><th>Puesto</th><th>Tipo de usuario</th><th>Estado</th><th>Acción</th></tr></thead><tbody>${rows}</tbody></table></div></section>
     <section class="audit-panel" id="audit-panel"><div class="section-heading"><div><p class="eyebrow">Eventos guardados en este navegador</p><h2>Actividad de usuarios</h2></div><span>${readLocalAuditTrail().length} eventos · máximo 1,000</span></div>${renderLocalAuditTable()}</section>`;
 }
 
