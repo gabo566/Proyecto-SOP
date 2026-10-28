@@ -22,7 +22,7 @@
   --radius-card: 12px;
   --radius-control: 8px;
   --shadow-soft: 0 1px 2px rgba(22, 29, 40, .06), 0 2px 8px rgba(22, 29, 40, .04);
-  --sidebar-width: 210px;
+  --sidebar-width: 225px;
   font-optical-sizing: auto;
 }
 
@@ -61,7 +61,7 @@ button { color: inherit; }
 .brand img { display: block; width: 100%; height: auto; max-height: 62px; object-fit: contain; object-position: center; }
 .brand .brand-full { mix-blend-mode: screen; }
 .brand .brand-mark { display: none; }
-.side-nav { flex: 1; display: grid; align-content: center; gap: 7px; }
+.side-nav { display: grid; align-content: start; gap: 7px; margin-top: 16px; }
 .nav-item { position: relative; display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 50px; padding: 0 8px; border: 0; border-radius: 9px; color: #d1d8e0; background: transparent; text-align: center; cursor: pointer; font-size: 15px; font-weight: 500; transition: background-color 160ms ease, color 160ms ease; }
 .nav-item .material-symbols-rounded { font-size: 21px; }
 .nav-item:hover { background: rgba(255, 255, 255, .08); color: #fff; }
