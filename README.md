@@ -56,7 +56,7 @@ Estas notas son advertencias editoriales del prototipo, no una resolución de in
 - Ajustar la hoja completa desde «Tamaño de la hoja SOP»: ampliar o reducir en pasos de 10% (50–150%) y volver al ajuste de 100%.
 - Encontrar «Registrar validación» y «Detener / registrar retrabajo» antes de la hoja; la barra permanece visible en todas las hojas y bajo el encabezado al desplazarse. En las hojas informativas 1–4 los botones se muestran deshabilitados porque no contienen pasos para validar.
 - En pantallas de escritorio de poca altura, la interfaz aplica una escala compacta para facilitar el acceso a los controles principales.
-- La barra lateral de escritorio mide 225 px (un poco más que su ancho inicial) y coloca el menú debajo del logo con una separación visible; en tablet se compacta a iconos y en móvil se abre como un panel lateral.
+- La barra lateral de escritorio mide 225 px (un poco más que su ancho inicial) y ancla el menú en la parte superior, debajo del logo con una separación visible; en tablet se compacta a iconos y en móvil se abre como un panel lateral.
 - Abrir las referencias visuales con un ajuste inicial de 90% para mostrar un poco más de la hoja; los controles permiten acercar, alejar y volver al ajuste inicial.
 - Capturar serial y número de parte del nodo, nombre y número de empleado, puesto, tipo de reparación y datos del componente reparado.
 - Marcar cada paso como realizado y revisar el avance de la sección.
