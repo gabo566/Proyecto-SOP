@@ -1,6 +1,7 @@
 function renderLoginView({ error = "", username = "" } = {}) {
   const errorState = error ? 'aria-invalid="true" aria-describedby="login-error"' : "";
   return `<main class="login-screen">
+    <img class="login-background" src="./public/assets/login-datacenter-background.png" alt="" aria-hidden="true" />
     <section class="login-content" aria-labelledby="login-title">
       <div class="login-logo-frame"><img src="./public/assets/ingrasys-logo-dark.png" alt="Ingrasys" /></div>
       <p class="login-kicker">GB200 · Acceso local de demostración</p>
