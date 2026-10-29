@@ -92,6 +92,8 @@ Los datos iniciales son 19 registros ficticios distribuidos entre BMC, Busbar, C
 
 El inicio de sesión utiliza el número de empleado como usuario. Las cuentas iniciales disponibles son:
 
+La pantalla de inicio usa el fondo de `public/assets/login-datacenter-background.png` como imagen local, con una capa oscura para mantener legibles el formulario y el logo.
+
 | Nombre | Usuario | Contraseña | Puesto | Rol |
 | --- | --- | --- | --- | --- |
 | Operador Demo | `140785` | `0785` | Técnico de FA | Operador |
