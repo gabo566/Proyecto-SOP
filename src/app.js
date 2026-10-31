@@ -9,6 +9,7 @@ const state = {
   selectedId: restorableWork?.procedureId ?? PROCEDURES[0].id,
   sopPageZoom: 100,
   completedSteps: restorableWork?.completedSteps ?? [],
+  sopRun: restorableWork?.sopRun ?? null,
   savedRecords: readSavedRecords(),
   workItems: storedWorkItems,
   activeWorkId: restorableWork?.id ?? "",
@@ -140,6 +141,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   if (state.evidenceReviewDialogOpen) evidenceReviewDialog.showModal();
   if (state.evidenceImageDialogOpen) evidenceImageDialog.showModal();
   if (state.helpDialogOpen) helpDialog.showModal();
+  if (state.validationDialogOpen && state.sopRun?.stage === "steps") renderGuidedSopDocument(getProcedure(), state);
   restoreFocus(previousFocus, { focusDialog, initial }, state);
   const reportRecords = state.activeSection === "reports"
     ? getReportRecords(allRecords, state.reportFilters, state.includeDemoData)
@@ -173,6 +175,10 @@ function showToast(message, kind = "success") {
 }
 
 function selectProcedure(id) {
+  if (state.sopRun) {
+    showToast("Termina o reanuda la validación guiada activa antes de cambiar de hoja.", "warning");
+    return;
+  }
   if (state.activeWorkId && id !== state.selectedId) {
     showToast("Guarda o finaliza el trabajo activo antes de cambiar de procedimiento.", "warning");
     return;
@@ -199,6 +205,90 @@ function openRecords(triggerKey) {
   render({ focusDialog: true });
 }
 
+function openGuidedSopValidation(triggerKey = "register-validation") {
+  if (!state.sopRun) {
+    const user = getActiveLocalUser();
+    state.sopRun = createGuidedSopRun(PROCEDURES, SOP_DOCUMENT, state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID, user);
+    state.selectedId = state.sopRun.procedureIds[0];
+    state.completedSteps = getGuidedSopCheckedSteps(state.sopRun, state.selectedId);
+    state.form = { ...createEmptyForm(), name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", nodePartNumber: SOP_DOCUMENT.nodePartNumber ?? "", declaration: false };
+    state.formError = "";
+    state.validationEvidenceFiles = [];
+    if (!workflow.startGuidedWork(state.sopRun)) {
+      state.sopRun = null;
+      showToast("No se pudo guardar el inicio del procedimiento en este navegador.", "warning");
+      return;
+    }
+  } else {
+    if (state.sopRun.versionId !== (state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID)) {
+      showToast("La validación en curso pertenece a otra revisión de la SOP. Reanúdala desde Producción con esa versión activa.", "warning");
+      return;
+    }
+    if (state.sopRun.startedBy?.employeeNumber && state.sopRun.startedBy.employeeNumber !== getActiveLocalUser().employeeNumber) {
+      showToast(`La validación fue iniciada por ${state.sopRun.startedBy.name}. Inicia sesión con esa cuenta para continuar y conservar la autoría correcta.`, "warning");
+      return;
+    }
+    const currentProcedure = getGuidedSopProcedure(state.sopRun, PROCEDURES);
+    if (!currentProcedure) {
+      showToast("No se encontró la hoja activa de la validación. Inicia un procedimiento nuevo.", "warning");
+      return;
+    }
+    state.selectedId = currentProcedure.id;
+    state.completedSteps = getGuidedSopCheckedSteps(state.sopRun, currentProcedure.id);
+  }
+  state.dialogTriggerFocusKey = triggerKey;
+  state.validationDialogOpen = true;
+  render({ focusDialog: true });
+}
+
+function continueGuidedSopSheet() {
+  const procedure = getProcedure();
+  const uncheckedStep = procedure.steps.find((step) => !getGuidedSopCheckedSteps(state.sopRun, procedure.id).includes(String(step.number)));
+  if (uncheckedStep || !isGuidedSopProcedureComplete(state.sopRun, procedure)) {
+    state.formError = `Marca el paso ${uncheckedStep?.number ?? "actual"} antes de continuar.`;
+    render();
+    document.querySelector(`[data-step="${CSS.escape(String(uncheckedStep?.number ?? ""))}"]`)?.focus();
+    return;
+  }
+  if (state.sopRun.currentIndex === state.sopRun.procedureIds.length - 1) {
+    const missingNodeField = !state.form.nodeNumber.trim()
+      ? document.querySelector('#completion-form [name="nodeNumber"]')
+      : !state.form.serial.trim()
+        ? document.querySelector('#completion-form [name="serial"]')
+        : null;
+    if (missingNodeField) {
+      const label = missingNodeField.name === "nodeNumber" ? "número de nodo" : "número de serie del nodo";
+      showFormError(`Captura el ${label} para preparar la confirmación final.`, missingNodeField);
+      return;
+    }
+  }
+  if (!advanceGuidedSopRun(state.sopRun, PROCEDURES)) return;
+  state.formError = "";
+  state.form.declaration = false;
+  if (state.sopRun.stage === "steps") {
+    const nextProcedure = getGuidedSopProcedure(state.sopRun, PROCEDURES);
+    state.selectedId = nextProcedure.id;
+    state.completedSteps = getGuidedSopCheckedSteps(state.sopRun, nextProcedure.id);
+    state.dialogTriggerFocusKey = `step-${nextProcedure.steps[0].number}`;
+  } else {
+    state.dialogTriggerFocusKey = "guided-confirmation-heading";
+  }
+  workflow.persistProgress();
+  render({ focusKey: state.dialogTriggerFocusKey });
+}
+
+function previousGuidedSopSheet() {
+  if (!returnGuidedSopRunToSteps(state.sopRun)) return;
+  const previousProcedure = getGuidedSopProcedure(state.sopRun, PROCEDURES);
+  state.selectedId = previousProcedure.id;
+  state.completedSteps = getGuidedSopCheckedSteps(state.sopRun, previousProcedure.id);
+  state.form.declaration = false;
+  state.formError = "";
+  state.dialogTriggerFocusKey = `step-${previousProcedure.steps.at(-1).number}`;
+  workflow.persistProgress();
+  render({ focusKey: state.dialogTriggerFocusKey });
+}
+
 function closeDialog(stateKey) {
   state[stateKey] = false;
   const dialog = document.getElementById("records-dialog");
@@ -210,33 +300,25 @@ function closeDialog(stateKey) {
 function handleCompletionSubmit(event) {
   event.preventDefault();
   const procedure = getProcedure();
-  if (!procedure.steps.length) {
-    showToast("Esta hoja es informativa y no tiene pasos para validar.", "warning");
-    return;
-  }
-  const allChecked = procedure.steps.every((step) => state.completedSteps.includes(step.number));
-  if (!allChecked) {
-    const uncheckedStep = procedure.steps.find((step) => !state.completedSteps.includes(step.number));
-    showFormError("Confirma todos los pasos antes de registrar la validación.", document.querySelector(`[data-step="${CSS.escape(String(uncheckedStep?.number ?? ""))}"]`));
+  if (!state.sopRun || state.sopRun.stage !== "confirmation" || !isGuidedSopRunComplete(state.sopRun, PROCEDURES)) {
+    const uncheckedProcedure = state.sopRun?.procedureIds.map((id) => PROCEDURES.find((item) => item.id === id)).find((item) => !isGuidedSopProcedureComplete(state.sopRun, item));
+    const uncheckedStep = uncheckedProcedure?.steps.find((step) => !getGuidedSopCheckedSteps(state.sopRun, uncheckedProcedure.id).includes(String(step.number)));
+    showFormError("Completa y confirma todos los pasos de la SOP antes de finalizar.", uncheckedStep ? document.querySelector(`[data-step="${CSS.escape(String(uncheckedStep.number))}"]`) : null);
     return;
   }
   const formElement = event.currentTarget;
-  if (!state.form.repairType) {
-    showFormError("Selecciona el tipo de reparación.", formElement.querySelector('[name="repairType"]'));
+  if (!state.form.nodeNumber?.trim()) {
+    showFormError("Captura el número de nodo.", formElement.querySelector('[name="nodeNumber"]'));
     return;
   }
-  if (!state.form.componentPartNumber?.trim()) {
-    showFormError("Captura el número de parte del componente.", formElement.querySelector('[name="componentPartNumber"]'));
-    return;
-  }
-  if (!state.form.componentSerial?.trim()) {
-    showFormError("Captura el número de serie del componente.", formElement.querySelector('[name="componentSerial"]'));
+  if (!state.form.serial?.trim()) {
+    showFormError("Captura el número de serie del nodo.", formElement.querySelector('[name="serial"]'));
     return;
   }
   const incompleteField = formElement.querySelector(".validation-field input[required]:invalid");
   if (incompleteField) {
     const fieldLabel = incompleteField.closest(".validation-field")?.firstChild?.textContent.trim() || "obligatorio";
-    showFormError(`Completa el campo ${fieldLabel} para registrar la validación.`, incompleteField);
+    showFormError(`Completa el campo ${fieldLabel} para registrar el desensamble.`, incompleteField);
     return;
   }
   if (!state.form.declaration) {
@@ -265,19 +347,38 @@ function showFormError(message, target = null) {
 
 function saveCompletion() {
   const procedure = getProcedure();
+  const run = state.sopRun;
+  const runProcedures = run.procedureIds.map((id) => PROCEDURES.find((item) => item.id === id)).filter(Boolean);
+  const allSteps = runProcedures.flatMap((item) => item.steps.map((step) => ({
+    procedureId: item.id,
+    category: item.category,
+    procedureTitle: item.title,
+    sheet: item.sheet,
+    number: String(step.number),
+    text: step.text,
+    completed: getGuidedSopCheckedSteps(run, item.id).includes(String(step.number)),
+  })));
+  const firstProcedure = runProcedures[0] ?? procedure;
+  const lastProcedure = runProcedures.at(-1) ?? procedure;
   const user = getActiveLocalUser();
   const now = new Date();
   const time = new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false }).format(now);
   const record = {
     id: `local-${now.getTime()}`,
-    category: procedure.category,
-    procedureId: procedure.id,
-    sopDocumentId: SOP_DOCUMENT.id,
-    sopVersionId: state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID,
-    sopRevision: SOP_DOCUMENT.revision,
-    operation: procedure.title,
-    sheet: procedure.sheet,
-    stepRange: procedure.stepRange,
+    category: run.document.title || procedure.category,
+    procedureId: firstProcedure.id,
+    procedureTitle: run.document.title,
+    sopDocumentId: run.document.id,
+    sopVersionId: run.versionId,
+    sopRevision: run.document.revision,
+    operation: run.document.title,
+    sheet: `${firstProcedure.sheet}–${lastProcedure.sheet}`,
+    stepRange: allSteps.length ? `${allSteps[0].number}–${allSteps.at(-1).number}` : "",
+    validatedSheets: runProcedures.map((item) => ({ id: item.id, sheet: item.sheet, pdfPage: item.pdfPage ?? item.sheet, category: item.category, title: item.title, stepRange: item.stepRange, steps: item.steps.map((step) => ({ number: String(step.number), text: step.text })) })),
+    validatedSteps: allSteps,
+    validatedStepCount: allSteps.length,
+    declarationText: `Confirmo que el procedimiento ${run.document.title}, revisión ${run.document.revision}, para el nodo ${state.form.nodeNumber.trim()} (serie ${state.form.serial.trim()}), se realizó de acuerdo con los procedimientos establecidos por la empresa. Reportaré cualquier daño o desviación para recibir la retroalimentación correspondiente.`,
+    declaredAt: now.toISOString(),
     nodeNumber: state.form.nodeNumber.trim(),
     serial: state.form.serial.trim(),
     nodePartNumber: state.form.nodePartNumber.trim(),
@@ -287,7 +388,7 @@ function saveCompletion() {
     employeeNumber: user.employeeNumber,
     actor: { id: user.id, name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", role: user.role },
     sessionId: state.auditSessionId,
-    auditEventIds: readLocalAuditTrail().filter((event) => event.sessionId === state.auditSessionId && event.procedureId === procedure.id).map((event) => event.id),
+    auditEventIds: readLocalAuditTrail().filter((event) => event.sessionId === state.auditSessionId && run.procedureIds.includes(event.procedureId)).map((event) => event.id),
     position: user.position || "Técnico de FA",
     repairType: state.form.repairType,
     source: "local",
@@ -311,9 +412,13 @@ function saveCompletion() {
   const auditEvent = recordLocalAuditEvent("validation_submitted", {
     serial: record.serial,
     nodeNumber: record.nodeNumber,
-    procedureId: procedure.id,
-    procedureTitle: procedure.title,
-    sheet: procedure.sheet,
+    procedureId: firstProcedure.id,
+    procedureTitle: run.document.title,
+    sheet: record.sheet,
+    sopVersionId: record.sopVersionId,
+    sopRevision: record.sopRevision,
+    validatedSheets: run.procedureIds.length,
+    validatedSteps: allSteps.length,
     sessionId: state.auditSessionId,
   });
   if (auditEvent) {
@@ -324,6 +429,7 @@ function saveCompletion() {
     ? workflow.completeActiveWork(record.id, user.name)
     : { saved: true, needsReview: false };
   state.completedSteps = [];
+  state.sopRun = null;
   state.validationDialogOpen = false;
   document.querySelector("#validation-dialog")?.close();
   state.form = createEmptyForm();
@@ -349,6 +455,9 @@ bindInteractions(app, {
   openRecords,
   closeDialog,
   handleCompletionSubmit,
+  openGuidedSopValidation,
+  continueGuidedSopSheet,
+  previousGuidedSopSheet,
   openWorkItemDialog: workflow.openDialog,
   closeWorkItemDialog: workflow.closeDialog,
   handleWorkItemSubmit: workflow.submit,

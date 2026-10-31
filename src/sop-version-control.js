@@ -128,11 +128,19 @@ function applySopVersion(version, state, builtIn = false) {
   if (!preserveActiveWork) {
     state.selectedId = (PROCEDURES[0] ?? SOP_SHEETS[0])?.id ?? "";
     state.completedSteps = [];
+    state.sopRun = null;
     state.form = createEmptyForm();
   } else {
-    state.selectedId = activeWork.procedureId;
+    state.sopRun = activeWork.sopRun ? structuredClone(activeWork.sopRun) : null;
+    state.selectedId = state.sopRun
+      ? getGuidedSopProcedure(state.sopRun, PROCEDURES)?.id ?? activeWork.procedureId
+      : activeWork.procedureId;
+    state.completedSteps = state.sopRun
+      ? getGuidedSopCheckedSteps(state.sopRun, state.selectedId)
+      : [...(activeWork.completedSteps ?? [])];
+    state.form = { ...createEmptyForm(), ...(activeWork.form ?? {}) };
   }
-  state.form.nodePartNumber = SOP_DOCUMENT.nodePartNumber ?? "";
+  state.form.nodePartNumber ||= SOP_DOCUMENT.nodePartNumber ?? "";
 }
 
 function applyBuiltInSopVersion(state) {

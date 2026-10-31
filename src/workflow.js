@@ -24,16 +24,72 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
     const item = state.workItems.find((workItem) => workItem.id === state.activeWorkId);
     if (!item) return true;
     const procedure = getProcedure();
+    const allCompletedSteps = state.sopRun
+      ? state.sopRun.procedureIds.flatMap((procedureId) => getGuidedSopCheckedSteps(state.sopRun, procedureId))
+      : [...state.completedSteps];
     Object.assign(item, {
       procedureId: state.selectedId,
-      procedureTitle: procedure.title,
+      procedureTitle: state.sopRun?.document.title ?? procedure.title,
       sheet: procedure.sheet,
-      completedSteps: [...state.completedSteps],
-      totalSteps: procedure.steps.length,
+      serial: state.form.serial.trim(),
+      nodeNumber: state.form.nodeNumber.trim(),
+      employeeNumber: state.form.employeeNumber,
+      completedSteps: allCompletedSteps,
+      totalSteps: state.sopRun ? getGuidedSopProgress(state.sopRun, SOP_SHEETS).total : procedure.steps.length,
       form: { ...state.form },
+      sopRun: state.sopRun ? structuredClone(state.sopRun) : null,
       updatedAt: Date.now(),
     });
     return persistWorkItems(state.workItems);
+  }
+
+  function startGuidedWork(run) {
+    const currentProcedure = getProcedure();
+    let item = state.workItems.find((workItem) => workItem.id === state.activeWorkId);
+    if (!item) {
+      const timestamp = getTimestamp();
+      item = { id: `work-${timestamp.at}`, createdAt: timestamp.at, attempts: 0, history: [], evidenceFiles: [], evidenceHistory: [], evidenceObservation: "" };
+      state.workItems = [item, ...state.workItems];
+      state.activeWorkId = item.id;
+    }
+    const timestamp = getTimestamp();
+    Object.assign(item, {
+      category: SOP_DOCUMENT.family || currentProcedure.category,
+      sopDocumentId: run.document.id,
+      sopVersionId: run.versionId,
+      sopRevision: run.document.revision,
+      procedureId: currentProcedure.id,
+      procedureTitle: run.document.title,
+      sheet: currentProcedure.sheet,
+      serial: state.form.serial.trim(),
+      nodeNumber: state.form.nodeNumber.trim(),
+      employeeNumber: state.form.employeeNumber,
+      form: { ...state.form },
+      completedSteps: [...state.completedSteps],
+      totalSteps: run.procedureIds.reduce((count, id) => count + (SOP_SHEETS.find((procedure) => procedure.id === id)?.steps.length ?? 0), 0),
+      sopRun: structuredClone(run),
+      workKind: item.workKind === "rework" ? "rework" : "guided",
+      status: item.workKind === "rework" ? "Retrabajo en proceso" : "En proceso",
+      updatedAt: timestamp.at,
+      updatedLabel: `${timestamp.date} · ${timestamp.time}`,
+    });
+    item.history = [...(item.history ?? []), { ...timestamp, status: item.status, note: `Inició ${run.document.title} · Rev. ${run.document.revision}` }];
+    const saved = persistWorkItems(state.workItems);
+    if (!saved) {
+      state.workItems = readWorkItems();
+      state.activeWorkId = "";
+      return false;
+    }
+    recordLocalAuditEvent("guided_sop_started", {
+      serial: item.serial,
+      nodeNumber: item.nodeNumber,
+      procedureId: currentProcedure.id,
+      procedureTitle: run.document.title,
+      sheet: currentProcedure.sheet,
+      workItemId: item.id,
+      details: `Rev. ${run.document.revision}; ${run.procedureIds.length} hojas con pasos`,
+    });
+    return true;
   }
 
   function openDialog() {
@@ -75,6 +131,9 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
       state.form.repairType = repairType;
       state.form.componentPartNumber = componentPartNumber;
       state.form.componentSerial = componentSerial;
+      const allCompletedSteps = state.sopRun
+        ? state.sopRun.procedureIds.flatMap((procedureId) => getGuidedSopCheckedSteps(state.sopRun, procedureId))
+        : [...state.completedSteps];
       let item = state.workItems.find((workItem) => workItem.id === state.activeWorkId);
       if (!item) {
         item = { id: `work-${timestamp.at}`, createdAt: timestamp.at, attempts: 0, history: [], evidenceFiles: [], evidenceHistory: [], evidenceObservation: "" };
@@ -95,8 +154,9 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
         repairType,
         componentPartNumber,
         componentSerial,
-        completedSteps: [...state.completedSteps],
-        totalSteps: procedure.steps.length,
+        completedSteps: allCompletedSteps,
+        totalSteps: state.sopRun ? getGuidedSopProgress(state.sopRun, SOP_SHEETS).total : procedure.steps.length,
+        sopRun: state.sopRun ? structuredClone(state.sopRun) : item.sopRun ?? null,
         failedStep: isRework ? failedStep : item.failedStep ?? "",
         workKind: isRework ? "rework" : item.workKind ?? "pause",
         reasonLabel,
@@ -120,6 +180,7 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
         });
         state.activeWorkId = "";
         state.completedSteps = [];
+        state.sopRun = null;
         state.form = createEmptyForm();
         state.validationEvidenceFiles = [];
         state.workDialogOpen = false;
@@ -153,16 +214,29 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
       completedSteps: [...state.completedSteps],
       form: { ...state.form },
       activeWorkId: state.activeWorkId,
+      sopRun: state.sopRun ? structuredClone(state.sopRun) : null,
     };
-    state.selectedId = item.procedureId;
-    state.completedSteps = [...item.completedSteps];
+    state.sopRun = item.sopRun ? structuredClone(item.sopRun) : null;
+    state.selectedId = state.sopRun
+      ? getGuidedSopProcedure(state.sopRun, PROCEDURES)?.id ?? item.procedureId
+      : item.procedureId;
+    state.completedSteps = state.sopRun
+      ? getGuidedSopCheckedSteps(state.sopRun, state.selectedId)
+      : [...item.completedSteps];
     state.form = { ...createEmptyForm(), ...item.form };
     state.activeWorkId = item.id;
     const isStartingRework = item.status === "Retrabajo requerido";
     if (isStartingRework) {
       item.attempts += 1;
-      state.completedSteps = state.completedSteps.filter((step) => step !== item.failedStep);
-      item.completedSteps = [...state.completedSteps];
+      if (state.sopRun) {
+        setGuidedSopStep(state.sopRun, state.selectedId, item.failedStep, false);
+        state.completedSteps = getGuidedSopCheckedSteps(state.sopRun, state.selectedId);
+        item.sopRun = structuredClone(state.sopRun);
+        item.completedSteps = state.sopRun.procedureIds.flatMap((procedureId) => getGuidedSopCheckedSteps(state.sopRun, procedureId));
+      } else {
+        state.completedSteps = state.completedSteps.filter((step) => step !== item.failedStep);
+        item.completedSteps = [...state.completedSteps];
+      }
     }
     const resumeNote = isStartingRework ? `Paso ${item.failedStep} reabierto para corregir y revalidar` : `Retoma ${state.form.name || "el responsable"} (${state.form.employeeNumber || "sin número"})`;
     appendEvent(item, item.workKind === "rework" ? "Retrabajo en proceso" : "En proceso", resumeNote);
@@ -205,8 +279,10 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
       record.recordType = "Retrabajo enviado a revisión";
       record.evidenceCount = item.evidenceFiles?.length ?? 0;
       record.evidenceObservation = item.evidenceObservation ?? "";
-    } else {
+    } else if (item.workKind === "pause") {
       record.recordType = "SOP reanudada";
+    } else {
+      record.recordType = "Validación guiada SOP";
     }
   }
 
@@ -237,6 +313,7 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
 
   return {
     persistProgress,
+    startGuidedWork,
     openDialog,
     closeDialog,
     submit,

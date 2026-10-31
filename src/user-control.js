@@ -186,6 +186,7 @@ function renderLocalAuditTable() {
     evidence_added: "Agregó evidencia",
     evidence_removed: "Quitó evidencia",
     validation_submitted: "Registró validación SOP",
+    guided_sop_started: "Inició recorrido SOP",
     work_paused: "Detuvo trabajo",
     rework_required: "Solicitó retrabajo",
     work_resumed: "Reanudó trabajo",

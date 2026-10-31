@@ -11,6 +11,9 @@ function bindInteractions(app, handlers) {
     openRecords,
     closeDialog,
     handleCompletionSubmit,
+    openGuidedSopValidation,
+    continueGuidedSopSheet,
+    previousGuidedSopSheet,
     openWorkItemDialog,
     closeWorkItemDialog,
     handleWorkItemSubmit,
@@ -150,11 +153,11 @@ function bindInteractions(app, handlers) {
       case "sop-page-zoom-in": state.sopPageZoom = Math.min(150, state.sopPageZoom + 10); render(); break;
       case "sop-page-zoom-reset": state.sopPageZoom = 100; render(); break;
       case "open-validation-dialog":
-        state.dialogTriggerFocusKey = action.dataset.focusKey || "register-validation";
-        state.validationDialogOpen = true;
-        render({ focusDialog: true });
+        openGuidedSopValidation(action.dataset.focusKey || "register-validation");
         break;
       case "close-validation-dialog": document.querySelector("#validation-dialog")?.close(); break;
+      case "continue-sop-sheet": continueGuidedSopSheet(); break;
+      case "previous-sop-sheet": previousGuidedSopSheet(); break;
       case "zoom-step-image": openStepImage(action); break;
       case "step-image-zoom-in": setStepImageZoom(stepImageViewer.zoom + 25); break;
       case "step-image-zoom-out": setStepImageZoom(stepImageViewer.zoom - 25); break;
@@ -201,6 +204,7 @@ function bindInteractions(app, handlers) {
       state.completedSteps = target.checked
         ? [...state.completedSteps, step]
         : state.completedSteps.filter((value) => value !== step);
+      setGuidedSopStep(state.sopRun, state.selectedId, step, target.checked);
       recordLocalAuditEvent(target.checked ? "step_completed" : "step_reopened", {
         sessionId: state.auditSessionId,
         serial: state.form.serial.trim(),
@@ -211,14 +215,23 @@ function bindInteractions(app, handlers) {
         step,
       });
       persistWorkState();
-      render();
+      updateGuidedChecklistUI(getProcedure(), state);
     } else if (target.dataset.formField === "declaration") {
       state.form.declaration = target.checked;
       target.removeAttribute("aria-invalid");
       target.removeAttribute("aria-describedby");
+      const submitButton = document.querySelector(".guided-final-actions .validation-submit");
+      if (submitButton) submitButton.disabled = !target.checked;
       clearFormError();
     } else if (target.dataset.formField) {
       state.form[target.dataset.formField] = target.value;
+      if (target.dataset.formField === "nodeNumber") {
+        const value = document.querySelector("#guided-confirmation-node");
+        if (value) value.textContent = target.value.trim() || "nodo sin número";
+      } else if (target.dataset.formField === "serial") {
+        const value = document.querySelector("#guided-confirmation-serial");
+        if (value) value.textContent = target.value.trim() || "serie sin capturar";
+      }
       persistWorkState();
       if (state.formError) clearFormError();
     } else if (target.matches('input[name="workType"]')) {
@@ -314,4 +327,27 @@ function bindInteractions(app, handlers) {
       changeLocalUserPassword(new FormData(event.target));
     }
   });
+}
+
+function updateGuidedChecklistUI(procedure, state) {
+  const checked = new Set(getGuidedSopCheckedSteps(state.sopRun, procedure.id));
+  for (const row of document.querySelectorAll(".guided-check-item")) {
+    const checkbox = row.querySelector("[data-step]");
+    row.classList.toggle("guided-check-item--checked", Boolean(checkbox?.checked));
+  }
+  const currentCount = procedure.steps.filter((step) => checked.has(String(step.number))).length;
+  const currentCountLabel = document.querySelector(".guided-checklist-heading > span");
+  if (currentCountLabel) currentCountLabel.textContent = `${currentCount} de ${procedure.steps.length}`;
+  const progress = getGuidedSopProgress(state.sopRun, SOP_SHEETS);
+  const progressCopy = document.querySelector(".guided-progress-copy");
+  if (progressCopy) progressCopy.textContent = `${progress.complete} de ${progress.total} pasos confirmados en toda la SOP.`;
+  const continueButton = document.querySelector('[data-action="continue-sop-sheet"]');
+  if (continueButton) continueButton.disabled = !isGuidedSopProcedureComplete(state.sopRun, procedure);
+  if (state.formError) {
+    state.formError = "";
+    for (const error of document.querySelectorAll(".form-error")) {
+      error.textContent = "";
+      error.hidden = true;
+    }
+  }
 }

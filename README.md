@@ -1,12 +1,12 @@
 # SOP de desensamble GB200 · Ingrasys
 
-Aplicación web estática en español para consultar y registrar el avance de procedimientos de desensamble de un nodo GB200. El prototipo combina instrucciones de trabajo, referencias visuales, una lista de validación por paso, perfiles locales de operador/supervisor/administrador, una bitácora ilustrativa y un flujo para detener trabajos, documentar retrabajos y revisar evidencia fotográfica.
+Aplicación web estática en español para consultar y registrar procedimientos de desensamble. El prototipo combina instrucciones y referencias visuales con un recorrido de validación SOP hoja por hoja, perfiles locales de operador/supervisor/administrador, una bitácora ilustrativa y un flujo para detener trabajos, documentar retrabajos y revisar evidencia fotográfica.
 
 > **Estado del proyecto:** prototipo de desarrollo local. La interfaz identifica expresamente un entorno de muestra sin conexión a producción. No hay servidor de aplicación, API, base de datos compartida ni despliegue configurado. El inicio de sesión y los roles son simulados en el navegador y no autentican identidades ni protegen información.
 
 ## Para qué sirve
 
-El proyecto explora cómo podría acompañarse una operación de desensamble de principio a fin: seleccionar una sección de la SOP, leer cada instrucción con su referencia visual, marcar los pasos realizados, asociar la validación con el nodo y el operador, guardar una interrupción para reanudar después y conservar fotos relacionadas con una validación o un retrabajo.
+El proyecto explora cómo podría acompañarse una operación de desensamble de principio a fin: leer cada hoja de la SOP en orden, marcar los pasos realizados, asociar la validación con el nodo y el operador, guardar una interrupción para reanudar después y conservar fotos relacionadas con una validación o un retrabajo.
 
 La aplicación no controla herramientas ni equipos, no se conecta a sistemas de manufactura y no verifica físicamente que un paso se haya ejecutado. La marca de un paso y la declaración son entradas del usuario. La aprobación de un retrabajo representa una revisión humana simulada; el sistema no determina automáticamente si una reparación es técnicamente correcta.
 
@@ -54,16 +54,17 @@ Estas notas son advertencias editoriales del prototipo, no una resolución de in
 - Consultar categoría, título, hoja, secuencia, instrucciones, imágenes y datos generales de la SOP.
 - Ver la hoja completa de la SOP usando casi todo el ancho del panel; se recortan levemente los márgenes blancos propios del escaneo, sin deformar el contenido.
 - Ajustar la hoja completa desde «Tamaño de la hoja SOP»: ampliar o reducir en pasos de 10% (50–150%) y volver al ajuste de 100%.
-- Encontrar «Registrar validación» y «Detener / registrar retrabajo» antes de la hoja; la barra permanece visible en todas las hojas y bajo el encabezado al desplazarse. En las hojas informativas 1–4 los botones se muestran deshabilitados porque no contienen pasos para validar.
+- Iniciar «Iniciar recorrido SOP» desde una hoja con pasos. La validación recorre en orden todas las hojas que contienen pasos de la versión activa; las hojas informativas sin pasos se omiten.
 - En pantallas de escritorio de poca altura, la interfaz aplica una escala compacta para facilitar el acceso a los controles principales.
 - La barra lateral de escritorio mide 225 px (un poco más que su ancho inicial) y ancla el menú en la parte superior, debajo del logo con una separación visible; en tablet se compacta a iconos y en móvil se abre como un panel lateral.
 - Abrir las referencias visuales con un ajuste inicial de 90% para mostrar un poco más de la hoja; los controles permiten acercar, alejar y volver al ajuste inicial.
-- Capturar serial y número de parte del nodo, nombre y número de empleado, puesto, tipo de reparación y datos del componente reparado.
-- Marcar cada paso como realizado y revisar el avance de la sección.
-- Presentar una declaración indicando que se realizaron los pasos y que la información capturada es correcta.
-- Registrar la validación cuando todos los pasos de la sección están marcados y los campos obligatorios están completos.
+- Capturar como datos obligatorios el número y serial del nodo. El número de parte del nodo y los datos de reparación/componente son opcionales para que el recorrido sirva también para SOP que no impliquen reemplazar una pieza. El nombre, puesto y número de empleado se toman del usuario conectado.
+- Revisar el PDF original de una hoja a la vez, junto al checklist de pasos detectados y editados para esa hoja.
+- Marcar cada instrucción con «Realicé el paso N: [texto del paso]». «Continuar» queda deshabilitado hasta marcar todos los pasos de la hoja actual; se puede regresar a corregir una confirmación.
+- Al final, revisar una declaración con el nodo, serial, tipo y revisión de SOP, advertencia de reporte de daño y datos del operador. Una sola constancia guarda todas las hojas y pasos confirmados, además de la autoría, fecha y versión.
+- Reanudar un recorrido incompleto desde el mismo navegador y con la misma versión; el avance por hoja se conserva en el trabajo local.
 
-La declaración no equivale a una firma electrónica ni a una identidad autenticada. La casilla es una confirmación dentro del prototipo.
+La declaración no equivale a una firma electrónica ni a una identidad autenticada. La casilla es una confirmación dentro del prototipo. La bitácora local conserva quién marcó cada paso.
 
 ### Detener y reanudar un trabajo
 
@@ -130,7 +131,7 @@ Las versiones se guardan en IndexedDB y quedan disponibles para los usuarios que
 
 ## Persistencia y límites
 
-La aplicación no tiene backend. Los registros de validación, trabajos, perfiles de demostración y bitácora se guardan en `localStorage`; la sesión activa vive en `sessionStorage`; las evidencias y los PDF fuente de las revisiones SOP se guardan en IndexedDB. Las versiones usan la base `sop-operador-sop-versions-v1`. Las claves locales de perfiles/bitácora incluyen `sop-operador-local-users-v1`, `sop-operador-active-user-v1`, `sop-operador-auth-session-v1`, `sop-operador-audit-trail-v1` y `sop-operador-audit-session-v1`. Esto significa que:
+La aplicación no tiene backend. Los registros de validación, trabajos (incluido el avance de la SOP guiada), perfiles de demostración y bitácora se guardan en `localStorage`; la sesión activa vive en `sessionStorage`; las evidencias y los PDF fuente de las revisiones SOP se guardan en IndexedDB. Las versiones usan la base `sop-operador-sop-versions-v1`. Las claves locales de perfiles/bitácora incluyen `sop-operador-local-users-v1`, `sop-operador-active-user-v1`, `sop-operador-auth-session-v1`, `sop-operador-audit-trail-v1` y `sop-operador-audit-session-v1`. Esto significa que:
 
 - Los datos pertenecen al perfil de navegador y al origen local que se usó para abrir la aplicación.
 - Los usuarios que inicien sesión en el mismo perfil de navegador usan esos mismos datos; otros equipos, perfiles y navegadores no los comparten.
@@ -173,6 +174,7 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | `src/evidence-workflow.js` | Evidencia asociada a retrabajos, visor, administración de fotos y decisión de revisión. |
 | `src/evidence-store.js` | Base IndexedDB del navegador y límites de archivos de evidencia. |
 | `src/sop-version-control.js` | Extracción y edición de pasos desde un único PDF, historial IndexedDB, activación y restauración local. |
+| `src/sop-run.js` | Recorrido secuencial de hojas, checklist por paso, avance/revisión y confirmación final de la SOP activa. |
 | `public/vendor/pdfjs/` | PDF.js, su worker, fuentes estándar y mapas de caracteres para leer PDF en el navegador sin conexión externa. |
 | `src/views/` | Plantillas de navegación, procedimientos, formularios, registros, actividad y diálogos. |
 | `src/escape.js` | Escape de texto antes de insertarlo en plantillas HTML. |
@@ -183,6 +185,7 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | `scripts/prepare-sites-build.mjs` | Copia el worker y la configuración de hosting a `dist` para empaquetado de Sites. No se requiere para desarrollo local. |
 | `tests/sites-worker.test.mjs` | Pruebas del comportamiento del worker y de los archivos del paquete de Sites; no cubren todo el flujo de la interfaz. |
 | `tests/sop-version-control.test.mjs` | Extracción de los 132 pasos de la SOP de referencia y restricción de administración a 140784. |
+| `tests/sop-run.test.mjs` | Bloqueo de avance si faltan pasos, progreso por hoja y confirmación solo al completar el recorrido. |
 | `.openai/hosting.json` | Configuración de hosting actual: sin bindings configurados para D1 o R2. |
 | `src/views/procedure (1).js` | Archivo presente en el repositorio que no se carga desde `index.html`; la vista activa es `src/views/procedure.js`. |
 
