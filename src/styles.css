@@ -798,6 +798,19 @@ td small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px;
 .sop-version-current { padding: 5px 9px; border-radius: 99px; color: #176b3e; background: #e7f5eb; font-size: 10px; font-weight: 700; white-space: nowrap; }
 .sop-version-warning, .sop-version-blocked { padding: 10px 12px; border-radius: 8px; color: #74531f; background: #fff9ef; font-size: 11px; }
 .sop-version-blocked { margin: 0; }
+.sop-version-document-fields { display: grid; grid-template-columns: minmax(150px,1fr) minmax(220px,2fr) minmax(110px,.7fr); gap: 10px; }
+.sop-version-document-fields label, .sop-version-sheet-title, .sop-version-step-editor label { display: grid; gap: 5px; color: #39424c; font-size: 11px; font-weight: 650; }
+.sop-version-document-fields input, .sop-version-sheet-title input, .sop-version-step-editor input, .sop-version-step-editor textarea { width: 100%; min-width: 0; padding: 8px 9px; border: 1px solid var(--outline-strong); border-radius: 7px; color: var(--ink); background: #fff; font: inherit; font-size: 12px; }
+.sop-version-step-editor textarea { min-height: 55px; line-height: 1.45; resize: vertical; }
+.sop-version-procedures { display: grid; gap: 8px; }
+.sop-version-procedure { padding: 10px; border: 1px solid var(--outline); border-radius: 9px; background: #fbfcfd; }
+.sop-version-procedure > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #263d55; cursor: pointer; font-size: 12px; }
+.sop-version-procedure > summary span { color: var(--muted); font-size: 10px; white-space: nowrap; }
+.sop-version-sheet-title { margin-top: 10px; max-width: 420px; }
+.sop-version-step-editor { display: grid; gap: 8px; max-height: 560px; overflow: auto; margin: 10px 0; padding: 0; list-style: none; }
+.sop-version-step-editor li { display: grid; grid-template-columns: minmax(72px,110px) minmax(200px,1fr) auto; align-items: start; gap: 8px; padding: 9px; border: 1px solid #e7eaee; border-radius: 8px; background: #fff; }
+.sop-version-delete-step { align-self: end; min-height: 34px; color: #a32525; }
+.sop-version-procedure > .text-button { min-height: 34px; }
 .sop-page-empty { margin: 0; padding: 24px; color: var(--muted); font-size: 12px; text-align: center; }
 @media (max-width: 1100px) {
   .production-status-strip { grid-template-columns: repeat(3,minmax(0,1fr)); }
@@ -830,4 +843,7 @@ td small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px;
   .sop-version-panel { padding: 12px; }
   .sop-version-form, .sop-version-preview, .sop-version-history { padding: 10px; }
   .sop-version-row { align-items: flex-start; }
+  .sop-version-document-fields { grid-template-columns: 1fr; }
+  .sop-version-step-editor li { grid-template-columns: 1fr; }
+  .sop-version-step-editor li > .text-button { justify-self: start; }
 }

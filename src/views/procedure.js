@@ -44,14 +44,15 @@ function renderProcedurePanel(procedure, state) {
       ${procedure.steps.length ? "" : '<small class="procedure-actions-note">Esta hoja es informativa. Selecciona una hoja con pasos para habilitar las acciones.</small>'}
     </div>
     <div class="sop-page-preview ${pageZoom > 100 ? "sop-page-preview--zoomed" : ""}" id="sop-page-preview">${state.sopPdfUrl
-      ? `<iframe class="sop-pdf-page-preview" src="${escapeHtml(state.sopPdfUrl)}#page=${procedure.sheet}&zoom=${pageZoom === 100 ? "page-fit" : pageZoom}" title="PDF SOP local · hoja ${procedure.sheet}" loading="eager"></iframe>`
+      ? `<iframe class="sop-pdf-page-preview" src="${escapeHtml(state.sopPdfUrl)}#page=${procedure.pdfPage ?? procedure.sheet}&zoom=${pageZoom === 100 ? "page-fit" : pageZoom}" title="PDF SOP local · hoja ${procedure.sheet}" loading="eager"></iframe>`
       : pageImageUrl ? `<img src="${escapeHtml(pageImageUrl)}" alt="${escapeHtml(SOP_DOCUMENT.title)} · hoja ${procedure.sheet} completa" style="width:${pageWidth}%;margin-left:${pageMargin}%" loading="eager" decoding="async" />` : '<p class="sop-page-empty">Esta revisión no incluye una imagen de hoja completa. Consulta los pasos y sus referencias visuales.</p>'}</div>
   </section>`;
 }
 
 function renderSopSourceNotice(state) {
   if (!state.sopVersionMeta?.builtIn) {
-    return `<aside class="sop-source-notice" role="note"><span class="material-symbols-rounded" aria-hidden="true">verified</span><span><strong>SOP local activa · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}.</strong> PDF, pasos e imágenes guardados en este navegador. Solo la cuenta 140784 puede cargar o activar otra versión.</span></aside>`;
+    const author = state.sopVersionMeta?.createdBy ? ` Cargada por ${escapeHtml(state.sopVersionMeta.createdBy)}.` : "";
+    return `<aside class="sop-source-notice" role="note"><span class="material-symbols-rounded" aria-hidden="true">verified</span><span><strong>SOP local activa · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}.</strong> ${author} El PDF y sus pasos están guardados en este navegador; aquí los demás usuarios ven la misma revisión activa. Solo la cuenta 140784 puede cargar o activar otra versión.</span></aside>`;
   }
   const discrepancyCount = PROCEDURES.reduce((count, procedure) => count + procedure.steps.filter((step) => step.sourceNote).length, 0);
   const savedSource = state.sopPdfName

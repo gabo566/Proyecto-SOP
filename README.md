@@ -120,57 +120,20 @@ Al marcar o reabrir un paso se registra el usuario activo, número de empleado y
 
 La cuenta administradora `140784` tiene la opción «Modificar SOP». Aunque la cuenta `140783` también tiene rol de administrador para las demás funciones locales, esa cuenta no ve ni puede usar el administrador de versiones de SOP. El control se aplica en la interfaz del prototipo y no representa una autorización segura de servidor.
 
-Para crear una revisión, el administrador carga tres elementos: el PDF fuente, un archivo JSON con la metadata y los pasos, y las imágenes JPG, PNG o WebP que el JSON referencia. La pantalla valida nombres de archivo, hojas, pasos repetidos, campos requeridos y referencias faltantes; después presenta la lista de procedimientos y el total de pasos para revisar antes de activar. Se puede descargar `plantilla-sop.json` desde esa misma pantalla. El PDF y las imágenes pueden pesar hasta 100 MB cada uno.
+Para crear una revisión, el administrador carga **un solo archivo PDF**. El navegador extrae el texto con PDF.js, reconoce los números de paso y los agrupa por hoja. Si el documento contiene `# Control` y `Rev`, se usan para completar el identificador y la revisión; el nombre del archivo se propone como título y se puede corregir. Antes de activar, la pantalla permite editar esos datos, cambiar números e instrucciones, eliminar detecciones incorrectas y agregar pasos omitidos. El límite del archivo es 100 MB.
 
-El archivo JSON usa esta estructura mínima:
+El PDF debe tener texto seleccionable y conservar una numeración de pasos reconocible, como `1.-`, `7.1.1.-` o `54.5.-`, dentro de un diseño de SOP similar al PDF de referencia. Los PDF escaneados requieren una capa de texto OCR antes de cargarlos; esta función no ejecuta OCR. La extracción se comprueba con la SOP incluida, donde reconoce sus 132 pasos. Aun así, el administrador debe revisar el borrador: ningún extractor puede asegurar por sí solo que entendió correctamente todos los documentos o instrucciones.
 
-```json
-{
-  "document": {
-    "id": "SOP-EJEMPLO-001",
-    "title": "Nombre de la SOP",
-    "revision": "2",
-    "family": "GB200",
-    "customer": "Nvidia Racks",
-    "station": "Rework",
-    "nodePartNumber": "",
-    "totalSheets": 1,
-    "processSheetRange": "1"
-  },
-  "procedures": [
-    {
-      "id": "sheet-1",
-      "sheet": 1,
-      "category": "Chasis",
-      "title": "Preparación del nodo",
-      "stepRange": "1–2",
-      "partNumber": "",
-      "pageImage": "hoja-1.jpg",
-      "steps": [
-        {
-          "number": "1",
-          "text": "Describe la acción del operador.",
-          "images": [{ "file": "paso-1.jpg", "alt": "Referencia del paso 1" }]
-        },
-        { "number": "2", "text": "Describe la siguiente acción.", "images": [] }
-      ]
-    }
-  ]
-}
-```
+Al guardar, el PDF original queda como referencia visual y el sistema activa su lista corregida de validaciones. El historial registra la revisión, el nombre del archivo, quién la cargó, fecha, hojas y cantidad de pasos; permite reactivar una versión anterior o volver al catálogo del proyecto. No se puede activar otra versión mientras haya trabajos abiertos ligados a una revisión distinta. Cada validación nueva conserva `sopDocumentId`, `sopRevision` y `sopVersionId`; los registros y evidencias anteriores no se reescriben.
 
-Cada `pageImage` y `images[].file` debe coincidir exactamente con el nombre de un archivo de imagen seleccionado en el formulario. `pageImage` es opcional; `images` puede estar vacío. El texto y orden de `procedures[].steps` generan el checklist que se marca y registra en el sistema. El PDF se guarda como fuente de consulta y su página se muestra según `sheet`.
-
-Las revisiones se guardan en IndexedDB en ese navegador. La pantalla conserva quién la cargó, cuándo, su PDF, pasos e imágenes, permite volver a activar una revisión anterior o regresar al catálogo incluido en el proyecto. No se puede activar una versión mientras haya trabajos abiertos que pertenezcan a otra revisión; para reanudar un trabajo de una revisión anterior, primero se reactiva esa misma versión. Cada validación nueva guarda `sopDocumentId`, `sopRevision` y `sopVersionId`; la revisión aparece junto a la sección registrada. Evidencias y validaciones anteriores no se reescriben.
-
-El navegador no extrae automáticamente pasos del PDF: el administrador debe cargar también el JSON estructurado. Una carga local solo existe en el mismo navegador y perfil; conserva respaldos externos del PDF, el JSON y sus imágenes. Borrar los datos del navegador elimina las versiones guardadas.
+Las versiones se guardan en IndexedDB y quedan disponibles para los usuarios que inicien sesión en **ese mismo navegador, perfil y origen local**. No se sincronizan a otros equipos, perfiles ni navegadores; para compartirlas a distancia o centralizar evidencias se necesita un backend. Borrar los datos del sitio puede eliminar las versiones, por lo que se deben conservar los PDF originales como respaldo.
 
 ## Persistencia y límites
 
-La aplicación no tiene backend. Los registros de validación, trabajos, perfiles de demostración y bitácora se guardan en `localStorage`; la sesión activa vive en `sessionStorage`; los archivos de evidencia, PDFs fuente e imágenes de las revisiones de SOP se guardan en IndexedDB. Las versiones de SOP usan la base `sop-operador-sop-versions-v1`. Las claves locales de perfiles/bitácora incluyen `sop-operador-local-users-v1`, `sop-operador-active-user-v1`, `sop-operador-auth-session-v1`, `sop-operador-audit-trail-v1` y `sop-operador-audit-session-v1`. Esto significa que:
+La aplicación no tiene backend. Los registros de validación, trabajos, perfiles de demostración y bitácora se guardan en `localStorage`; la sesión activa vive en `sessionStorage`; las evidencias y los PDF fuente de las revisiones SOP se guardan en IndexedDB. Las versiones usan la base `sop-operador-sop-versions-v1`. Las claves locales de perfiles/bitácora incluyen `sop-operador-local-users-v1`, `sop-operador-active-user-v1`, `sop-operador-auth-session-v1`, `sop-operador-audit-trail-v1` y `sop-operador-audit-session-v1`. Esto significa que:
 
 - Los datos pertenecen al perfil de navegador y al origen local que se usó para abrir la aplicación.
-- No se comparten entre operadores, equipos, navegadores ni instalaciones.
+- Los usuarios que inicien sesión en el mismo perfil de navegador usan esos mismos datos; otros equipos, perfiles y navegadores no los comparten.
 - Borrar los datos del sitio en el navegador puede eliminar registros y evidencia.
 - No hay sincronización, respaldo central, control de acceso efectivo, autenticación real, bitácora inmutable ni recuperación administrativa.
 - La persistencia local sirve para probar el flujo de interfaz, no para mantener registros oficiales de manufactura.
@@ -209,8 +172,8 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | `src/evidence-capture-workflow.js` | Selección y retiro de fotos de validación, detención y retrabajo, con referencia al perfil de demostración activo. |
 | `src/evidence-workflow.js` | Evidencia asociada a retrabajos, visor, administración de fotos y decisión de revisión. |
 | `src/evidence-store.js` | Base IndexedDB del navegador y límites de archivos de evidencia. |
-| `src/sop-version-control.js` | Validación del paquete PDF/JSON/imágenes, IndexedDB de versiones SOP, activación y restauración local. |
-| `src/sop-version-control.js` | Validación del paquete PDF/JSON/imágenes, IndexedDB de versiones SOP, activación y restauración local. |
+| `src/sop-version-control.js` | Extracción y edición de pasos desde un único PDF, historial IndexedDB, activación y restauración local. |
+| `public/vendor/pdfjs/` | PDF.js, su worker, fuentes estándar y mapas de caracteres para leer PDF en el navegador sin conexión externa. |
 | `src/views/` | Plantillas de navegación, procedimientos, formularios, registros, actividad y diálogos. |
 | `src/escape.js` | Escape de texto antes de insertarlo en plantillas HTML. |
 | `src/styles.css` | Diseño visual adaptable, estados, tablas, diálogos y componentes. |
@@ -219,7 +182,7 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | `worker/index.js` | Worker de Sites que devuelve `index.html` para rutas GET/HEAD HTML desconocidas. No es un backend de operaciones. |
 | `scripts/prepare-sites-build.mjs` | Copia el worker y la configuración de hosting a `dist` para empaquetado de Sites. No se requiere para desarrollo local. |
 | `tests/sites-worker.test.mjs` | Pruebas del comportamiento del worker y de los archivos del paquete de Sites; no cubren todo el flujo de la interfaz. |
-| `tests/sop-version-control.test.mjs` | Validación del paquete SOP y restricción de administración a 140784. |
+| `tests/sop-version-control.test.mjs` | Extracción de los 132 pasos de la SOP de referencia y restricción de administración a 140784. |
 | `.openai/hosting.json` | Configuración de hosting actual: sin bindings configurados para D1 o R2. |
 | `src/views/procedure (1).js` | Archivo presente en el repositorio que no se carga desde `index.html`; la vista activa es `src/views/procedure.js`. |
 
