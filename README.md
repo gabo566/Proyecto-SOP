@@ -65,6 +65,7 @@ Estas notas son advertencias editoriales del prototipo, no una resolución de in
 - Ampliar o reducir la vista de la hoja entre 50 % y 150 %. En escritorio, la columna de la hoja gana espacio al ampliar; si el PDF excede el área visible, se puede recorrer con las barras de desplazamiento. El visor dibuja el PDF con resolución de al menos 2× y hasta 3× cuando el tamaño de página lo permite.
 - Ver el avance total y el conteo de pasos confirmados en la hoja. El pie de la hoja mantiene a la vista el estado y las acciones para continuar.
 - En un retrabajo en curso, «Cambiar operador» guarda la hoja, pasos y datos actuales y solicita las credenciales de otra cuenta activa del navegador. El siguiente operador queda asignado al recorrido y cada entrega conserva quién entrega, quién recibe, la hoja y la fecha; la autoría original y las marcas de cada operador permanecen en la bitácora. Como el prototipo es local, esta comprobación no es autenticación corporativa.
+- Al iniciar un retrabajo guardado, la aplicación abre directamente su hoja de SOP para que el operador continúe la validación y tenga disponibles las acciones del recorrido.
 - Al completar la última hoja, se abre una ventana compacta de confirmación con estación, SOP/revisión, PN y serie del nodo, PN y serie de la tarjeta, avance y operador(es). La declaración incluye ambos equipos; la constancia guarda los pasos, la autoría y la fecha.
 - Reanudar un recorrido incompleto desde el mismo navegador y con la misma versión; el avance por hoja se conserva en el trabajo local.
 

@@ -342,7 +342,7 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
       workItemId: item.id,
       step: item.failedStep,
     });
-    state.activeSection = "production";
+    state.activeSection = "overview";
     render();
     document.getElementById("production")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
