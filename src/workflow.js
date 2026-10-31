@@ -20,7 +20,18 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
   const evidenceCaptureWorkflow = createEvidenceCaptureWorkflow(state, { render, getTimestamp });
 
   function persistProgress() {
-    if (!state.activeWorkId) return true;
+    if (!state.activeWorkId) {
+      const hasEnteredRunData = Boolean(
+        state.form.nodeNumber?.trim()
+        || state.form.serial?.trim()
+        || state.form.repairType?.trim()
+        || state.form.componentPartNumber?.trim()
+        || state.form.componentSerial?.trim()
+        || state.sopRun?.procedureIds.some((procedureId) => getGuidedSopCheckedSteps(state.sopRun, procedureId).length),
+      );
+      if (!hasEnteredRunData) return true;
+      if (!state.sopRun || !startGuidedWork(state.sopRun)) return false;
+    }
     const item = state.workItems.find((workItem) => workItem.id === state.activeWorkId);
     if (!item) return true;
     const procedure = getProcedure();

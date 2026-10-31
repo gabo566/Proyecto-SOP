@@ -50,18 +50,15 @@ Estas notas son advertencias editoriales del prototipo, no una resolución de in
 
 ### Seguimiento de SOP y producción
 
-- Elegir cualquiera de las 42 secciones desde el selector o avanzar y retroceder entre ellas.
-- Consultar categoría, título, hoja, secuencia, instrucciones, imágenes y datos generales de la SOP.
-- Ver la hoja completa de la SOP usando casi todo el ancho del panel; se recortan levemente los márgenes blancos propios del escaneo, sin deformar el contenido.
-- Ajustar la hoja completa desde «Tamaño de la hoja SOP»: ampliar o reducir en pasos de 10% (50–150%) y volver al ajuste de 100%.
-- Iniciar «Iniciar recorrido SOP» desde una hoja con pasos. La validación recorre en orden todas las hojas que contienen pasos de la versión activa; las hojas informativas sin pasos se omiten.
+- Al entrar a «Seguimiento SOP», el recorrido de la revisión activa aparece directamente en la pantalla principal; no hay que abrir otro formulario para empezar a validar.
+- Cada hoja se presenta como una hoja digital controlada, con identificador, revisión, categoría, título, número de hoja, rango de pasos y referencias visuales disponibles. El PDF original queda como consulta secundaria y ya no es la pantalla principal de ejecución.
+- El recorrido avanza en orden por todas las hojas de la revisión activa que contienen pasos; las hojas informativas sin pasos se omiten.
 - En pantallas de escritorio de poca altura, la interfaz aplica una escala compacta para facilitar el acceso a los controles principales.
 - La barra lateral de escritorio mide 225 px (un poco más que su ancho inicial) y ancla el menú en la parte superior, debajo del logo con una separación visible; en tablet se compacta a iconos y en móvil se abre como un panel lateral.
-- Abrir las referencias visuales con un ajuste inicial de 90% para mostrar un poco más de la hoja; los controles permiten acercar, alejar y volver al ajuste inicial.
 - Capturar como datos obligatorios el número y serial del nodo. El número de parte del nodo y los datos de reparación/componente son opcionales para que el recorrido sirva también para SOP que no impliquen reemplazar una pieza. El nombre, puesto y número de empleado se toman del usuario conectado.
-- Revisar el PDF original de una hoja a la vez, junto al checklist de pasos detectados y editados para esa hoja.
-- Marcar cada instrucción con «Realicé el paso N: [texto del paso]». «Continuar» queda deshabilitado hasta marcar todos los pasos de la hoja actual; se puede regresar a corregir una confirmación.
-- Al final, revisar una declaración con el nodo, serial, tipo y revisión de SOP, advertencia de reporte de daño y datos del operador. Una sola constancia guarda todas las hojas y pasos confirmados, además de la autoría, fecha y versión.
+- Marcar cada instrucción con «Realicé el paso N: [texto del paso]» dentro de la misma hoja digital donde se muestran sus pasos. «Siguiente hoja» permanece deshabilitado hasta confirmar todos los pasos de la hoja actual; el botón anterior permite revisar una hoja previa.
+- Ver el avance total y el conteo de pasos confirmados en la hoja. El pie de la hoja mantiene a la vista el estado y las acciones para continuar.
+- Al completar la última hoja, se abre automáticamente una ventana de confirmación con la SOP/revisión, nodo, serial, número de hojas, total de pasos y operador. La confirmación final guarda una sola constancia con los pasos, la autoría y la fecha.
 - Reanudar un recorrido incompleto desde el mismo navegador y con la misma versión; el avance por hoja se conserva en el trabajo local.
 
 La declaración no equivale a una firma electrónica ni a una identidad autenticada. La casilla es una confirmación dentro del prototipo. La bitácora local conserva quién marcó cada paso.
@@ -166,7 +163,7 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | `index.html` | Documento inicial, CSS y orden de carga de scripts. |
 | `src/data/sopData.js` | Metadata de la SOP, los 42 procedimientos, pasos, referencias visuales, categorías y registros ficticios. |
 | `src/user-control.js` | Perfiles de demostración, selector de usuario, roles ilustrativos, gestión local y bitácora del navegador. |
-| `src/app.js` | Estado de pantalla, selección de procedimiento, validación, usuario activo, guardado de registros y composición de vistas. |
+| `src/app.js` | Estado de pantalla, recorrido activo, usuario conectado, guardado de registros y composición de vistas. |
 | `src/interactions.js` | Eventos de navegación, formularios, búsqueda, diálogos, imágenes y evidencia. |
 | `src/workflow.js` | Crear, pausar, reanudar, completar y registrar el historial de trabajos. |
 | `src/work-items.js` | Lectura y escritura de trabajos en almacenamiento local y presentación de sus tarjetas. |
@@ -176,10 +173,12 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | `src/sop-version-control.js` | Extracción y edición de pasos desde un único PDF, historial IndexedDB, activación y restauración local. |
 | `src/sop-run.js` | Recorrido secuencial de hojas, checklist por paso, avance/revisión y confirmación final de la SOP activa. |
 | `public/vendor/pdfjs/` | PDF.js, su worker, fuentes estándar y mapas de caracteres para leer PDF en el navegador sin conexión externa. |
-| `src/views/` | Plantillas de navegación, procedimientos, formularios, registros, actividad y diálogos. |
+| `src/views/procedure.js` | Hoja digital de trabajo, checklist en pantalla principal, datos del nodo y avance entre hojas. |
+| `src/views/completion-dialog.js` | Checklist de pasos, confirmación final, formularios y diálogos de registro. |
+| `src/views/` | Plantillas de navegación, registros, actividad, informes y otros diálogos. |
 | `src/escape.js` | Escape de texto antes de insertarlo en plantillas HTML. |
 | `src/styles.css` | Diseño visual adaptable, estados, tablas, diálogos y componentes. |
-| `public/documents/SOP-NVD-GB200-141.pdf` | PDF de referencia que abre el selector en la hoja activa. |
+| `public/documents/SOP-NVD-GB200-141.pdf` | PDF fuente que se puede abrir como consulta secundaria en la hoja activa. |
 | `public/assets/` | Identidad visual, imágenes de hojas y referencias paso a paso. |
 | `worker/index.js` | Worker de Sites que devuelve `index.html` para rutas GET/HEAD HTML desconocidas. No es un backend de operaciones. |
 | `scripts/prepare-sites-build.mjs` | Copia el worker y la configuración de hosting a `dist` para empaquetado de Sites. No se requiere para desarrollo local. |

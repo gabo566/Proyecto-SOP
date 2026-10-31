@@ -54,7 +54,13 @@ const state = {
   toast: null,
   serialQuery: "",
   recordsQuery: "",
-  form: { ...createEmptyForm(), ...(restorableWork?.form ?? {}), name: activeDemoUser.name, employeeNumber: activeDemoUser.employeeNumber, position: activeDemoUser.position || "Técnico de FA" },
+  form: {
+    ...createEmptyForm(),
+    ...(restorableWork?.form ?? {}),
+    name: restorableWork?.form?.name ?? activeDemoUser.name,
+    employeeNumber: restorableWork?.form?.employeeNumber ?? activeDemoUser.employeeNumber,
+    position: restorableWork?.form?.position ?? activeDemoUser.position ?? "Técnico de FA",
+  },
   auditSessionId: localStorage.getItem("sop-operador-audit-session-v1") || `session-${crypto.randomUUID()}`,
   formError: "",
   dialogTriggerFocusKey: "",
@@ -84,7 +90,31 @@ function getRecords() {
 }
 
 function getProcedure() {
-  return SOP_SHEETS.find((item) => item.id === state.selectedId) ?? SOP_SHEETS[0];
+  const guidedProcedure = state.sopRun && getGuidedSopProcedure(state.sopRun, PROCEDURES);
+  return guidedProcedure ?? SOP_SHEETS.find((item) => item.id === state.selectedId) ?? SOP_SHEETS[0];
+}
+
+function ensureGuidedSopRun() {
+  if (!state.sopRun) {
+    const user = getActiveLocalUser();
+    state.sopRun = createGuidedSopRun(PROCEDURES, SOP_DOCUMENT, state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID, user);
+    state.selectedId = state.sopRun.procedureIds[0];
+    state.completedSteps = getGuidedSopCheckedSteps(state.sopRun, state.selectedId);
+    if (!state.activeWorkId) {
+      state.form = { ...createEmptyForm(), name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", nodePartNumber: SOP_DOCUMENT.nodePartNumber ?? "" };
+    }
+  }
+  const currentProcedure = getGuidedSopProcedure(state.sopRun, PROCEDURES);
+  if (currentProcedure) {
+    state.selectedId = currentProcedure.id;
+    state.completedSteps = getGuidedSopCheckedSteps(state.sopRun, currentProcedure.id);
+  }
+}
+
+function canOperateGuidedSopRun() {
+  const owner = state.sopRun?.startedBy?.employeeNumber;
+  return state.sopRun?.versionId === (state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID)
+    && (!owner || owner === getActiveLocalUser().employeeNumber);
 }
 
 function render({ focusKey, focusDialog = false, initial = false } = {}) {
@@ -93,6 +123,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     document.querySelector(state.loginError ? "#login-password" : "#login-username")?.focus();
     return;
   }
+  ensureGuidedSopRun();
   if (state.activeSection === "sop-admin" && !canManageSopVersions()) state.activeSection = "overview";
   const previousFocus = focusKey === undefined ? getFocusState() : { key: focusKey, start: null, end: null };
   const allRecords = getRecords();
@@ -101,8 +132,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   const todayKey = getLocalDateKey();
   const todayRecords = operationalRecords.filter((record) => record.date === todayKey);
   const dashboard = state.activeSection === "overview"
-    ? `${renderSummaryMetrics(todayRecords, state)}
-      <div class="production-layout production-layout--sheet" id="production">${renderProcedurePanel(getProcedure(), state)}</div>`
+    ? `<div class="production-layout production-layout--sheet" id="production">${renderProcedurePanel(getProcedure(), state)}</div>`
     : state.activeSection === "production"
     ? renderProductionView(todayRecords, state)
     : state.activeSection === "traceability"
@@ -141,7 +171,6 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   if (state.evidenceReviewDialogOpen) evidenceReviewDialog.showModal();
   if (state.evidenceImageDialogOpen) evidenceImageDialog.showModal();
   if (state.helpDialogOpen) helpDialog.showModal();
-  if (state.validationDialogOpen && state.sopRun?.stage === "steps") renderGuidedSopDocument(getProcedure(), state);
   restoreFocus(previousFocus, { focusDialog, initial }, state);
   const reportRecords = state.activeSection === "reports"
     ? getReportRecords(allRecords, state.reportFilters, state.includeDemoData)
@@ -205,43 +234,11 @@ function openRecords(triggerKey) {
   render({ focusDialog: true });
 }
 
-function openGuidedSopValidation(triggerKey = "register-validation") {
-  if (!state.sopRun) {
-    const user = getActiveLocalUser();
-    state.sopRun = createGuidedSopRun(PROCEDURES, SOP_DOCUMENT, state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID, user);
-    state.selectedId = state.sopRun.procedureIds[0];
-    state.completedSteps = getGuidedSopCheckedSteps(state.sopRun, state.selectedId);
-    state.form = { ...createEmptyForm(), name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", nodePartNumber: SOP_DOCUMENT.nodePartNumber ?? "", declaration: false };
-    state.formError = "";
-    state.validationEvidenceFiles = [];
-    if (!workflow.startGuidedWork(state.sopRun)) {
-      state.sopRun = null;
-      showToast("No se pudo guardar el inicio del procedimiento en este navegador.", "warning");
-      return;
-    }
-  } else {
-    if (state.sopRun.versionId !== (state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID)) {
-      showToast("La validación en curso pertenece a otra revisión de la SOP. Reanúdala desde Producción con esa versión activa.", "warning");
-      return;
-    }
-    if (state.sopRun.startedBy?.employeeNumber && state.sopRun.startedBy.employeeNumber !== getActiveLocalUser().employeeNumber) {
-      showToast(`La validación fue iniciada por ${state.sopRun.startedBy.name}. Inicia sesión con esa cuenta para continuar y conservar la autoría correcta.`, "warning");
-      return;
-    }
-    const currentProcedure = getGuidedSopProcedure(state.sopRun, PROCEDURES);
-    if (!currentProcedure) {
-      showToast("No se encontró la hoja activa de la validación. Inicia un procedimiento nuevo.", "warning");
-      return;
-    }
-    state.selectedId = currentProcedure.id;
-    state.completedSteps = getGuidedSopCheckedSteps(state.sopRun, currentProcedure.id);
-  }
-  state.dialogTriggerFocusKey = triggerKey;
-  state.validationDialogOpen = true;
-  render({ focusDialog: true });
-}
-
 function continueGuidedSopSheet() {
+  if (!canOperateGuidedSopRun()) {
+    showToast("Solo la persona que inició este recorrido puede continuar y conservar la autoría del registro.", "warning");
+    return;
+  }
   const procedure = getProcedure();
   const uncheckedStep = procedure.steps.find((step) => !getGuidedSopCheckedSteps(state.sopRun, procedure.id).includes(String(step.number)));
   if (uncheckedStep || !isGuidedSopProcedureComplete(state.sopRun, procedure)) {
@@ -252,15 +249,21 @@ function continueGuidedSopSheet() {
   }
   if (state.sopRun.currentIndex === state.sopRun.procedureIds.length - 1) {
     const missingNodeField = !state.form.nodeNumber.trim()
-      ? document.querySelector('#completion-form [name="nodeNumber"]')
+      ? document.querySelector('[data-form-field="nodeNumber"]')
       : !state.form.serial.trim()
-        ? document.querySelector('#completion-form [name="serial"]')
+        ? document.querySelector('[data-form-field="serial"]')
         : null;
     if (missingNodeField) {
       const label = missingNodeField.name === "nodeNumber" ? "número de nodo" : "número de serie del nodo";
-      showFormError(`Captura el ${label} para preparar la confirmación final.`, missingNodeField);
+      state.formError = `Captura el ${label} para preparar la confirmación final.`;
+      render({ focusKey: `form-${missingNodeField.name}` });
       return;
     }
+  }
+  if (state.sopRun.stage === "confirmation") {
+    state.validationDialogOpen = true;
+    render({ focusDialog: true });
+    return;
   }
   if (!advanceGuidedSopRun(state.sopRun, PROCEDURES)) return;
   state.formError = "";
@@ -272,12 +275,16 @@ function continueGuidedSopSheet() {
     state.dialogTriggerFocusKey = `step-${nextProcedure.steps[0].number}`;
   } else {
     state.dialogTriggerFocusKey = "guided-confirmation-heading";
+    state.validationDialogOpen = true;
   }
   workflow.persistProgress();
-  render({ focusKey: state.dialogTriggerFocusKey });
+  render({ focusKey: state.dialogTriggerFocusKey, focusDialog: state.validationDialogOpen });
 }
 
 function previousGuidedSopSheet() {
+  if (!canOperateGuidedSopRun()) return;
+  state.validationDialogOpen = false;
+  document.querySelector("#validation-dialog")?.close();
   if (!returnGuidedSopRunToSteps(state.sopRun)) return;
   const previousProcedure = getGuidedSopProcedure(state.sopRun, PROCEDURES);
   state.selectedId = previousProcedure.id;
@@ -433,6 +440,7 @@ function saveCompletion() {
   state.validationDialogOpen = false;
   document.querySelector("#validation-dialog")?.close();
   state.form = createEmptyForm();
+  ensureGuidedSopRun();
   state.validationEvidenceFiles = [];
   state.auditSessionId = `session-${crypto.randomUUID()}`;
   localStorage.setItem("sop-operador-audit-session-v1", state.auditSessionId);
@@ -455,7 +463,6 @@ bindInteractions(app, {
   openRecords,
   closeDialog,
   handleCompletionSubmit,
-  openGuidedSopValidation,
   continueGuidedSopSheet,
   previousGuidedSopSheet,
   openWorkItemDialog: workflow.openDialog,
@@ -474,7 +481,10 @@ bindInteractions(app, {
     state.loginUsername = "";
     state.activeSection = "overview";
     state.formError = "";
-    state.form = createEmptyForm();
+    if (!state.activeWorkId) {
+      state.form = createEmptyForm();
+      state.sopRun = null;
+    }
     state.validationEvidenceFiles = [];
     state.workDialogOpen = false;
     state.recordsDialogOpen = false;

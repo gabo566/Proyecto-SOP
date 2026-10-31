@@ -17,7 +17,7 @@ function restoreFocus(previousFocus, { focusDialog, initial }, state) {
     return;
   }
   if (focusDialog && state.validationDialogOpen) {
-    (document.querySelector("#completion-form [data-step]:not(:checked)") ?? document.querySelector('#completion-form [name="serial"]'))?.focus();
+    (document.querySelector("#guided-confirmation-heading") ?? document.querySelector("#completion-form [name='declaration']"))?.focus();
     return;
   }
   if (!previousFocus.key) {
