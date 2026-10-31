@@ -78,6 +78,24 @@ test("uses the administrator-edited station and falls back to its built-in assig
   assert.equal(getWorkStationAssignment("MFG:TDR").type, "MFG");
 });
 
+test("includes SYS_ASSY_1 and SYS_ASSY_2 as administrator-assignable MFG stations", () => {
+  const sysAssy1 = makeVersion("sys-assy-1", "MFG:SYS_ASSY_1", "2025-02-01T00:00:00.000Z");
+  const sysAssy2 = makeVersion("sys-assy-2", "MFG:SYS_ASSY_2", "2025-03-01T00:00:00.000Z");
+  const state = stateWith([sysAssy1, sysAssy2], {
+    [sysAssy1.id]: { stationAssignment: "MFG:SYS_ASSY_1", enabled: true },
+    [sysAssy2.id]: { stationAssignment: "MFG:SYS_ASSY_2", enabled: true },
+  });
+
+  assert.equal(getWorkStationAssignment("MFG:SYS_ASSY_1").type, "MFG");
+  assert.equal(getWorkStationAssignment("MFG:SYS_ASSY_2").type, "MFG");
+  assert.deepEqual(
+    Array.from(getEnabledWorkStationAssignments(state, "MFG"), (assignment) => assignment.value),
+    ["MFG:SYS_ASSY_1", "MFG:SYS_ASSY_2"],
+  );
+  assert.equal(findSopVersionForStation(state, "MFG:SYS_ASSY_1").id, sysAssy1.id);
+  assert.equal(findSopVersionForStation(state, "MFG:SYS_ASSY_2").id, sysAssy2.id);
+});
+
 test("normalizes a disabled SOP selection to the first available revision", () => {
   const old = makeVersion("mfg-old", "MFG:TDR", "2025-01-01T00:00:00.000Z");
   const rwk = makeVersion("rwk-on", "RWK:RWK", "2025-02-01T00:00:00.000Z");

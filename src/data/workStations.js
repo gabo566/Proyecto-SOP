@@ -1,5 +1,7 @@
 const WORK_STATION_ASSIGNMENTS = [
   { value: "MFG:TDR", type: "MFG", typeLabel: "Manufactura", code: "TDR", label: "TDR" },
+  { value: "MFG:SYS_ASSY_1", type: "MFG", typeLabel: "Manufactura", code: "SYS_ASSY_1", label: "SYS_ASSY_1" },
+  { value: "MFG:SYS_ASSY_2", type: "MFG", typeLabel: "Manufactura", code: "SYS_ASSY_2", label: "SYS_ASSY_2" },
   { value: "RWK:RWK", type: "RWK", typeLabel: "Retrabajo", code: "RWK", label: "RWK" },
 ];
 

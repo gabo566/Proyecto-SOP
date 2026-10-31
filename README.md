@@ -50,9 +50,9 @@ Estas notas son advertencias editoriales del prototipo, no una resolución de in
 
 ### Seguimiento de SOP y producción
 
-- Después de iniciar sesión, el operador elige MFG o RWK. Solo aparecen los tipos y estaciones donde existe al menos una SOP habilitada por Administración. Si una estación tiene varias SOP habilitadas, el operador elige cuál utilizar; si solo hay una, queda seleccionada automáticamente.
+- Después de iniciar sesión, el operador elige MFG o RWK. En MFG puede elegir TDR, SYS_ASSY_1 o SYS_ASSY_2; solo aparecen las estaciones donde existe al menos una SOP habilitada por Administración. Si una estación tiene varias SOP habilitadas, el operador elige cuál utilizar; si solo hay una, queda seleccionada automáticamente.
 - Antes de comenzar, la pantalla muestra el nombre, identificador y revisión de la SOP seleccionada. Al continuar, el sistema abre esa revisión exacta y registra su identificador con la validación.
-- La cuenta 140784 carga PDF desde «Modificar SOP». El borrador detectado solicita la estación MFG/TDR o RWK/RWK y permite revisar pasos. Al guardarse, la revisión queda deshabilitada hasta que Administración la habilite en el catálogo.
+- La cuenta 140784 carga PDF desde «Modificar SOP». El borrador detectado solicita la estación MFG/TDR, MFG/SYS_ASSY_1, MFG/SYS_ASSY_2 o RWK/RWK y permite revisar pasos. Al guardarse, la revisión queda deshabilitada hasta que Administración la habilite en el catálogo.
 - En el catálogo, cada SOP del historial muestra su revisión, quién la guardó, estación y disponibilidad. Administración puede cambiar la estación y habilitar o deshabilitar cada revisión. Si habilita una revisión, la revisión anterior del mismo identificador se deshabilita automáticamente; otras SOP distintas pueden seguir habilitadas en esa estación.
 - La pantalla inicial conserva el diseño anterior de registro de validación, con la selección MFG/RWK, los datos del nodo y la tarjeta, y un resumen de la estación y la SOP que se abrirá. La selección queda guardada en la validación.
 - Cada hoja se presenta como una hoja digital controlada, con identificador, revisión, categoría, título, número de hoja, rango de pasos y referencias visuales disponibles. El PDF original queda como consulta secundaria y ya no es la pantalla principal de ejecución.

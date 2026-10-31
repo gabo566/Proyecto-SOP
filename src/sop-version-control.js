@@ -509,7 +509,7 @@ function validateSopDraft(draft) {
     document[field] = String(document[field]).trim();
   }
   if (!WORK_STATION_ASSIGNMENTS.some((assignment) => assignment.value === document.stationAssignment)) {
-    throw new Error("Asigna esta SOP a MFG · TDR o RWK · Retrabajo antes de guardarla como revisión.");
+    throw new Error("Asigna esta SOP a MFG · TDR, MFG · SYS_ASSY_1, MFG · SYS_ASSY_2 o RWK · Retrabajo antes de guardarla como revisión.");
   }
 
   const sheetNumbers = new Set();
