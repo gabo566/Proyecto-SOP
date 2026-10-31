@@ -7,7 +7,9 @@ const restorableWork = storedWorkItems
   .sort((a, b) => b.updatedAt - a.updatedAt)[0];
 const state = {
   selectedId: restorableWork?.procedureId ?? PROCEDURES[0].id,
+  operatorFlowReady: false,
   sopPageZoom: 100,
+  sopRunContextOpen: false,
   completedSteps: restorableWork?.completedSteps ?? [],
   sopRun: restorableWork?.sopRun ?? null,
   savedRecords: readSavedRecords(),
@@ -95,13 +97,15 @@ function getProcedure() {
 }
 
 function ensureGuidedSopRun() {
+  if (!state.operatorFlowReady) return;
   if (!state.sopRun) {
     const user = getActiveLocalUser();
+    const existingForm = { ...state.form };
     state.sopRun = createGuidedSopRun(PROCEDURES, SOP_DOCUMENT, state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID, user);
     state.selectedId = state.sopRun.procedureIds[0];
     state.completedSteps = getGuidedSopCheckedSteps(state.sopRun, state.selectedId);
     if (!state.activeWorkId) {
-      state.form = { ...createEmptyForm(), name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", nodePartNumber: SOP_DOCUMENT.nodePartNumber ?? "" };
+      state.form = { ...createEmptyForm(), ...existingForm, name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", nodePartNumber: existingForm.nodePartNumber || SOP_DOCUMENT.nodePartNumber || "" };
     }
   }
   const currentProcedure = getGuidedSopProcedure(state.sopRun, PROCEDURES);
@@ -117,10 +121,31 @@ function canOperateGuidedSopRun() {
     && (!owner || owner === getActiveLocalUser().employeeNumber);
 }
 
+function restoreOperatorFlowForSession() {
+  const user = getAuthenticatedLocalUser();
+  const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
+  if (!user || !activeWork) return;
+  if (activeWork.form?.employeeNumber !== user.employeeNumber) {
+    state.activeWorkId = "";
+    state.completedSteps = [];
+    state.sopRun = null;
+    state.form = { ...createEmptyForm(), name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA" };
+    state.operatorFlowReady = false;
+    return;
+  }
+  state.form = { ...createEmptyForm(), ...activeWork.form };
+  state.operatorFlowReady = isStationIntakeComplete(state.form)
+    && Boolean(findSopVersionForStation(state, state.form.stationAssignment));
+}
+
 function render({ focusKey, focusDialog = false, initial = false } = {}) {
   if (!getAuthenticatedLocalUser()) {
     app.innerHTML = renderLoginView({ error: state.loginError, username: state.loginUsername });
     document.querySelector(state.loginError ? "#login-password" : "#login-username")?.focus();
+    return;
+  }
+  if (!state.operatorFlowReady && !(state.activeSection === "sop-admin" && canManageSopVersions())) {
+    app.innerHTML = renderStationIntake(state);
     return;
   }
   ensureGuidedSopRun();
@@ -148,6 +173,8 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     ${renderTopbar(state)}<div class="dashboard-content">${dashboard}${renderFooter()}</div></main>
     ${renderOperatorValidationDialog(getProcedure(), state)}${renderRecordsDialog(records, state.recordsQuery, state.workItems)}${renderWorkItemDialog(state)}${renderEvidenceReviewDialog(state)}${renderEvidenceImageDialog(state)}${renderStepImageDialog()}${renderHelpDialog()}
     ${renderToast()}`;
+
+  renderSopPagePreview();
 
   const recordsDialog = document.querySelector("#records-dialog");
   recordsDialog.addEventListener("close", () => handleNativeDialogClose("recordsDialogOpen"));
@@ -177,6 +204,28 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     : todayRecords;
   drawCompletionChart(document.querySelector("#completion-chart"), reportRecords);
   if (!localStorage.getItem("sop-operador-audit-session-v1")) localStorage.setItem("sop-operador-audit-session-v1", state.auditSessionId);
+}
+
+async function handleStationIntakeSubmit() {
+  const result = await prepareStationSop(state);
+  if (!result.ok) {
+    state.formError = result.message;
+    render();
+    const firstMissing = !state.form.nodePartNumber?.trim() ? "intake-node-part"
+      : !state.form.serial?.trim() ? "intake-node-serial"
+        : !state.form.componentPartNumber?.trim() ? "intake-card-part"
+          : !state.form.componentSerial?.trim() ? "intake-card-serial" : "station-MFG";
+    document.querySelector(`[data-focus-key="${firstMissing}"]`)?.focus();
+    return;
+  }
+  ensureGuidedSopRun();
+  if (!workflow.persistProgress()) {
+    state.operatorFlowReady = false;
+    state.formError = "No se pudieron guardar los datos de inicio en este navegador. Verifica el almacenamiento y vuelve a intentar.";
+    render();
+    return;
+  }
+  render({ focusKey: `step-${getProcedure()?.steps?.[0]?.number ?? ""}` });
 }
 
 function renderToast() {
@@ -248,14 +297,12 @@ function continueGuidedSopSheet() {
     return;
   }
   if (state.sopRun.currentIndex === state.sopRun.procedureIds.length - 1) {
-    const missingNodeField = !state.form.nodeNumber.trim()
-      ? document.querySelector('[data-form-field="nodeNumber"]')
-      : !state.form.serial.trim()
-        ? document.querySelector('[data-form-field="serial"]')
-        : null;
+    const missingNodeField = !state.form.serial.trim()
+      ? document.querySelector('[data-form-field="serial"]')
+      : null;
     if (missingNodeField) {
-      const label = missingNodeField.name === "nodeNumber" ? "número de nodo" : "número de serie del nodo";
-      state.formError = `Captura el ${label} para preparar la confirmación final.`;
+      state.formError = "Captura el número de serie del nodo para preparar la confirmación final.";
+      state.sopRunContextOpen = true;
       render({ focusKey: `form-${missingNodeField.name}` });
       return;
     }
@@ -314,10 +361,6 @@ function handleCompletionSubmit(event) {
     return;
   }
   const formElement = event.currentTarget;
-  if (!state.form.nodeNumber?.trim()) {
-    showFormError("Captura el número de nodo.", formElement.querySelector('[name="nodeNumber"]'));
-    return;
-  }
   if (!state.form.serial?.trim()) {
     showFormError("Captura el número de serie del nodo.", formElement.querySelector('[name="serial"]'));
     return;
@@ -384,9 +427,9 @@ function saveCompletion() {
     validatedSheets: runProcedures.map((item) => ({ id: item.id, sheet: item.sheet, pdfPage: item.pdfPage ?? item.sheet, category: item.category, title: item.title, stepRange: item.stepRange, steps: item.steps.map((step) => ({ number: String(step.number), text: step.text })) })),
     validatedSteps: allSteps,
     validatedStepCount: allSteps.length,
-    declarationText: `Confirmo que el procedimiento ${run.document.title}, revisión ${run.document.revision}, para el nodo ${state.form.nodeNumber.trim()} (serie ${state.form.serial.trim()}), se realizó de acuerdo con los procedimientos establecidos por la empresa. Reportaré cualquier daño o desviación para recibir la retroalimentación correspondiente.`,
+    declarationText: `Confirmo que el procedimiento ${run.document.title}, revisión ${run.document.revision}, para el nodo con P/N ${state.form.nodePartNumber.trim()} y serie ${state.form.serial.trim()}, se realizó de acuerdo con los procedimientos establecidos por la empresa. Reportaré cualquier daño o desviación para recibir la retroalimentación correspondiente.`,
     declaredAt: now.toISOString(),
-    nodeNumber: state.form.nodeNumber.trim(),
+    nodeNumber: state.form.nodeNumber?.trim() ?? "",
     serial: state.form.serial.trim(),
     nodePartNumber: state.form.nodePartNumber.trim(),
     componentPartNumber: state.form.componentPartNumber.trim(),
@@ -398,6 +441,7 @@ function saveCompletion() {
     auditEventIds: readLocalAuditTrail().filter((event) => event.sessionId === state.auditSessionId && run.procedureIds.includes(event.procedureId)).map((event) => event.id),
     position: user.position || "Técnico de FA",
     repairType: state.form.repairType,
+    stationAssignment: state.form.stationAssignment,
     source: "local",
     date: getLocalDateKey(now),
     displayDate: getLocalDateLabel(now),
@@ -437,10 +481,11 @@ function saveCompletion() {
     : { saved: true, needsReview: false };
   state.completedSteps = [];
   state.sopRun = null;
+  state.sopRunContextOpen = false;
+  state.operatorFlowReady = false;
   state.validationDialogOpen = false;
   document.querySelector("#validation-dialog")?.close();
   state.form = createEmptyForm();
-  ensureGuidedSopRun();
   state.validationEvidenceFiles = [];
   state.auditSessionId = `session-${crypto.randomUUID()}`;
   localStorage.setItem("sop-operador-audit-session-v1", state.auditSessionId);
@@ -464,6 +509,7 @@ bindInteractions(app, {
   closeDialog,
   handleCompletionSubmit,
   continueGuidedSopSheet,
+  continueStationIntake: handleStationIntakeSubmit,
   previousGuidedSopSheet,
   openWorkItemDialog: workflow.openDialog,
   closeWorkItemDialog: workflow.closeDialog,
@@ -484,6 +530,7 @@ bindInteractions(app, {
     if (!state.activeWorkId) {
       state.form = createEmptyForm();
       state.sopRun = null;
+      state.operatorFlowReady = false;
     }
     state.validationEvidenceFiles = [];
     state.workDialogOpen = false;
@@ -549,6 +596,7 @@ restoreCurrentSopVersion(state).then(async () => {
   if (state.sopVersionMeta?.builtIn) {
     await restoreStoredSopSource(state);
   }
+  restoreOperatorFlowForSession();
   render();
 }).catch((error) => {
   console.error("No se pudo restaurar la versión local de la SOP.", error);
