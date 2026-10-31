@@ -40,7 +40,8 @@ function bindInteractions(app, handlers) {
     if (!item) return;
     const role = getActiveLocalUser().role;
     if ((item.id === "reports" && !["supervisor", "admin"].includes(role))
-      || (item.id === "users" && role !== "admin")) return;
+      || (item.id === "users" && role !== "admin")
+      || (item.id === "sop-admin" && !canManageSopVersions())) return;
     state.navOpen = false;
     if (item.action === "reports") {
       openRecords(action.dataset.focusKey);

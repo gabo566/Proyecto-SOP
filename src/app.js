@@ -42,6 +42,11 @@ const state = {
   sopPdfName: "",
   sopPdfUpdatedAt: "",
   sopPdfUpdating: false,
+  sopVersionMeta: { id: BUILT_IN_SOP_VERSION_ID, revision: SOP_DOCUMENT.revision, builtIn: true },
+  sopVersionHistory: [],
+  sopDraft: null,
+  sopDraftError: "",
+  sopVersionBusy: false,
   navOpen: false,
   loginError: "",
   loginUsername: "",
@@ -87,6 +92,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     document.querySelector(state.loginError ? "#login-password" : "#login-username")?.focus();
     return;
   }
+  if (state.activeSection === "sop-admin" && !canManageSopVersions()) state.activeSection = "overview";
   const previousFocus = focusKey === undefined ? getFocusState() : { key: focusKey, start: null, end: null };
   const allRecords = getRecords();
   const records = filterDemoRecords(allRecords, state.activeSection === "traceability" && state.includeDemoData);
@@ -104,9 +110,11 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     ? renderReportsView(allRecords, state, state.workItems)
     : state.activeSection === "users"
     ? renderLocalUsersPanel()
+    : state.activeSection === "sop-admin"
+    ? renderSopVersionManager(state)
     : renderSummaryMetrics(todayRecords, state);
   app.innerHTML = `${renderSidebar(state)}<main class="main-area" id="main-content">
-    ${renderTopbar()}<div class="dashboard-content">${dashboard}${renderFooter()}</div></main>
+    ${renderTopbar(state)}<div class="dashboard-content">${dashboard}${renderFooter()}</div></main>
     ${renderOperatorValidationDialog(getProcedure(), state)}${renderRecordsDialog(records, state.recordsQuery, state.workItems)}${renderWorkItemDialog(state)}${renderEvidenceReviewDialog(state)}${renderEvidenceImageDialog(state)}${renderStepImageDialog()}${renderHelpDialog()}
     ${renderToast()}`;
 
@@ -264,6 +272,9 @@ function saveCompletion() {
     id: `local-${now.getTime()}`,
     category: procedure.category,
     procedureId: procedure.id,
+    sopDocumentId: SOP_DOCUMENT.id,
+    sopVersionId: state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID,
+    sopRevision: SOP_DOCUMENT.revision,
     operation: procedure.title,
     sheet: procedure.sheet,
     stepRange: procedure.stepRange,
@@ -411,10 +422,15 @@ bindReportInteractions(app, {
   showToast,
 });
 
-bindSopSourceInteractions(app, { state, render, showToast });
+bindSopVersionInteractions(app, { state, render, showToast });
 
 startCurrentShiftClock();
 render({ initial: true });
-restoreStoredSopSource(state).then((restored) => {
-  if (restored) render();
-}).catch(() => {});
+restoreCurrentSopVersion(state).then(async () => {
+  if (state.sopVersionMeta?.builtIn) {
+    await restoreStoredSopSource(state);
+  }
+  render();
+}).catch((error) => {
+  console.error("No se pudo restaurar la versión local de la SOP.", error);
+});

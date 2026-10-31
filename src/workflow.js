@@ -82,6 +82,9 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
       }
       Object.assign(item, {
         category: procedure.category,
+        sopDocumentId: SOP_DOCUMENT.id,
+        sopVersionId: state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID,
+        sopRevision: SOP_DOCUMENT.revision,
         procedureId: procedure.id,
         procedureTitle: procedure.title,
         sheet: procedure.sheet,
@@ -137,6 +140,12 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
     }
     const item = state.workItems.find((workItem) => workItem.id === id);
     if (!item || item.status === "Completado") return;
+    const activeSopVersionId = state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID;
+    const itemSopVersionId = item.sopVersionId ?? BUILT_IN_SOP_VERSION_ID;
+    if (itemSopVersionId !== activeSopVersionId) {
+      showToast(`Este trabajo usa la SOP Rev. ${item.sopRevision ?? "anterior"}. Activa esa versión antes de reanudarlo.`, "warning");
+      return;
+    }
     const itemIndex = state.workItems.indexOf(item);
     const previousItem = JSON.parse(JSON.stringify(item));
     const previousState = {
@@ -181,6 +190,9 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
     const item = state.workItems.find((workItem) => workItem.id === state.activeWorkId);
     if (!item) return;
     record.workItemId = item.id;
+    record.sopDocumentId = item.sopDocumentId ?? record.sopDocumentId;
+    record.sopVersionId = item.sopVersionId ?? record.sopVersionId;
+    record.sopRevision = item.sopRevision ?? record.sopRevision;
     record.repairType = record.repairType || item.repairType || "";
     item.repairType = record.repairType;
     record.componentPartNumber = record.componentPartNumber || item.componentPartNumber || "";
