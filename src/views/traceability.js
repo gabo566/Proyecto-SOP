@@ -8,6 +8,7 @@ function getTraceabilityEvents(records, workItems) {
     record,
     workItem: workItems.find((item) => item.id === record.workItemId),
     serial: record.serial,
+    nodeNumber: record.nodeNumber,
     nodePartNumber: record.nodePartNumber,
     componentPartNumber: record.componentPartNumber,
     componentSerial: record.componentSerial,
@@ -28,6 +29,7 @@ function getTraceabilityEvents(records, workItems) {
     record: null,
     workItem: item,
     serial: item.serial,
+    nodeNumber: item.nodeNumber,
     nodePartNumber: item.form?.nodePartNumber ?? "",
     componentPartNumber: item.componentPartNumber,
     componentSerial: item.componentSerial,
@@ -37,7 +39,7 @@ function getTraceabilityEvents(records, workItems) {
     operator: item.form?.name ?? "Sin operador",
     employeeNumber: item.employeeNumber,
     shift: getShiftForTime(event.time),
-    label: `${item.workKind === "rework" ? "Retrabajo" : "Trabajo detenido"} · ${event.status}`,
+    label: `${item.workKind === "rework" ? "Retrabajo" : item.workKind === "guided" ? "Desensamble SOP" : "Trabajo detenido"} · ${event.status}`,
     detail: [item.repairType ? `Reparación: ${item.repairType}` : "", event.note || item.reason || item.reasonLabel || "Cambio de estado"].filter(Boolean).join(" · "),
     timeLabel: `${event.date ?? "Fecha no disponible"} · ${event.time ?? "Hora no disponible"}`,
   })));
@@ -64,7 +66,7 @@ function traceabilityEventMatches(event, filters) {
   if (filters.employeeNumber !== "all" && event.employeeNumber !== filters.employeeNumber) return false;
   const query = filters.query.trim().toLocaleLowerCase("es-MX");
   if (!query) return true;
-  return [event.serial, event.nodePartNumber, event.componentPartNumber, event.componentSerial, event.category, event.procedureTitle, event.operator, event.employeeNumber, event.label, event.detail]
+  return [event.serial, event.nodeNumber, event.nodePartNumber, event.componentPartNumber, event.componentSerial, event.category, event.procedureTitle, event.operator, event.employeeNumber, event.label, event.detail]
     .some((value) => String(value ?? "").toLocaleLowerCase("es-MX").includes(query));
 }
 
@@ -83,7 +85,7 @@ function renderTraceabilityView(records, workItems, state) {
   const employees = [...new Map(allEvents.filter((event) => event.employeeNumber).map((event) => [event.employeeNumber, { id: event.employeeNumber, name: event.operator }])).entries()];
   const rows = visible.length ? visible.map((event) => `<tr>
     <td>${escapeHtml(event.timeLabel)}<small>${escapeHtml(event.shift)}</small></td>
-    <td><strong>${escapeHtml(event.serial || "Serial sin capturar")}</strong><small>${escapeHtml(event.nodePartNumber || "P/N nodo no capturado")}</small></td>
+    <td><strong>${escapeHtml(event.serial || "Serial sin capturar")}</strong><small>Nodo ${escapeHtml(event.nodeNumber || "sin número")}</small><small>${escapeHtml(event.nodePartNumber || "P/N nodo no capturado")}</small></td>
     <td>${escapeHtml(event.procedureTitle || event.category || "—")}<small>${event.sheet ? `Hoja ${escapeHtml(event.sheet)}` : "Hoja no capturada"}</small></td>
     <td><strong>${escapeHtml(event.label)}</strong><small>${escapeHtml(event.detail)}</small></td>
     <td>${escapeHtml(event.operator || "Sin operador")}<small>${escapeHtml(event.employeeNumber || "Sin número de empleado")}</small></td>

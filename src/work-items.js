@@ -55,7 +55,7 @@ function renderWorkItem(item, activeWorkId) {
 
   return `<article class="work-item-card ${isActive ? "work-item-card--active" : ""}">
     <div class="work-item-main"><div class="work-item-title"><div><strong>${escapeHtml(item.serial || "Serial pendiente")}</strong><small>${escapeHtml(item.nodeNumber || "Nodo sin capturar")} · ${escapeHtml(item.procedureTitle)} · hoja ${escapeHtml(item.sheet)}</small></div><span class="work-status ${workItemStatusClass(item.status)}">${escapeHtml(item.status)}</span></div>
-      <p class="work-item-reason"><strong>${escapeHtml(item.reasonLabel)}:</strong> ${escapeHtml(item.reason)}</p>
+      ${item.reasonLabel || item.reason ? `<p class="work-item-reason"><strong>${escapeHtml(item.reasonLabel)}:</strong> ${escapeHtml(item.reason)}</p>` : ""}
       <div class="work-item-meta"><span>${escapeHtml(stepLabel)}</span>${item.repairType ? `<span>Reparación: ${escapeHtml(item.repairType)}</span>` : ""}${item.componentPartNumber ? `<span>PN componente: ${escapeHtml(item.componentPartNumber)}</span>` : ""}${item.componentSerial ? `<span>Serie componente: ${escapeHtml(item.componentSerial)}</span>` : ""}${item.workKind === "rework" && latestEvidence ? `<span>${latestEvidence} fotos de evidencia</span>` : ""}<span>Operador: ${escapeHtml(item.form.name || "Sin asignar")}</span>${item.form.position ? `<span>Puesto: ${escapeHtml(item.form.position)}</span>` : ""}<span>Actualizado: ${escapeHtml(item.updatedLabel)}</span></div>
     </div><div class="work-item-controls">${evidenceAction}${action}<details class="work-item-history"><summary>Historial (${item.history.length})</summary><ol>${events}</ol></details></div>
   </article>`;

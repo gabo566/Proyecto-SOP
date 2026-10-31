@@ -27,6 +27,7 @@ function renderProcedureSteps(procedure, state, hasMoreSteps) {
 
 function renderProcedurePanel(procedure, state) {
   const user = getActiveLocalUser();
+  const guidedActionLabel = state.sopRun ? `Continuar recorrido · hoja ${state.sopRun.currentIndex + 1} de ${state.sopRun.procedureIds.length}` : "Iniciar recorrido SOP";
   const pageImageUrl = procedure.pageImage || (state.sopVersionMeta?.builtIn ? `./public/assets/sop-pages/sop-page-${String(procedure.sheet).padStart(2, "0")}.jpg?resolution=200dpi` : "");
   const pageZoom = Math.max(50, Math.min(150, Number(state.sopPageZoom) || 100));
   const pageWidth = pageZoom;
@@ -38,10 +39,10 @@ function renderProcedurePanel(procedure, state) {
     <div class="procedure-action-bar">
       <div class="procedure-identity-chip"><span class="material-symbols-rounded" aria-hidden="true">person</span><span><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.employeeNumber)} · ${escapeHtml(user.position || "Técnico de FA")}</small></span></div>
       <div class="procedure-action-buttons">
-        <button class="button button--primary procedure-register-button" type="button" data-action="open-validation-dialog" data-focus-key="register-validation" ${procedure.steps.length ? "" : 'disabled title="Esta hoja informativa no tiene pasos para validar"'}><span class="material-symbols-rounded" aria-hidden="true">task_alt</span>Registrar validación</button>
+        <button class="button button--primary procedure-register-button" type="button" data-action="open-validation-dialog" data-focus-key="register-validation" ${PROCEDURES.length || state.sopRun ? "" : 'disabled title="Esta SOP no tiene pasos para validar"'}><span class="material-symbols-rounded" aria-hidden="true">${state.sopRun ? "play_arrow" : "task_alt"}</span>${escapeHtml(guidedActionLabel)}</button>
         <button class="button button--secondary procedure-stop-button" type="button" data-action="open-work-item-dialog" ${procedure.steps.length ? "" : 'disabled title="Selecciona una hoja con pasos para detener o registrar un retrabajo"'}><span class="material-symbols-rounded" aria-hidden="true">pause_circle</span>Detener / registrar retrabajo</button>
       </div>
-      ${procedure.steps.length ? "" : '<small class="procedure-actions-note">Esta hoja es informativa. Selecciona una hoja con pasos para habilitar las acciones.</small>'}
+      ${PROCEDURES.length ? "" : '<small class="procedure-actions-note">Esta SOP no contiene pasos para validar.</small>'}
     </div>
     <div class="sop-page-preview ${pageZoom > 100 ? "sop-page-preview--zoomed" : ""}" id="sop-page-preview">${state.sopPdfUrl
       ? `<iframe class="sop-pdf-page-preview" src="${escapeHtml(state.sopPdfUrl)}#page=${procedure.pdfPage ?? procedure.sheet}&zoom=${pageZoom === 100 ? "page-fit" : pageZoom}" title="PDF SOP local · hoja ${procedure.sheet}" loading="eager"></iframe>`
