@@ -66,7 +66,6 @@ function renderProcedurePanel(procedure, state) {
   return `<section class="procedure-panel sop-execution-panel" aria-label="Seguimiento y validación de la SOP">
     ${renderOperatorFlowProgress(run.stage === "confirmation" ? 3 : 2)}
     ${renderStationSopContext(state, procedure)}
-    ${renderActiveSopVersionSelector(state, procedure)}
     ${ownerMessage}
     <div class="guided-page-layout sop-page-checklist-layout">
       <section class="guided-sop-page" aria-label="Hoja completa ${escapeHtml(procedure.sheet)} de la SOP">

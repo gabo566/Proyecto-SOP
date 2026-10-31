@@ -610,6 +610,7 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
         const intakeSnapshot = snapshotStationIntake(state);
         applySopVersion(version, state);
         restoreStationIntake(state, intakeSnapshot);
+        state.operatorFlowReady = false;
         state.sopDraft = null;
         state.sopDraftError = "";
         state.sopDraftNotice = "";
@@ -644,6 +645,7 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
           applySopVersion(version, state);
         }
         restoreStationIntake(state, intakeSnapshot);
+        state.operatorFlowReady = false;
         recordLocalAuditEvent("sop_version_activated", { details: `Rev. ${SOP_DOCUMENT.revision} · ${SOP_DOCUMENT.id}` });
         showToast(`SOP Rev. ${SOP_DOCUMENT.revision} activada.`);
       } catch (error) {
@@ -652,39 +654,6 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
         showToast(error?.message || "No se pudo cambiar la versión activa de la SOP.", "warning");
       }
     }
-  });
-
-  app.addEventListener("change", async (event) => {
-    if (!event.target.matches("#sop-version-select") || !canManageSopVersions()) return;
-    const versionId = event.target.value;
-    const previousVersionId = state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID;
-    const pausedWork = pauseIncompatibleSopWork(state, versionId);
-    if (!pausedWork.saved) {
-      render();
-      showToast("No se pudo guardar el estado de los trabajos detenidos; la SOP activa no cambió.", "warning");
-      return;
-    }
-    try {
-      const intakeSnapshot = snapshotStationIntake(state);
-      if (versionId === BUILT_IN_SOP_VERSION_ID) {
-        await setActiveSopVersionId(versionId);
-        applyBuiltInSopVersion(state);
-      } else {
-        const version = state.sopVersionHistory.find((entry) => entry.id === versionId);
-        if (!version) throw new Error("No se encontró la versión guardada en este navegador.");
-        await setActiveSopVersionId(version.id);
-        applySopVersion(version, state);
-      }
-      restoreStationIntake(state, intakeSnapshot);
-      state.formError = "";
-      recordLocalAuditEvent("sop_version_activated", { details: `Rev. ${SOP_DOCUMENT.revision} · ${SOP_DOCUMENT.id}` });
-      showToast(`SOP Rev. ${SOP_DOCUMENT.revision} activada. Los trabajos de otra revisión quedaron detenidos con su avance guardado.`);
-    } catch (error) {
-      pausedWork.rollback();
-      await setActiveSopVersionId(previousVersionId).catch(() => {});
-      showToast(error?.message || "No se pudo cambiar la versión activa de la SOP.", "warning");
-    }
-    render();
   });
 
   app.addEventListener("submit", async (event) => {

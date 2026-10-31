@@ -50,12 +50,15 @@ Estas notas son advertencias editoriales del prototipo, no una resolución de in
 
 ### Seguimiento de SOP y producción
 
-- Al entrar a «Seguimiento SOP», el recorrido de la revisión activa aparece directamente en la pantalla principal; no hay que abrir otro formulario para empezar a validar.
+- Después de iniciar sesión, el operador elige la familia de estación MFG o RWK; si elige MFG, selecciona la estación TDR disponible. La pantalla muestra qué SOP está asociada y su revisión antes de comenzar.
+- Al continuar, el sistema resuelve automáticamente la revisión asignada a esa estación y abre su recorrido. Si otra estación tiene la revisión global activa, se carga la versión más reciente guardada para la estación elegida; la selección de SOP no se deja al operador.
+- Si una estación no tiene SOP asignada, «Continuar a la SOP» queda deshabilitado. La cuenta 140784 administra la carga, asignación, corrección y activación desde «Administrar SOPs»; el operador no carga archivos PDF ni selecciona revisiones.
+- La pantalla inicial usa tarjetas de estación con iconos, descripción y estado de asignación, y confirma la SOP y revisión que se abrirán. La selección se conserva en los datos de la validación.
 - Cada hoja se presenta como una hoja digital controlada, con identificador, revisión, categoría, título, número de hoja, rango de pasos y referencias visuales disponibles. El PDF original queda como consulta secundaria y ya no es la pantalla principal de ejecución.
 - El recorrido avanza en orden por todas las hojas de la revisión activa que contienen pasos; las hojas informativas sin pasos se omiten.
 - En pantallas de escritorio de poca altura, la interfaz aplica una escala compacta para facilitar el acceso a los controles principales.
 - La barra lateral de escritorio mide 225 px (un poco más que su ancho inicial) y ancla el menú en la parte superior, debajo del logo con una separación visible; en tablet se compacta a iconos y en móvil se abre como un panel lateral.
-- Capturar como datos obligatorios el número y serial del nodo. El número de parte del nodo y los datos de reparación/componente son opcionales para que el recorrido sirva también para SOP que no impliquen reemplazar una pieza. El nombre, puesto y número de empleado se toman del usuario conectado.
+- Capturar como datos obligatorios el PN y serial del nodo, además del PN y serial de la tarjeta. El nombre, puesto y número de empleado se toman del usuario conectado.
 - Marcar cada instrucción con «Realicé el paso N: [texto del paso]» dentro de la misma hoja digital donde se muestran sus pasos. «Siguiente hoja» permanece deshabilitado hasta confirmar todos los pasos de la hoja actual; el botón anterior permite revisar una hoja previa.
 - Ver el avance total y el conteo de pasos confirmados en la hoja. El pie de la hoja mantiene a la vista el estado y las acciones para continuar.
 - Al completar la última hoja, se abre automáticamente una ventana de confirmación con la SOP/revisión, nodo, serial, número de hojas, total de pasos y operador. La confirmación final guarda una sola constancia con los pasos, la autoría y la fecha.
@@ -162,6 +165,7 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | --- | --- |
 | `index.html` | Documento inicial, CSS y orden de carga de scripts. |
 | `src/data/sopData.js` | Metadata de la SOP, los 42 procedimientos, pasos, referencias visuales, categorías y registros ficticios. |
+| `src/data/workStations.js` | Catálogo MFG/RWK y resolución automática de la versión SOP por estación. |
 | `src/user-control.js` | Perfiles de demostración, selector de usuario, roles ilustrativos, gestión local y bitácora del navegador. |
 | `src/app.js` | Estado de pantalla, recorrido activo, usuario conectado, guardado de registros y composición de vistas. |
 | `src/interactions.js` | Eventos de navegación, formularios, búsqueda, diálogos, imágenes y evidencia. |
@@ -184,6 +188,7 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | `scripts/prepare-sites-build.mjs` | Copia el worker y la configuración de hosting a `dist` para empaquetado de Sites. No se requiere para desarrollo local. |
 | `tests/sites-worker.test.mjs` | Pruebas del comportamiento del worker y de los archivos del paquete de Sites; no cubren todo el flujo de la interfaz. |
 | `tests/sop-version-control.test.mjs` | Extracción de los 132 pasos de la SOP de referencia y restricción de administración a 140784. |
+| `tests/work-stations.test.mjs` | Asignación automática, prioridad de la versión activa, selección de la última versión por estación y fallback de RWK. |
 | `tests/sop-run.test.mjs` | Bloqueo de avance si faltan pasos, progreso por hoja y confirmación solo al completar el recorrido. |
 | `.openai/hosting.json` | Configuración de hosting actual: sin bindings configurados para D1 o R2. |
 | `src/views/procedure (1).js` | Archivo presente en el repositorio que no se carga desde `index.html`; la vista activa es `src/views/procedure.js`. |

@@ -61,7 +61,7 @@ async function prepareStationSop(state) {
 }
 
 function renderOperatorFlowProgress(activeStep) {
-  const steps = ["Registrar validación", "Cargar SOP", "Confirmar y guardar"];
+  const steps = ["Elegir estación", "Validar SOP asignada", "Confirmar y guardar"];
   return `<nav class="operator-flow-progress" aria-label="Progreso del registro">${steps.map((label, index) => {
     const number = index + 1;
     const status = number < activeStep ? "operator-flow-step--complete" : number === activeStep ? "operator-flow-step--active" : "";
@@ -78,17 +78,28 @@ function updateStationIntakeUI(state) {
   const button = form.querySelector(".station-intake-continue");
   const status = form.querySelector("#station-intake-status");
   const error = form.querySelector("#station-intake-error");
-  const sopName = form.querySelector(".station-summary-sop strong");
-  const sopRevision = form.querySelector(".station-summary-sop small:last-child");
-  const stationName = form.querySelector(".station-summary-location strong");
+  const sopCard = form.querySelector(".station-assigned-sop");
+  const sopName = form.querySelector(".station-assigned-sop-title");
+  const sopRevision = form.querySelector(".station-assigned-sop-revision");
+  const sopState = form.querySelector(".station-assigned-sop-state");
+  const sopIcon = form.querySelector(".station-assigned-sop-icon");
+  const stationSelector = form.querySelector(".station-choice-selector--active select");
   if (button) button.disabled = !canContinue;
   if (status) {
     status.textContent = getStationIntakeStatus(state);
     status.classList.toggle("station-intake-status--ready", canContinue);
   }
-  if (sopName) sopName.textContent = activeVersion?.document?.title ?? "SOP TDR";
-  if (sopRevision) sopRevision.textContent = activeVersion ? `Rev. ${activeVersion.document.revision}` : "Pendiente de cargar";
-  if (stationName && assignment) stationName.textContent = `${assignment.type} · ${assignment.label}`;
+  if (sopName) sopName.textContent = activeVersion?.document?.title ?? "No hay una SOP asignada";
+  if (sopRevision) sopRevision.textContent = activeVersion
+    ? `${activeVersion.document.id} · Rev. ${activeVersion.document.revision}`
+    : "Administración debe cargar y asignar una SOP para poder continuar.";
+  if (sopState) sopState.textContent = activeVersion ? "Lista para abrir" : "Sin SOP";
+  if (sopIcon) sopIcon.innerHTML = renderStationIntakeIcon(activeVersion ? "document" : "pending");
+  if (sopCard) {
+    sopCard.classList.toggle("station-assigned-sop--ready", Boolean(activeVersion));
+    sopCard.classList.toggle("station-assigned-sop--missing", !activeVersion);
+  }
+  if (stationSelector && assignment) stationSelector.value = assignment.value;
   if (!state.formError) error?.remove();
   for (const card of form.querySelectorAll(".station-choice")) {
     const radio = card.querySelector("[data-station-type]");

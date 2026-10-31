@@ -11,13 +11,16 @@ function findSopVersionForStation(state, assignmentValue) {
   if (!assignmentValue) return null;
   const activeId = state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID;
   const activeVersion = state.sopVersionHistory?.find((version) => version.id === activeId) ?? BUILT_IN_SOP_VERSION;
-  const versions = [
-    activeVersion,
-    ...(state.sopVersionHistory ?? []),
-    BUILT_IN_SOP_VERSION,
-  ];
-  return versions.find((version) => version.document?.stationAssignment === assignmentValue)
-    ?? null;
+  if (activeVersion?.document?.stationAssignment === assignmentValue) return activeVersion;
+
+  const latestSavedVersion = [...(state.sopVersionHistory ?? [])]
+    .filter((version) => version.document?.stationAssignment === assignmentValue)
+    .sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")))[0];
+  if (latestSavedVersion) return latestSavedVersion;
+
+  return BUILT_IN_SOP_VERSION.document?.stationAssignment === assignmentValue
+    ? BUILT_IN_SOP_VERSION
+    : null;
 }
 
 function isStationIntakeComplete(form = {}) {

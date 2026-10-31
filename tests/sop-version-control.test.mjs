@@ -5,6 +5,7 @@ import vm from "node:vm";
 import * as pdfjs from "../public/vendor/pdfjs/pdf.min.mjs";
 
 const rootUrl = new URL("../", import.meta.url);
+const workStationsSource = await readFile(new URL("../src/data/workStations.js", import.meta.url), "utf8");
 const source = await readFile(new URL("../src/sop-version-control.js", import.meta.url), "utf8");
 const context = vm.createContext({
   Blob,
@@ -12,9 +13,12 @@ const context = vm.createContext({
   structuredClone,
   console,
   crypto: { randomUUID: () => "test-version-id" },
+  BUILT_IN_SOP_VERSION_ID: "__built-in-sop__",
+  BUILT_IN_SOP_VERSION: { id: "__built-in-sop__", document: { stationAssignment: "RWK:RWK" } },
   document: { baseURI: new URL("index.html", rootUrl).href },
   getActiveLocalUser: () => ({ name: "Gabriel", employeeNumber: "140784", role: "admin" }),
 });
+vm.runInContext(workStationsSource, context);
 vm.runInContext(source, context);
 const { canManageSopVersions, extractSopPdfVersion, validateSopDraft } = vm.runInContext(
   "({ canManageSopVersions, extractSopPdfVersion, validateSopDraft })",
@@ -47,6 +51,7 @@ test("extracts all 132 validation steps and revision metadata from the reference
 
 test("validates editable steps before saving and rejects incomplete or duplicated steps", async () => {
   const version = await extractSopPdfVersion(sourcePdf, pdfjs);
+  version.document.stationAssignment = "RWK:RWK";
   version.procedures[0].steps[0].text = "Instrucción corregida por la administradora.";
   assert.equal(validateSopDraft(version).procedures[0].steps[0].text, "Instrucción corregida por la administradora.");
 
