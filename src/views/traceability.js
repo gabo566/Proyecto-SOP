@@ -10,6 +10,7 @@ function getTraceabilityEvents(records, workItems) {
     serial: record.serial,
     nodeNumber: record.nodeNumber,
     nodePartNumber: record.nodePartNumber,
+    stationAssignment: record.stationAssignment,
     componentPartNumber: record.componentPartNumber,
     componentSerial: record.componentSerial,
     category: record.category,
@@ -19,7 +20,7 @@ function getTraceabilityEvents(records, workItems) {
     employeeNumber: record.employeeNumber,
     shift: getShiftForTime(record.time),
     label: record.recordType ?? "Validación registrada",
-    detail: record.repairType ? `Reparación: ${record.repairType}` : "Validación SOP",
+    detail: [record.stationAssignment ? `Estación: ${getWorkStationAssignment(record.stationAssignment)?.value ?? record.stationAssignment}` : "", record.repairType ? `Reparación: ${record.repairType}` : "Validación SOP"].filter(Boolean).join(" · "),
     timeLabel: `${record.displayDate ?? record.date ?? "Fecha no disponible"} · ${record.time ?? "Hora no disponible"}`,
   }));
   const workEvents = workItems.flatMap((item) => (item.history ?? []).map((event, index) => ({
@@ -31,6 +32,7 @@ function getTraceabilityEvents(records, workItems) {
     serial: item.serial,
     nodeNumber: item.nodeNumber,
     nodePartNumber: item.form?.nodePartNumber ?? "",
+    stationAssignment: item.form?.stationAssignment ?? "",
     componentPartNumber: item.componentPartNumber,
     componentSerial: item.componentSerial,
     category: item.category,
@@ -40,7 +42,7 @@ function getTraceabilityEvents(records, workItems) {
     employeeNumber: item.employeeNumber,
     shift: getShiftForTime(event.time),
     label: `${item.workKind === "rework" ? "Retrabajo" : item.workKind === "guided" ? "Desensamble SOP" : "Trabajo detenido"} · ${event.status}`,
-    detail: [item.repairType ? `Reparación: ${item.repairType}` : "", event.note || item.reason || item.reasonLabel || "Cambio de estado"].filter(Boolean).join(" · "),
+    detail: [item.form?.stationAssignment ? `Estación: ${getWorkStationAssignment(item.form.stationAssignment)?.value ?? item.form.stationAssignment}` : "", item.repairType ? `Reparación: ${item.repairType}` : "", event.note || item.reason || item.reasonLabel || "Cambio de estado"].filter(Boolean).join(" · "),
     timeLabel: `${event.date ?? "Fecha no disponible"} · ${event.time ?? "Hora no disponible"}`,
   })));
   return [...recordEvents, ...workEvents].sort((left, right) => right.at - left.at);
@@ -66,7 +68,7 @@ function traceabilityEventMatches(event, filters) {
   if (filters.employeeNumber !== "all" && event.employeeNumber !== filters.employeeNumber) return false;
   const query = filters.query.trim().toLocaleLowerCase("es-MX");
   if (!query) return true;
-  return [event.serial, event.nodeNumber, event.nodePartNumber, event.componentPartNumber, event.componentSerial, event.category, event.procedureTitle, event.operator, event.employeeNumber, event.label, event.detail]
+  return [event.serial, event.nodeNumber, event.nodePartNumber, event.stationAssignment, event.componentPartNumber, event.componentSerial, event.category, event.procedureTitle, event.operator, event.employeeNumber, event.label, event.detail]
     .some((value) => String(value ?? "").toLocaleLowerCase("es-MX").includes(query));
 }
 

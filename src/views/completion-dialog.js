@@ -16,7 +16,7 @@ const REPAIR_TYPES = [
 ];
 function createEmptyForm() {
   const user = getActiveLocalUser();
-  return { name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", nodeNumber: "", serial: "", nodePartNumber: SOP_DOCUMENT.nodePartNumber, repairType: "", componentPartNumber: "", componentSerial: "", declaration: false };
+  return { name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", nodeNumber: "", serial: "", nodePartNumber: SOP_DOCUMENT.nodePartNumber, repairType: "", componentPartNumber: "", componentSerial: "", stationAssignment: "MFG:TDR", declaration: false };
 }
 
 function renderComponentFields(form, workDraft = null) {
@@ -28,14 +28,14 @@ function renderComponentFields(form, workDraft = null) {
     <label class="validation-field">N° de serie del componente · opcional<input name="componentSerial" ${workDraft ? "data-work-draft-field=\"componentSerial\"" : "data-form-field=\"componentSerial\""} value="${escapeHtml(serial ?? "")}" placeholder="Serial del componente" /></label>`;
 }
 
-function renderGuidedValidationSteps(procedure, state, disabled = false) {
+function renderGuidedValidationSteps(procedure, state, disabled = false, showReferenceImages = true) {
   return procedure.steps.map((step) => {
     const checked = getGuidedSopCheckedSteps(state.sopRun, procedure.id).includes(String(step.number));
     const audit = getLatestLocalStepEvent(procedure.id, step.number);
     const auditLabel = checked && audit ? `<small class="step-audit-label">Marcó ${escapeHtml(audit.actor.name)} · ${escapeHtml(new Intl.DateTimeFormat("es-MX", { dateStyle: "short", timeStyle: "short" }).format(new Date(audit.at)))}</small>` : "";
     return `<div class="guided-check-item ${checked ? "guided-check-item--checked" : ""}">
       <input id="validation-step-${escapeHtml(step.number)}" type="checkbox" data-step="${escapeHtml(step.number)}" data-focus-key="step-${escapeHtml(step.number)}" aria-label="Realicé el paso ${escapeHtml(step.number)}: ${escapeHtml(step.text)}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} />
-      <div class="guided-check-details"><label for="validation-step-${escapeHtml(step.number)}" class="guided-check-copy"><strong>Realicé el paso ${escapeHtml(step.number)}</strong><span>${escapeHtml(step.text)}</span>${step.sourceNote ? `<small class="validation-source-note">${escapeHtml(step.sourceNote)}</small>` : ""}${auditLabel}</label>${step.images?.length ? renderStepImages(step, procedure.sheet) : ""}</div>
+      <div class="guided-check-details"><label for="validation-step-${escapeHtml(step.number)}" class="guided-check-copy"><strong>Realicé el paso ${escapeHtml(step.number)}</strong><span>${escapeHtml(step.text)}</span>${step.sourceNote ? `<small class="validation-source-note">${escapeHtml(step.sourceNote)}</small>` : ""}${auditLabel}</label>${showReferenceImages && step.images?.length ? renderStepImages(step, procedure.sheet) : ""}</div>
     </div>`;
   }).join("");
 }
@@ -53,18 +53,19 @@ function renderReworkEvidenceSection(workItem, state) {
 function renderGuidedFinalConfirmation(procedure, state) {
   const run = state.sopRun;
   const document = run?.document ?? SOP_DOCUMENT;
-  const name = String(state.form.nodeNumber ?? "").trim() || "nodo sin número";
+  const nodePartNumber = String(state.form.nodePartNumber ?? "").trim() || "P/N del nodo pendiente";
   const serial = String(state.form.serial ?? "").trim() || "serie sin capturar";
   const operation = document.title || procedure.title || "procedimiento SOP";
+  const station = getWorkStationAssignment(state.form.stationAssignment)?.value ?? "Sin estación";
   const accepted = Boolean(state.form.declaration);
   const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
   return `<section class="guided-final-confirmation" aria-labelledby="guided-confirmation-heading">
     <p class="eyebrow">Revisión final · ${escapeHtml(document.id)}</p>
     <h3 id="guided-confirmation-heading" data-focus-key="guided-confirmation-heading" tabindex="-1">Confirma el procedimiento realizado</h3>
-    <p class="guided-confirmation-copy">¿Confirmas que el procedimiento <strong>${escapeHtml(operation)}</strong>, revisión <strong>${escapeHtml(document.revision)}</strong>, para el nodo <strong id="guided-confirmation-node">${escapeHtml(name)}</strong> (serie <strong id="guided-confirmation-serial">${escapeHtml(serial)}</strong>), se realizó de acuerdo con los procedimientos establecidos por la empresa?</p>
+    <p class="guided-confirmation-copy">¿Confirmas que el procedimiento <strong>${escapeHtml(operation)}</strong>, revisión <strong>${escapeHtml(document.revision)}</strong>, para el nodo con P/N <strong>${escapeHtml(nodePartNumber)}</strong> y serie <strong id="guided-confirmation-serial">${escapeHtml(serial)}</strong>, se realizó de acuerdo con los procedimientos establecidos por la empresa?</p>
     <p class="guided-confirmation-warning">Cualquier daño, desviación o situación fuera de lo esperado debe reportarse para recibir la retroalimentación correspondiente.</p>
     ${activeWork?.workKind === "rework" ? renderReworkEvidenceSection(activeWork, state) : ""}
-    <div class="guided-confirmation-summary"><div><span>SOP utilizada</span><strong>${escapeHtml(operation)}</strong></div><div><span>Revisión</span><strong>${escapeHtml(document.revision)}</strong></div><div><span>Hojas validadas</span><strong>${run.procedureIds.length}</strong></div><div><span>Pasos validados</span><strong>${getGuidedSopProgress(run, SOP_SHEETS).complete}</strong></div><div><span>Operador responsable</span><strong>${escapeHtml(state.form.name)} · ${escapeHtml(state.form.employeeNumber)}</strong></div></div>
+    <div class="guided-confirmation-summary"><div><span>Estación</span><strong>${escapeHtml(station)}</strong></div><div><span>SOP utilizada</span><strong>${escapeHtml(operation)}</strong></div><div><span>Revisión</span><strong>${escapeHtml(document.revision)}</strong></div><div><span>Hojas validadas</span><strong>${run.procedureIds.length}</strong></div><div><span>Pasos validados</span><strong>${getGuidedSopProgress(run, SOP_SHEETS).complete}</strong></div><div><span>Operador responsable</span><strong>${escapeHtml(state.form.name)} · ${escapeHtml(state.form.employeeNumber)}</strong></div></div>
     <label class="declaration-check guided-final-declaration"><input type="checkbox" name="declaration" data-form-field="declaration" ${accepted ? "checked" : ""} ${state.formError.includes("Confirm") ? 'aria-describedby="completion-form-error" aria-invalid="true"' : ""} />
       <span>Confirmo que realicé todos los pasos de esta SOP y que reportaré cualquier daño o desviación para recibir la retroalimentación correspondiente.</span>
     </label>

@@ -25,54 +25,85 @@ function renderProcedureSteps(procedure, state, hasMoreSteps) {
     <div class="step-note"><span class="material-symbols-rounded" aria-hidden="true">info</span><span>Revisa cada instrucción y su referencia visual. Marca su validación en el panel del operador.</span></div>`;
 }
 
+function renderStationSopContext(state, procedure) {
+  const assignment = getWorkStationAssignment(state.form.stationAssignment);
+  const user = getActiveLocalUser();
+  const document = state.sopRun?.document ?? SOP_DOCUMENT;
+  const stationLabel = assignment ? `${assignment.type} · ${assignment.label}` : "Estación sin asignar";
+  return `<section class="station-sop-context" aria-label="Datos registrados para esta validación">
+    <div class="station-context-tile station-context-tile--station"><span class="material-symbols-rounded" aria-hidden="true">factory</span><span><small>Estación</small><strong>${escapeHtml(stationLabel)}</strong></span></div>
+    <div class="station-context-tile station-context-tile--node"><span class="material-symbols-rounded" aria-hidden="true">dns</span><span><small>Nodo</small><strong>PN ${escapeHtml(state.form.nodePartNumber || "—")}</strong><small>Serie ${escapeHtml(state.form.serial || "—")}</small></span></div>
+    <div class="station-context-tile station-context-tile--card"><span class="material-symbols-rounded" aria-hidden="true">memory</span><span><small>Tarjeta</small><strong>PN ${escapeHtml(state.form.componentPartNumber || "—")}</strong><small>Serie ${escapeHtml(state.form.componentSerial || "—")}</small></span></div>
+    <div class="station-context-tile station-context-tile--sop"><span class="material-symbols-rounded" aria-hidden="true">description</span><span><small>SOP utilizada · ${escapeHtml(user.name)}</small><strong>${escapeHtml(document.title)}</strong><small>${escapeHtml(document.id)} · Rev. ${escapeHtml(document.revision)} · Hoja ${escapeHtml(procedure.sheet)}</small></span></div>
+  </section>`;
+}
+
 function renderProcedurePanel(procedure, state) {
   const user = getActiveLocalUser();
   const run = state.sopRun;
-  const totalPages = run?.procedureIds.length ?? 0;
-  const currentPage = (run?.currentIndex ?? 0) + 1;
   const progress = getGuidedSopProgress(run, PROCEDURES);
-  const checkedCount = procedure.steps.filter((step) => getGuidedSopCheckedSteps(run, procedure.id).includes(String(step.number))).length;
+  const checkedSteps = new Set(getGuidedSopCheckedSteps(run, procedure.id));
+  const checkedCount = procedure.steps.filter((step) => checkedSteps.has(String(step.number))).length;
+  const pageNumber = procedure.pdfPage ?? procedure.sheet;
+  const totalSheets = Number(SOP_DOCUMENT.totalSheets) || 46;
+  const pageZoom = Math.max(50, Math.min(150, Number(state.sopPageZoom) || 100));
+  const pdfSource = state.sopPdfUrl || SOP_DOCUMENT.pdfPath || "";
   const isComplete = isGuidedSopProcedureComplete(run, procedure);
-  const isLastPage = currentPage === totalPages;
+  const isFirstPage = (run?.currentIndex ?? 0) === 0;
+  const isLastPage = (run?.currentIndex ?? 0) >= (run?.procedureIds.length ?? 1) - 1;
   const canOperate = canOperateGuidedSopRun();
-  const pdfPath = state.sopPdfUrl || SOP_DOCUMENT.pdfPath;
-  const sourceUrl = pdfPath ? `${pdfPath}#page=${procedure.pdfPage ?? procedure.sheet}` : "";
+  const sourceUrl = pdfSource ? `${pdfSource}#page=${pageNumber}` : "";
   const ownerMessage = !canOperate
     ? `<aside class="sop-owner-lock" role="status"><span class="material-symbols-rounded" aria-hidden="true">lock</span>Este recorrido pertenece a ${escapeHtml(run.startedBy?.name ?? "otro operador")} (${escapeHtml(run.startedBy?.employeeNumber ?? "sin número")}). Inicia sesión con esa cuenta para continuar.</aside>`
     : "";
   const completedPercent = progress.total ? Math.round(progress.complete / progress.total * 100) : 0;
   const nextAction = run.stage === "confirmation" ? "open-final-confirmation" : "continue-sop-sheet";
-  const nextLabel = run.stage === "confirmation" ? "Abrir confirmación final" : isLastPage ? "Finalizar recorrido" : "Siguiente hoja";
+  const nextProcedure = !isLastPage ? PROCEDURES.find((item) => item.id === run.procedureIds[run.currentIndex + 1]) : null;
+  const nextLabel = run.stage === "confirmation" ? "Reabrir confirmación final" : isLastPage ? "Ir a confirmación final" : `Continuar a hoja ${nextProcedure?.sheet ?? "siguiente"}`;
+  const sheetPercent = procedure.steps.length ? Math.round(checkedCount / procedure.steps.length * 100) : 0;
+  const serialSummary = state.form.serial?.trim() ? `Serie ${escapeHtml(state.form.serial.trim())}` : "Serie pendiente";
 
   return `<section class="procedure-panel sop-execution-panel" aria-label="Seguimiento y validación de la SOP">
-    <div class="sop-workspace-toolbar">
-      <div class="sop-workspace-document"><span class="material-symbols-rounded" aria-hidden="true">verified</span><span><strong>${escapeHtml(SOP_DOCUMENT.id)} · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}</strong><small>${escapeHtml(SOP_DOCUMENT.title)}</small></span></div>
-      <div class="sop-workspace-actions">${sourceUrl ? `<a class="text-button source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer"><span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>PDF fuente</a>` : ""}
-        ${canManageSopVersions(user) ? `<button class="text-button sop-update-button" type="button" data-action="navigate" data-nav-id="sop-admin" data-focus-key="nav-sop-admin"><span class="material-symbols-rounded" aria-hidden="true">edit_document</span>Modificar SOP</button>` : ""}
-        <button class="button button--secondary procedure-stop-button" type="button" data-action="open-work-item-dialog" ${canOperate ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">report_problem</span>Reportar incidencia</button>
-      </div>
-    </div>
-    ${renderSopSourceNotice(state)}
+    ${renderOperatorFlowProgress(run.stage === "confirmation" ? 3 : 2)}
+    ${renderStationSopContext(state, procedure)}
+    ${renderActiveSopVersionSelector(state, procedure)}
     ${ownerMessage}
-    <section class="sop-run-context" aria-label="Datos del nodo y operador">
-      <div class="sop-run-context-heading"><div><p class="eyebrow">Registro de ejecución</p><h2>Identificación del equipo</h2></div><div class="procedure-identity-chip"><span class="material-symbols-rounded" aria-hidden="true">person</span><span><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.employeeNumber)} · ${escapeHtml(user.position || "Técnico de FA")}</small></span></div></div>
-      <div class="sop-run-fields">
-        <label class="sop-run-field">Número de nodo <span>Requerido</span><input name="nodeNumber" data-form-field="nodeNumber" data-focus-key="form-nodeNumber" value="${escapeHtml(state.form.nodeNumber ?? "")}" placeholder="Ej. NVD-000123" required ${canOperate ? "" : "disabled"} /></label>
-        <label class="sop-run-field">Número de serie del nodo <span>Requerido</span><input name="serial" data-form-field="serial" data-focus-key="form-serial" value="${escapeHtml(state.form.serial ?? "")}" placeholder="Captura el serial" required ${canOperate ? "" : "disabled"} /></label>
-        <label class="sop-run-field sop-run-field--optional">Número de parte del nodo <span>Opcional</span><input name="nodePartNumber" data-form-field="nodePartNumber" data-focus-key="form-nodePartNumber" value="${escapeHtml(state.form.nodePartNumber ?? "")}" placeholder="${escapeHtml(SOP_DOCUMENT.nodePartNumber ?? "Número de parte")}" ${canOperate ? "" : "disabled"} /></label>
-      </div>
-      <details class="sop-extra-fields"><summary>Datos de reparación y componente <span>Opcional</span></summary><div class="guided-run-components">${renderComponentFields(state.form)}</div></details>
-    </section>
-    <article class="sop-digital-sheet" aria-label="Hoja ${escapeHtml(procedure.sheet)} de la SOP">
-      <header class="sop-digital-sheet-masthead"><div class="sop-sheet-brand"><span class="sop-sheet-brand-mark">I</span><span><strong>INGRASYS</strong><small>PROCEDIMIENTO OPERATIVO ESTÁNDAR</small></span></div><div class="sop-sheet-control"><span>Documento controlado</span><strong>${escapeHtml(SOP_DOCUMENT.id)}</strong><small>Rev. ${escapeHtml(SOP_DOCUMENT.revision)}</small></div></header>
-      <div class="sop-sheet-rule"></div>
-      <div class="sop-sheet-title-row"><div><p class="eyebrow">${escapeHtml(procedure.category)} · hoja de trabajo ${currentPage} de ${totalPages}</p><h2>${escapeHtml(procedure.title)}</h2><p class="sop-sheet-subtitle">Hoja original ${escapeHtml(procedure.sheet)} · pasos ${escapeHtml(procedure.stepRange)}</p></div><span class="sop-sheet-page-number">${String(currentPage).padStart(2,"0")}<small>/ ${String(totalPages).padStart(2,"0")}</small></span></div>
-      <div class="sop-run-progress" role="group" aria-label="Avance de la SOP"><div class="sop-run-progress-copy"><span>Avance del procedimiento</span><strong class="guided-progress-copy">${progress.complete} de ${progress.total} pasos · ${completedPercent}%</strong></div><div class="sop-run-progress-track"><span style="width:${completedPercent}%"></span></div></div>
-      <div class="guided-checklist-heading sop-sheet-checklist-heading"><div><p class="eyebrow">Validación de esta hoja</p><h3>Confirma cada actividad antes de continuar</h3></div><span>${checkedCount} de ${procedure.steps.length}</span></div>
-      <div class="guided-checklist-list sop-sheet-step-list" role="group" aria-label="Pasos de la hoja ${escapeHtml(procedure.sheet)}">${renderGuidedValidationSteps(procedure, state, !canOperate)}</div>
-      <p class="form-error sop-run-error" id="sop-run-error" role="alert" aria-live="polite" ${state.formError ? "" : "hidden"}>${escapeHtml(state.formError)}</p>
-      <footer class="sop-sheet-footer"><div><div class="sop-footer-operator"><span class="material-symbols-rounded" aria-hidden="true">badge</span><span><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.employeeNumber)} · ${escapeHtml(user.position || "Técnico de FA")}</small></span></div><small class="guided-checklist-note">${isComplete ? "Hoja completa. Puedes avanzar." : `Marca los ${procedure.steps.length - checkedCount} pasos restantes para habilitar el avance.`}</small></div><div class="guided-sheet-actions"><button class="button button--secondary" type="button" data-action="previous-sop-sheet" data-focus-key="previous-sop-sheet" ${currentPage === 1 || !canOperate ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Hoja anterior</button><button class="button button--primary" type="button" data-action="${nextAction}" data-focus-key="continue-sop-sheet" ${run.stage === "steps" && (!isComplete || !canOperate) || run.stage === "confirmation" && !canOperate ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${run.stage === "confirmation" ? "fact_check" : isLastPage ? "task_alt" : "arrow_forward"}</span>${nextLabel}</button></div></footer>
-    </article>
+    <div class="guided-page-layout sop-page-checklist-layout">
+      <section class="guided-sop-page" aria-label="Hoja completa ${escapeHtml(procedure.sheet)} de la SOP">
+        <div class="guided-page-toolbar">
+          <div class="guided-page-heading"><span class="material-symbols-rounded" aria-hidden="true">description</span><strong>Hoja ${escapeHtml(procedure.sheet)} <small>de ${escapeHtml(totalSheets)}</small></strong></div>
+          <div class="sop-page-zoom-controls" role="group" aria-label="Tamaño de la hoja SOP">
+            <button class="icon-button" type="button" data-action="sop-page-zoom-out" aria-label="Reducir hoja SOP" ${pageZoom <= 50 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">remove</span></button>
+            <output id="sop-page-zoom-level" aria-live="polite">${pageZoom}%</output>
+            <button class="icon-button" type="button" data-action="sop-page-zoom-in" aria-label="Ampliar hoja SOP" ${pageZoom >= 150 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">add</span></button>
+            <button class="text-button" type="button" data-action="sop-page-zoom-reset" aria-label="Ajustar hoja completa">Ajustar</button>
+          </div>
+          ${sourceUrl ? `<a class="guided-page-open-pdf" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer" aria-label="Abrir PDF en página ${escapeHtml(pageNumber)}"><span class="material-symbols-rounded" aria-hidden="true">open_in_new</span></a>` : ""}
+        </div>
+        <div class="guided-pdf-viewport" id="sop-page-preview" data-pdf-source="${escapeHtml(pdfSource)}" data-pdf-page="${escapeHtml(pageNumber)}" data-zoom="${pageZoom}" role="group" aria-label="Vista completa del PDF, página ${escapeHtml(pageNumber)}">
+          <canvas aria-label="Página ${escapeHtml(pageNumber)} completa de ${escapeHtml(SOP_DOCUMENT.title)}"></canvas>
+          <iframe title="Hoja ${escapeHtml(procedure.sheet)} completa de la SOP" hidden></iframe>
+          <p class="guided-pdf-status" role="status" aria-live="polite">Cargando hoja completa…</p>
+        </div>
+        <footer class="guided-page-footer"><span>${escapeHtml(SOP_DOCUMENT.id)} · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}</span><span>${escapeHtml(procedure.category)} · ${procedure.steps.length} pasos</span></footer>
+      </section>
+      <section class="guided-checklist-panel" aria-label="Validación de hoja ${escapeHtml(procedure.sheet)}">
+        <header class="guided-checklist-titlebar"><div><p class="eyebrow">Validación de hoja</p><h2>Hoja ${escapeHtml(procedure.sheet)} <small>de ${escapeHtml(totalSheets)}</small></h2></div><span class="guided-checklist-heading-count">${checkedCount} de ${procedure.steps.length} pasos</span></header>
+        <p class="guided-checklist-intro">Marca cada paso conforme lo completes en la estación.</p>
+        <div class="sop-run-progress" role="group" aria-label="Progreso de esta hoja"><div class="sop-run-progress-track"><span style="width:${sheetPercent}%"></span></div><strong>${checkedCount} de ${procedure.steps.length} pasos · ${sheetPercent}%</strong></div>
+        <div class="guided-checklist-list sop-sheet-step-list" role="group" aria-label="Pasos de la hoja ${escapeHtml(procedure.sheet)}">${renderGuidedValidationSteps(procedure, state, !canOperate, false)}</div>
+        <p class="form-error sop-run-error" id="sop-run-error" role="alert" aria-live="polite" ${state.formError ? "" : "hidden"}>${escapeHtml(state.formError)}</p>
+        <aside class="guided-checklist-note-box"><span class="material-symbols-rounded" aria-hidden="true">info</span><span>Verifica físicamente cada paso antes de marcarlo como realizado.</span></aside>
+        <div class="guided-checklist-footer">
+          <small class="guided-checklist-note">${isComplete ? "Hoja completa. Ya puedes continuar." : `Completa los ${procedure.steps.length - checkedCount} pasos pendientes para avanzar.`}</small>
+          <div class="guided-sheet-actions">
+            ${!isFirstPage ? `<button class="button button--secondary guided-previous-button" type="button" data-action="previous-sop-sheet" data-focus-key="previous-sop-sheet" ${canOperate ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Anterior</button>` : ""}
+            <button class="button button--primary guided-continue-button" type="button" data-action="${nextAction}" data-focus-key="continue-sop-sheet" ${!canOperate || run.stage !== "confirmation" && !isComplete ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${run.stage === "confirmation" ? "fact_check" : "arrow_forward"}</span>${nextLabel}</button>
+          </div>
+        </div>
+        <div class="guided-checklist-operator"><span class="profile-avatar">${escapeHtml(user.name.slice(0, 2).toLocaleUpperCase("es-MX"))}</span><span><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.position || "Técnico de FA")}</small></span><span class="guided-progress-copy">${progress.complete} / ${progress.total} SOP</span></div>
+      </section>
+    </div>
   </section>`;
 }
 

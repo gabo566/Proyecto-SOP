@@ -102,6 +102,26 @@ function renderSopSelector(selectedId, pageZoom = 100, state = {}) {
   </section>`;
 }
 
+function renderActiveSopVersionSelector(state = {}, procedure = getProcedure()) {
+  const activeVersionId = state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID;
+  const canChangeVersion = canManageSopVersions();
+  const versions = [
+    createSopVersionMetadata(BUILT_IN_SOP_VERSION, true),
+    ...(state.sopVersionHistory ?? []).map((version) => createSopVersionMetadata(version)),
+  ].filter((version, index, all) => all.findIndex((item) => item.id === version.id) === index);
+  const visibleVersions = canChangeVersion ? versions : versions.filter((version) => version.id === activeVersionId);
+  const pdfPath = state.sopPdfUrl || SOP_DOCUMENT.pdfPath;
+  const page = procedure?.pdfPage ?? procedure?.sheet ?? 1;
+  const sourceUrl = pdfPath ? `${pdfPath}#page=${page}` : "";
+  return `<section class="selector-panel sop-document-selector" aria-label="SOP activa">
+    <div class="selector-fields"><label for="sop-version-select">Seleccionar SOP</label>
+      <select id="sop-version-select" data-focus-key="sop-version-select" ${canChangeVersion ? "" : "disabled"}>${visibleVersions.map((version) => `<option value="${escapeHtml(version.id)}" ${version.id === activeVersionId ? "selected" : ""}>${escapeHtml(version.documentId)} · ${escapeHtml(version.title)}</option>`).join("")}</select>
+    </div>
+    ${canChangeVersion ? `<button class="text-button sop-admin-shortcut" type="button" data-action="navigate" data-nav-id="sop-admin" data-focus-key="nav-sop-admin"><span class="material-symbols-rounded" aria-hidden="true">edit_document</span>Administrar SOP</button>` : ""}
+    ${sourceUrl ? `<a class="text-button source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer"><span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>Ver PDF</a>` : ""}
+  </section>`;
+}
+
 function renderSummaryMetrics(todayRecords, state) {
   const completedRecords = todayRecords.filter((record) => record.status === "Completado");
   const completedProcedureIds = new Set(completedRecords.map((record) => record.procedureId).filter(Boolean));

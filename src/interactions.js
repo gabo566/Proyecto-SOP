@@ -12,6 +12,7 @@ function bindInteractions(app, handlers) {
     closeDialog,
     handleCompletionSubmit,
     continueGuidedSopSheet,
+    continueStationIntake,
     previousGuidedSopSheet,
     openWorkItemDialog,
     closeWorkItemDialog,
@@ -136,6 +137,11 @@ function bindInteractions(app, handlers) {
     if (!action || !app.contains(action)) return;
     switch (action.dataset.action) {
       case "navigate": handleNavigation(action); break;
+      case "open-sop-admin-from-intake":
+        if (!canManageSopVersions()) break;
+        state.activeSection = "sop-admin";
+        render();
+        break;
       case "open-menu": state.navOpen = true; render(); break;
       case "close-menu": state.navOpen = false; render(); break;
       case "brand-home": state.navOpen = false; render(); break;
@@ -194,7 +200,16 @@ function bindInteractions(app, handlers) {
 
   app.addEventListener("change", (event) => {
     const { target } = event;
-    if (target.matches("#procedure-select")) {
+    if (target.matches("[data-station-type]")) {
+      state.form.stationAssignment = target.value === "RWK" ? "RWK:RWK" : "MFG:TDR";
+      state.formError = "";
+      render({ focusKey: target.dataset.focusKey });
+      return;
+    } else if (target.matches("[data-station-code]")) {
+      state.form.stationAssignment = target.value;
+      state.formError = "";
+      updateStationIntakeUI(state);
+    } else if (target.matches("#procedure-select")) {
       selectProcedure(target.value);
     } else if (target.matches("[data-step]")) {
       if (!canOperateGuidedSopRun()) {
@@ -236,6 +251,7 @@ function bindInteractions(app, handlers) {
       }
       persistWorkState();
       if (state.formError) clearFormError();
+      if (target.closest("#station-intake-form")) updateStationIntakeUI(state);
     } else if (target.matches('input[name="workType"]')) {
       state.workDraft.type = target.value;
       document.querySelector(".work-failed-step").hidden = target.value !== "rework";
@@ -280,6 +296,7 @@ function bindInteractions(app, handlers) {
       if (state.formError) clearFormError();
       target.removeAttribute("aria-invalid");
       target.removeAttribute("aria-describedby");
+      if (target.closest("#station-intake-form")) updateStationIntakeUI(state);
     } else if (target.name === "workNote") {
       state.workDraft.note = target.value;
     } else if (target.name === "failedStep") {
@@ -294,6 +311,11 @@ function bindInteractions(app, handlers) {
   });
 
   app.addEventListener("submit", (event) => {
+    if (event.target.matches("#station-intake-form")) {
+      event.preventDefault();
+      continueStationIntake();
+      return;
+    }
     if (event.target.matches("#local-login-form")) {
       event.preventDefault();
       const formData = new FormData(event.target);
@@ -307,9 +329,19 @@ function bindInteractions(app, handlers) {
       state.loginError = "";
       state.loginUsername = "";
       state.activeSection = "overview";
+      const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
+      if (activeWork && activeWork.form?.employeeNumber !== user.employeeNumber) {
+        state.activeWorkId = "";
+        state.completedSteps = [];
+        state.sopRun = null;
+      }
       if (!state.activeWorkId) {
         state.sopRun = null;
-        state.form = { ...state.form, name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", nodeNumber: "", serial: "", declaration: false };
+        state.form = { ...createEmptyForm(), name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", stationAssignment: "MFG:TDR", nodeNumber: "", serial: "", declaration: false };
+        state.operatorFlowReady = false;
+      } else {
+        state.form = { ...state.form, name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA" };
+        state.operatorFlowReady = isStationIntakeComplete(state.form) && Boolean(findSopVersionForStation(state, state.form.stationAssignment));
       }
       state.formError = "";
       state.auditSessionId = `session-${crypto.randomUUID()}`;
@@ -339,15 +371,21 @@ function updateGuidedChecklistUI(procedure, state) {
     row.classList.toggle("guided-check-item--checked", Boolean(checkbox?.checked));
   }
   const currentCount = procedure.steps.filter((step) => checked.has(String(step.number))).length;
-  const currentCountLabel = document.querySelector(".guided-checklist-heading > span");
-  if (currentCountLabel) currentCountLabel.textContent = `${currentCount} de ${procedure.steps.length}`;
+  const currentCountLabel = document.querySelector(".guided-checklist-heading-count");
+  if (currentCountLabel) currentCountLabel.textContent = `${currentCount} de ${procedure.steps.length} pasos`;
+  const localProgress = document.querySelector(".guided-checklist-panel .sop-run-progress-track > span");
+  const localProgressLabel = document.querySelector(".guided-checklist-panel .sop-run-progress > strong");
+  const localPercent = procedure.steps.length ? Math.round(currentCount / procedure.steps.length * 100) : 0;
+  if (localProgress) localProgress.style.width = `${localPercent}%`;
+  if (localProgressLabel) localProgressLabel.textContent = `${currentCount} de ${procedure.steps.length} pasos · ${localPercent}%`;
+  const pendingNote = document.querySelector(".guided-checklist-footer .guided-checklist-note");
+  if (pendingNote) pendingNote.textContent = isGuidedSopProcedureComplete(state.sopRun, procedure)
+    ? "Hoja completa. Ya puedes continuar."
+    : `Completa los ${procedure.steps.length - currentCount} pasos pendientes para avanzar.`;
   const progress = getGuidedSopProgress(state.sopRun, SOP_SHEETS);
   const progressCopy = document.querySelector(".guided-progress-copy");
   if (progressCopy) {
-    const percent = progress.total ? Math.round(progress.complete / progress.total * 100) : 0;
-    progressCopy.textContent = `${progress.complete} de ${progress.total} pasos · ${percent}%`;
-    const bar = document.querySelector(".sop-run-progress-track > span");
-    if (bar) bar.style.width = `${percent}%`;
+    progressCopy.textContent = `${progress.complete} / ${progress.total} SOP`;
   }
   const continueButton = document.querySelector('[data-action="continue-sop-sheet"], [data-action="open-final-confirmation"]');
   if (continueButton) continueButton.disabled = !isGuidedSopProcedureComplete(state.sopRun, procedure) || !canOperateGuidedSopRun();

@@ -13,6 +13,7 @@ let SOP_DOCUMENT = {
   title: "Desensamble general de Compu tray modelo 2000",
   pdfPath: "./public/documents/SOP-NVD-GB200-141.pdf",
   revision: "3",
+  stationAssignment: "RWK:RWK",
   family: "GB200",
   customer: "Nvidia Racks",
   station: "Rework",
