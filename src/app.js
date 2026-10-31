@@ -47,8 +47,8 @@ const state = {
   sopPdfUpdating: false,
   sopVersionMeta: { id: BUILT_IN_SOP_VERSION_ID, revision: SOP_DOCUMENT.revision, builtIn: true },
   sopVersionHistory: [],
-  stationSopAssignments: {},
-  stationAssignmentsLoaded: false,
+  sopVersionCatalog: {},
+  sopCatalogLoaded: false,
   sopDraft: null,
   sopDraftError: "",
   sopVersionBusy: false,
@@ -607,8 +607,8 @@ restoreCurrentSopVersion(state).then(async () => {
   render();
 }).catch((error) => {
   console.error("No se pudo restaurar la versión local de la SOP.", error);
-  state.stationSopAssignments = { "RWK:RWK": { enabled: true, versionId: BUILT_IN_SOP_VERSION_ID } };
-  state.stationAssignmentsLoaded = true;
+  state.sopVersionCatalog = { [BUILT_IN_SOP_VERSION_ID]: { stationAssignment: "RWK:RWK", enabled: true } };
+  state.sopCatalogLoaded = true;
   restoreOperatorFlowForSession();
   render();
 });

@@ -201,14 +201,24 @@ function bindInteractions(app, handlers) {
   app.addEventListener("change", (event) => {
     const { target } = event;
     if (target.matches("[data-station-type]")) {
-      state.form.stationAssignment = target.value === "RWK" ? "RWK:RWK" : "MFG:TDR";
+      const assignment = getEnabledWorkStationAssignments(state, target.value)[0];
+      if (assignment) {
+        state.form.stationAssignment = assignment.value;
+        state.form.sopVersionId = getEnabledSopVersionsForStation(state, assignment.value)[0]?.id ?? "";
+      }
       state.formError = "";
       render({ focusKey: target.dataset.focusKey });
       return;
     } else if (target.matches("[data-station-code]")) {
       state.form.stationAssignment = target.value;
+      state.form.sopVersionId = getEnabledSopVersionsForStation(state, target.value)[0]?.id ?? "";
       state.formError = "";
-      updateStationIntakeUI(state);
+      render({ focusKey: target.dataset.focusKey });
+      return;
+    } else if (target.matches("[data-sop-version]")) {
+      state.form.sopVersionId = target.value;
+      state.formError = "";
+      render({ focusKey: target.dataset.focusKey });
     } else if (target.matches("#procedure-select")) {
       selectProcedure(target.value);
     } else if (target.matches("[data-step]")) {
@@ -337,11 +347,12 @@ function bindInteractions(app, handlers) {
       }
       if (!state.activeWorkId) {
         state.sopRun = null;
-        state.form = { ...createEmptyForm(), name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", stationAssignment: "MFG:TDR", nodeNumber: "", serial: "", declaration: false };
+        state.form = { ...createEmptyForm(), name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", stationAssignment: "MFG:TDR", sopVersionId: "", nodeNumber: "", serial: "", declaration: false };
         state.operatorFlowReady = false;
       } else {
         state.form = { ...state.form, name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA" };
-        state.operatorFlowReady = isStationIntakeComplete(state.form) && Boolean(findSopVersionForStation(state, state.form.stationAssignment));
+        normalizeStationIntakeAssignment(state);
+        state.operatorFlowReady = isStationIntakeComplete(state.form) && Boolean(findSopVersionForStation(state, state.form.stationAssignment, state.form.sopVersionId));
       }
       state.formError = "";
       state.auditSessionId = `session-${crypto.randomUUID()}`;

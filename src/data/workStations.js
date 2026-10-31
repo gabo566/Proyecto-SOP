@@ -1,49 +1,59 @@
 const WORK_STATION_ASSIGNMENTS = [
   { value: "MFG:TDR", type: "MFG", typeLabel: "Manufactura", code: "TDR", label: "TDR" },
-  { value: "RWK:RWK", type: "RWK", typeLabel: "Retrabajo", code: "RWK", label: "Retrabajo" },
+  { value: "RWK:RWK", type: "RWK", typeLabel: "Retrabajo", code: "RWK", label: "RWK" },
 ];
 
 function getWorkStationAssignment(value) {
   return WORK_STATION_ASSIGNMENTS.find((assignment) => assignment.value === value) ?? null;
 }
 
-function findSopVersionCandidateForStation(state, assignmentValue) {
-  if (!assignmentValue) return null;
-  const activeId = state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID;
-  const activeVersion = state.sopVersionHistory?.find((version) => version.id === activeId) ?? BUILT_IN_SOP_VERSION;
-  if (activeVersion?.document?.stationAssignment === assignmentValue) return activeVersion;
-
-  const latestSavedVersion = [...(state.sopVersionHistory ?? [])]
-    .filter((version) => version.document?.stationAssignment === assignmentValue)
-    .sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")))[0];
-  if (latestSavedVersion) return latestSavedVersion;
-
-  return BUILT_IN_SOP_VERSION.document?.stationAssignment === assignmentValue
-    ? BUILT_IN_SOP_VERSION
-    : null;
+function getSopVersionStationAssignment(state, version) {
+  if (!version?.id) return "";
+  return state.sopVersionCatalog?.[version.id]?.stationAssignment
+    ?? version.document?.stationAssignment
+    ?? "";
 }
 
-function findSopVersionForStation(state, assignmentValue) {
-  if (!assignmentValue || state.stationAssignmentsLoaded === false) return null;
-  const stationConfig = state.stationSopAssignments?.[assignmentValue];
-  if (stationConfig) {
-    if (!stationConfig.enabled || !stationConfig.versionId) return null;
-    const version = state.sopVersionHistory?.find((item) => item.id === stationConfig.versionId)
-      ?? (BUILT_IN_SOP_VERSION.id === stationConfig.versionId ? BUILT_IN_SOP_VERSION : null);
-    return version?.document?.stationAssignment === assignmentValue ? version : null;
-  }
-  return findSopVersionCandidateForStation(state, assignmentValue);
+function getAllSopVersions(state) {
+  const versions = [...(state.sopVersionHistory ?? []), BUILT_IN_SOP_VERSION];
+  return versions.filter((version, index, list) => list.findIndex((entry) => entry.id === version.id) === index);
 }
 
-function getEnabledWorkStationAssignments(state) {
-  return WORK_STATION_ASSIGNMENTS.filter((assignment) => Boolean(findSopVersionForStation(state, assignment.value)));
+function isSopVersionEnabled(state, version) {
+  if (!version?.id || state.sopCatalogLoaded === false) return false;
+  const config = state.sopVersionCatalog?.[version.id];
+  return Boolean(config?.enabled && getWorkStationAssignment(config.stationAssignment));
+}
+
+function getEnabledSopVersionsForStation(state, assignmentValue) {
+  if (!assignmentValue || state.sopCatalogLoaded === false) return [];
+  return getAllSopVersions(state)
+    .filter((version) => isSopVersionEnabled(state, version)
+      && getSopVersionStationAssignment(state, version) === assignmentValue)
+    .sort((left, right) => String(right.createdAt ?? "").localeCompare(String(left.createdAt ?? "")));
+}
+
+function findSopVersionForStation(state, assignmentValue, versionId = state.form?.sopVersionId) {
+  const versions = getEnabledSopVersionsForStation(state, assignmentValue);
+  if (versionId) return versions.find((version) => version.id === versionId) ?? null;
+  return versions[0] ?? null;
+}
+
+function getEnabledWorkStationAssignments(state, type = "") {
+  return WORK_STATION_ASSIGNMENTS.filter((assignment) => (!type || assignment.type === type)
+    && getEnabledSopVersionsForStation(state, assignment.value).length > 0);
 }
 
 function normalizeStationIntakeAssignment(state) {
+  if (state.sopCatalogLoaded === false) return state.form?.stationAssignment ?? "";
   const current = state.form?.stationAssignment;
-  if (findSopVersionForStation(state, current)) return current;
-  const fallback = getEnabledWorkStationAssignments(state)[0];
-  if (fallback) state.form.stationAssignment = fallback.value;
+  const enabledAssignments = getEnabledWorkStationAssignments(state);
+  const assignment = enabledAssignments.find((entry) => entry.value === current) ?? enabledAssignments[0];
+  if (assignment) state.form.stationAssignment = assignment.value;
+  const versions = getEnabledSopVersionsForStation(state, state.form?.stationAssignment);
+  if (!versions.some((version) => version.id === state.form?.sopVersionId)) {
+    state.form.sopVersionId = versions[0]?.id ?? "";
+  }
   return state.form?.stationAssignment ?? "";
 }
 
@@ -53,11 +63,14 @@ function isStationIntakeComplete(form = {}) {
     && form.componentPartNumber?.trim()
     && form.componentSerial?.trim());
 }
+
 function getStationIntakeStatus(state) {
-  const assignment = getWorkStationAssignment(state.form.stationAssignment);
-  const stationConfig = state.stationSopAssignments?.[assignment?.value];
-  if (stationConfig && !stationConfig.enabled) return `La estación ${assignment?.type} · ${assignment?.label} está deshabilitada por Administración.`;
   if (!isStationIntakeComplete(state.form)) return "Completa los cuatro datos obligatorios para continuar.";
-  if (!findSopVersionForStation(state, state.form.stationAssignment)) return "No hay una revisión de SOP asignada a esta estación.";
-  return "Información completa. Puedes abrir la SOP correspondiente.";
+  if (!findSopVersionForStation(state, state.form.stationAssignment, state.form.sopVersionId)) {
+    const assignment = getWorkStationAssignment(state.form.stationAssignment);
+    return assignment
+      ? `No hay SOP habilitada para ${assignment.type} · ${assignment.label}.`
+      : "No hay una SOP habilitada para esta estación.";
+  }
+  return "Información completa. Puedes abrir la SOP seleccionada.";
 }

@@ -3,6 +3,7 @@ const SOP_VERSION_STORE = "versions";
 const SOP_VERSION_SETTINGS = "settings";
 const SOP_VERSION_ACTIVE_KEY = "active-version";
 const SOP_STATION_ASSIGNMENT_KEY_PREFIX = "station-sop:";
+const SOP_CATALOG_KEY_PREFIX = "sop-catalog:";
 const SOP_VERSION_MAX_PDF_BYTES = 100 * 1024 * 1024;
 
 function canManageSopVersions(user = getActiveLocalUser()) {
@@ -70,17 +71,17 @@ async function setActiveSopVersionId(versionId) {
   });
 }
 
-async function saveStoredStationSopAssignments(assignments) {
+async function saveStoredSopCatalog(catalog) {
   const database = await openSopVersionDatabase();
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(SOP_VERSION_SETTINGS, "readwrite");
     const store = transaction.objectStore(SOP_VERSION_SETTINGS);
-    for (const [assignmentValue, config] of Object.entries(assignments)) {
+    for (const [versionId, config] of Object.entries(catalog)) {
       store.put({
-        id: `${SOP_STATION_ASSIGNMENT_KEY_PREFIX}${assignmentValue}`,
-        assignmentValue,
+        id: `${SOP_CATALOG_KEY_PREFIX}${versionId}`,
+        versionId,
+        stationAssignment: config.stationAssignment,
         enabled: Boolean(config.enabled),
-        versionId: config.enabled ? config.versionId : "",
         updatedAt: new Date().toISOString(),
         updatedBy: getAuthenticatedLocalUser()?.employeeNumber ?? "migración local",
       });
@@ -91,7 +92,7 @@ async function saveStoredStationSopAssignments(assignments) {
   });
 }
 
-async function restoreStoredStationSopAssignments(state) {
+async function restoreStoredSopCatalog(state) {
   const database = await openSopVersionDatabase();
   const rows = await new Promise((resolve, reject) => {
     const transaction = database.transaction(SOP_VERSION_SETTINGS, "readonly");
@@ -106,33 +107,38 @@ async function restoreStoredStationSopAssignments(state) {
     [BUILT_IN_SOP_VERSION.id, BUILT_IN_SOP_VERSION],
     ...(state.sopVersionHistory ?? []).map((version) => [version.id, version]),
   ]);
-  const rowsByAssignment = new Map(rows
+  const catalogRowsById = new Map(rows
+    .filter((row) => row.id?.startsWith(SOP_CATALOG_KEY_PREFIX))
+    .map((row) => [row.versionId, row]));
+  const legacyRowsByAssignment = new Map(rows
     .filter((row) => row.id?.startsWith(SOP_STATION_ASSIGNMENT_KEY_PREFIX))
     .map((row) => [row.assignmentValue, row]));
-  const assignmentState = {};
-  const recordsToInitialize = {};
+  const hasLegacyStationSettings = legacyRowsByAssignment.size > 0;
+  const catalog = {};
 
-  for (const assignment of WORK_STATION_ASSIGNMENTS) {
-    const stored = rowsByAssignment.get(assignment.value);
+  for (const version of versionsById.values()) {
+    const stored = catalogRowsById.get(version.id);
+    const stationAssignment = stored
+      ? getWorkStationAssignment(stored.stationAssignment)?.value ?? ""
+      : getWorkStationAssignment(version.document?.stationAssignment)?.value ?? "";
     if (stored) {
-      const version = versionsById.get(stored.versionId);
-      const valid = stored.enabled && version?.document?.stationAssignment === assignment.value;
-      assignmentState[assignment.value] = { enabled: Boolean(valid), versionId: valid ? version.id : "" };
-      if (Boolean(stored.enabled) !== Boolean(valid) || !valid && stored.versionId) {
-        recordsToInitialize[assignment.value] = assignmentState[assignment.value];
-      }
+      catalog[version.id] = { stationAssignment, enabled: Boolean(stored.enabled && stationAssignment) };
       continue;
     }
 
-    const defaultVersion = findSopVersionCandidateForStation(state, assignment.value);
-    const config = { enabled: Boolean(defaultVersion), versionId: defaultVersion?.id ?? "" };
-    assignmentState[assignment.value] = config;
-    recordsToInitialize[assignment.value] = config;
+    const legacyAssignment = [...legacyRowsByAssignment.values()].find((row) => row.enabled
+      && row.versionId === version.id
+      && row.assignmentValue === stationAssignment);
+    const enabled = legacyAssignment
+      ? true
+      : !hasLegacyStationSettings && version.id === BUILT_IN_SOP_VERSION_ID && stationAssignment === "RWK:RWK";
+    catalog[version.id] = { stationAssignment, enabled };
   }
 
-  state.stationSopAssignments = assignmentState;
-  if (Object.keys(recordsToInitialize).length) await saveStoredStationSopAssignments(recordsToInitialize);
-  state.stationAssignmentsLoaded = true;
+  state.sopVersionCatalog = catalog;
+  const hasAllCatalogSettings = [...versionsById.keys()].every((id) => catalogRowsById.has(id));
+  if (!hasAllCatalogSettings) await saveStoredSopCatalog(catalog);
+  state.sopCatalogLoaded = true;
 }
 
 function createSopVersionMetadata(version, builtIn = false) {
@@ -234,7 +240,7 @@ async function restoreCurrentSopVersion(state) {
       restoredCustomVersion = true;
     }
   }
-  await restoreStoredStationSopAssignments(state);
+  await restoreStoredSopCatalog(state);
   return restoredCustomVersion;
 }
 
@@ -566,56 +572,45 @@ function renderSopVersionPreview(version, state) {
       <label>Estación de trabajo<select data-sop-document-field="stationAssignment"><option value="">Selecciona la estación asociada</option>${WORK_STATION_ASSIGNMENTS.map((assignment) => `<option value="${escapeHtml(assignment.value)}" ${version.document.stationAssignment === assignment.value ? "selected" : ""}>${escapeHtml(assignment.type)} · ${escapeHtml(assignment.label)}</option>`).join("")}</select></label></div>
     <div class="sop-version-procedures">${procedureEditors}</div>
     <button class="button button--primary" type="button" data-action="publish-sop-version" ${state.sopVersionBusy ? "disabled" : ""}>Guardar nueva revisión</button>
-    <p class="sop-version-note">Guardar esta versión no cambia las estaciones habilitadas. Asígnala en «Habilitar estaciones y asignar revisiones» cuando esté revisada.</p>
+    <p class="sop-version-note">Al guardar esta revisión quedará deshabilitada. Podrás asignarla a otra estación o habilitarla en el catálogo cuando esté revisada.</p>
   </section>`;
 }
 
-function renderSopStationAssignments(state) {
-  const allVersions = [BUILT_IN_SOP_VERSION, ...(state.sopVersionHistory ?? [])]
-    .filter((version, index, list) => list.findIndex((entry) => entry.id === version.id) === index);
-  const rows = WORK_STATION_ASSIGNMENTS.map((assignment) => {
-    const choices = allVersions.filter((version) => version.document?.stationAssignment === assignment.value);
-    const config = state.stationSopAssignments?.[assignment.value] ?? { enabled: false, versionId: "" };
-    const isEnabled = Boolean(config.enabled && choices.some((version) => version.id === config.versionId));
-    const options = choices.map((version) => `<option value="${escapeHtml(version.id)}" ${version.id === config.versionId ? "selected" : ""}>Rev. ${escapeHtml(version.document.revision)} · ${escapeHtml(version.document.id)} · ${escapeHtml(version.document.title)}</option>`).join("");
-    return `<article class="sop-station-assignment-row" data-station-assignment-row="${escapeHtml(assignment.value)}">
-      <label class="sop-station-assignment-toggle"><input type="checkbox" name="enabled:${escapeHtml(assignment.value)}" data-station-enabled ${isEnabled ? "checked" : ""} ${choices.length ? "" : "disabled"} /><span><strong>${escapeHtml(assignment.type)} · ${escapeHtml(assignment.label)}</strong><small>${isEnabled ? "Estación habilitada para operadores" : choices.length ? "Estación deshabilitada" : "Carga una SOP para habilitar esta estación"}</small></span></label>
-      <label class="sop-station-assignment-version"><span>Revisión asignada</span><select name="version:${escapeHtml(assignment.value)}" data-station-version ${isEnabled && choices.length ? "" : "disabled"}><option value="">Selecciona una revisión</option>${options}</select></label>
+function renderSopCatalog(state) {
+  const allVersions = getAllSopVersions(state);
+  const rows = allVersions.map((version) => {
+    const stationAssignment = getSopVersionStationAssignment(state, version);
+    const config = state.sopVersionCatalog?.[version.id] ?? { stationAssignment, enabled: false };
+    const metadata = createSopVersionMetadata(version, version.id === BUILT_IN_SOP_VERSION_ID);
+    const stationOptions = WORK_STATION_ASSIGNMENTS.map((assignment) => `<option value="${escapeHtml(assignment.value)}" ${assignment.value === config.stationAssignment ? "selected" : ""}>${escapeHtml(assignment.type)} · ${escapeHtml(assignment.label)}</option>`).join("");
+    return `<article class="sop-catalog-row" data-sop-catalog-row="${escapeHtml(version.id)}" data-sop-catalog-document-id="${escapeHtml(version.document.id)}">
+      <div class="sop-catalog-copy"><strong>${escapeHtml(metadata.title)} · Rev. ${escapeHtml(metadata.revision)}</strong><small>${escapeHtml(metadata.documentId)} · ${metadata.sheetCount} hojas · ${metadata.procedureCount} procedimientos · ${metadata.stepCount} pasos · ${escapeHtml(formatSopVersionDate(metadata.createdAt))} · ${escapeHtml(metadata.createdBy)}${metadata.pdfName ? ` · PDF ${escapeHtml(metadata.pdfName)}` : ""}</small></div>
+      <label class="sop-catalog-station"><span>Estación de esta SOP</span><select data-sop-catalog-station><option value="">Selecciona una estación</option>${stationOptions}</select></label>
+      <label class="sop-catalog-enabled"><input type="checkbox" data-sop-catalog-enabled ${config.enabled ? "checked" : ""} ${config.stationAssignment ? "" : "disabled"} /><span><strong>${config.enabled ? "Habilitada" : "Deshabilitada"}</strong><small>${config.enabled ? "Visible para operadores de su estación" : "No aparece a los operadores"}</small></span></label>
+      <button class="text-button" type="button" data-action="edit-sop-version" data-version-id="${escapeHtml(version.id)}">Crear nueva revisión</button>
     </article>`;
   }).join("");
 
-  return `<section class="sop-station-assignment-manager" aria-labelledby="sop-station-assignment-title">
-    <div class="sop-station-assignment-heading"><div><p class="eyebrow">CONTROL POR ESTACIÓN</p><h3 id="sop-station-assignment-title">Habilitar estaciones y asignar revisiones</h3></div><span class="material-symbols-rounded" aria-hidden="true">tune</span></div>
-    <p>El operador solo verá la revisión asignada aquí. Deshabilita la estación para bloquear nuevos registros; los trabajos guardados conservan su revisión original.</p>
-    <form id="sop-station-assignments-form"><div class="sop-station-assignment-list">${rows}</div><button class="button button--primary" type="submit">Guardar estaciones y revisiones</button></form>
+  return `<section class="sop-catalog-manager" aria-labelledby="sop-catalog-title">
+    <div class="sop-catalog-heading"><div><p class="eyebrow">CATÁLOGO PARA OPERADORES</p><h3 id="sop-catalog-title">Estación y disponibilidad de cada SOP</h3></div><span class="material-symbols-rounded" aria-hidden="true">tune</span></div>
+    <p>Cada archivo tiene una estación asignada. Habilita únicamente las SOP que deban aparecer al operador; puedes cambiar la estación o deshabilitar una revisión cuando lo necesites.</p>
+    <form id="sop-catalog-form"><div class="sop-catalog-list">${rows || '<p class="sop-catalog-empty">Todavía no hay SOP guardadas.</p>'}</div><button class="button button--primary" type="submit">Guardar estaciones y disponibilidad</button></form>
   </section>`;
 }
 
 function renderSopVersionManager(state) {
   if (!canManageSopVersions()) return '<section class="sop-version-panel"><h2>Acceso no disponible</h2></section>';
-  const activeId = state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID;
-  const base = createSopVersionMetadata(BUILT_IN_SOP_VERSION, true);
-  const versions = [base, ...(state.sopVersionHistory ?? []).map((version) => createSopVersionMetadata(version))];
-  const historyRows = versions.map((version) => {
-    const assignment = state.stationSopAssignments?.[version.stationAssignment];
-    const stationStatus = assignment?.enabled && assignment.versionId === version.id
-      ? `Asignada a ${escapeHtml(getWorkStationAssignment(version.stationAssignment)?.value ?? version.stationAssignment)}`
-      : version.id === activeId ? "Activa global" : "Disponible";
-    return `<li class="sop-version-row"><div><strong>Rev. ${escapeHtml(version.revision)} · ${escapeHtml(version.title)}</strong><small>${version.sheetCount} hojas · ${version.procedureCount} procedimientos · ${version.stepCount} pasos${version.stationAssignment ? ` · Estación ${escapeHtml(getWorkStationAssignment(version.stationAssignment)?.value ?? version.stationAssignment)}` : " · Estación sin asignar"}${version.pdfName ? ` · PDF ${escapeHtml(version.pdfName)}` : ""} · ${escapeHtml(formatSopVersionDate(version.createdAt))} · ${escapeHtml(version.createdBy)}</small></div>
-    <div class="sop-version-row-actions"><span class="sop-version-current">${stationStatus}</span><button class="text-button" type="button" data-action="edit-sop-version" data-version-id="${escapeHtml(version.id)}">Editar como nueva revisión</button></div></li>`;
-  }).join("");
   const error = state.sopDraftError ? `<p class="form-error" role="alert">${escapeHtml(state.sopDraftError)}</p>` : "";
   const notice = state.sopDraftNotice ? `<p class="sop-version-note">${escapeHtml(state.sopDraftNotice)}</p>` : "";
   const preview = state.sopDraft ? renderSopVersionPreview(state.sopDraft, state) : "";
   return `<section class="sop-version-panel" aria-labelledby="sop-version-title"><div class="section-heading"><div class="section-title"><span class="heading-icon material-symbols-rounded" aria-hidden="true">rule_settings</span><div><p class="eyebrow">Solo cuenta 140784</p><h2 id="sop-version-title">Modificar SOP</h2></div></div></div>
-    <p class="sop-version-intro">Carga un PDF o edita cualquier revisión guardada. Revisa y corrige el texto detectado; después habilita cada estación y elige exactamente qué revisión podrán consultar los operadores.</p>
-    ${renderSopStationAssignments(state)}
+    <p class="sop-version-intro">Sube un PDF, asigna su estación y revisa los pasos detectados. Después puedes habilitarlo para que aparezca a los operadores o dejarlo deshabilitado hasta estar listo.</p>
+    ${renderSopCatalog(state)}
     <form class="sop-version-form" id="sop-version-upload-form"><label>Archivo PDF de la SOP<input name="pdf" type="file" accept="application/pdf,.pdf" required /></label>
       <div class="sop-version-actions"><button class="button button--primary" type="submit" ${state.sopVersionBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.sopVersionBusy ? "hourglass_top" : "auto_awesome"}</span>${state.sopVersionBusy ? "Leyendo y extrayendo pasos…" : "Cargar PDF y detectar pasos"}</button></div>
       <p class="dialog-note"><span class="material-symbols-rounded" aria-hidden="true">info</span>PDF de hasta 100 MB. El archivo debe contener texto seleccionable y conservar la numeración de pasos del formato SOP. Un escaneo sin OCR no se puede interpretar automáticamente.</p>${error}</form>
     ${notice}${preview}
-    <section class="sop-version-history" aria-labelledby="sop-version-history-title"><h3 id="sop-version-history-title">Versiones de SOP guardadas en este navegador</h3><ul>${historyRows}</ul></section>
-    <p class="sop-version-warning">Las revisiones y asignaciones por estación se guardan en este navegador. Los demás usuarios de este mismo navegador verán la revisión que Administración asignó; otros equipos o perfiles no se sincronizan automáticamente. Conserva los PDF originales como respaldo. Las evidencias previas conservarán su revisión.</p>
+    <p class="sop-version-warning">Las revisiones, estaciones y disponibilidad se guardan en este navegador. Otros perfiles o equipos no se sincronizan automáticamente. Las evidencias anteriores conservan la versión utilizada.</p>
   </section>`;
 }
 
@@ -672,11 +667,12 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
       }
       state.sopDraft = structuredClone(source);
       state.sopDraft.id = `sop-version-${crypto.randomUUID()}`;
+      state.sopDraft.document.stationAssignment = getSopVersionStationAssignment(state, source);
       state.sopDraft.document = { ...state.sopDraft.document, revision: "" };
       state.sopDraft.createdAt = new Date().toISOString();
       state.sopDraft.createdBy = getActiveLocalUser().name;
       state.sopDraftError = "";
-      state.sopDraftNotice = "Captura una nueva revisión. El original se conserva en el historial.";
+      state.sopDraftNotice = "Captura una nueva revisión y confirma su estación. La revisión nueva quedará deshabilitada hasta que la habilites.";
       state.activeSection = "sop-admin";
       render();
       document.querySelector('[data-sop-document-field="revision"]')?.focus();
@@ -694,13 +690,19 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
       try {
         const version = state.sopDraft;
         await saveSopVersion(version);
+        const nextCatalog = {
+          ...state.sopVersionCatalog,
+          [version.id]: { stationAssignment: version.document.stationAssignment, enabled: false },
+        };
+        await saveStoredSopCatalog(nextCatalog);
+        state.sopVersionCatalog = nextCatalog;
         state.sopVersionHistory = await listStoredSopVersions();
         state.sopDraft = null;
         state.sopDraftError = "";
         state.sopDraftNotice = "";
         state.sopVersionBusy = false;
         recordLocalAuditEvent("sop_version_saved", { details: `Rev. ${version.document.revision} · ${version.document.id} · ${version.document.stationAssignment}` });
-        showToast(`SOP Rev. ${version.document.revision} guardada. Asígnala a una estación para habilitarla a operadores.`);
+        showToast(`SOP Rev. ${version.document.revision} guardada y deshabilitada. Asigna la estación y habilítala cuando esté lista.`);
       } catch (error) {
         state.sopVersionBusy = false;
         state.sopDraftError = error?.message || "No se pudo guardar la revisión en IndexedDB.";
@@ -710,47 +712,72 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
   });
 
   app.addEventListener("change", (event) => {
-    if (!event.target.matches("[data-station-enabled]")) return;
-    const row = event.target.closest("[data-station-assignment-row]");
-    const versionSelect = row?.querySelector("[data-station-version]");
-    if (versionSelect) versionSelect.disabled = !event.target.checked || versionSelect.options.length <= 1;
+    if (!event.target.matches("[data-sop-catalog-station], [data-sop-catalog-enabled]")) return;
+    const row = event.target.closest("[data-sop-catalog-row]");
+    const stationSelect = row?.querySelector("[data-sop-catalog-station]");
+    const enabledToggle = row?.querySelector("[data-sop-catalog-enabled]");
+    const status = enabledToggle?.nextElementSibling;
+    if (!row || !stationSelect || !enabledToggle) return;
+    if (event.target.matches("[data-sop-catalog-enabled]") && enabledToggle.checked) {
+      for (const otherRow of app.querySelectorAll(`[data-sop-catalog-document-id="${CSS.escape(row.dataset.sopCatalogDocumentId)}"]`)) {
+        if (otherRow === row) continue;
+        const otherToggle = otherRow.querySelector("[data-sop-catalog-enabled]");
+        if (otherToggle) otherToggle.checked = false;
+        const otherStatus = otherToggle?.nextElementSibling;
+        if (otherStatus) {
+          otherStatus.querySelector("strong").textContent = "Deshabilitada";
+          otherStatus.querySelector("small").textContent = "No aparece a los operadores";
+        }
+      }
+    }
+    if (event.target.matches("[data-sop-catalog-station]") && !stationSelect.value) enabledToggle.checked = false;
+    enabledToggle.disabled = !stationSelect.value;
+    if (status) {
+      status.querySelector("strong").textContent = enabledToggle.checked ? "Habilitada" : "Deshabilitada";
+      status.querySelector("small").textContent = enabledToggle.checked ? "Visible para operadores de su estación" : "No aparece a los operadores";
+    }
   });
 
   app.addEventListener("submit", async (event) => {
-    if (event.target.matches("#sop-station-assignments-form")) {
+    if (event.target.matches("#sop-catalog-form")) {
       event.preventDefault();
       if (!canManageSopVersions()) return;
-      const formData = new FormData(event.target);
-      const nextAssignments = {};
-      const allVersions = [BUILT_IN_SOP_VERSION, ...(state.sopVersionHistory ?? [])];
-      for (const assignment of WORK_STATION_ASSIGNMENTS) {
-        const enabled = formData.get(`enabled:${assignment.value}`) === "on";
-        const versionId = String(formData.get(`version:${assignment.value}`) ?? "");
-        if (!enabled) {
-          nextAssignments[assignment.value] = { enabled: false, versionId: "" };
-          continue;
-        }
+      const allVersions = getAllSopVersions(state);
+      const nextCatalog = {};
+      const changedVersionAssignments = [];
+      for (const row of event.target.querySelectorAll("[data-sop-catalog-row]")) {
+        const versionId = row.dataset.sopCatalogRow;
         const version = allVersions.find((entry) => entry.id === versionId);
-        if (!version || version.document?.stationAssignment !== assignment.value) {
-          showToast(`Selecciona una revisión de SOP válida para ${assignment.type} · ${assignment.label}.`, "warning");
+        const stationAssignment = row.querySelector("[data-sop-catalog-station]")?.value ?? "";
+        const enabled = Boolean(row.querySelector("[data-sop-catalog-enabled]")?.checked);
+        if (!version) continue;
+        if (enabled && !getWorkStationAssignment(stationAssignment)) {
+          showToast(`Selecciona una estación para ${version.document.title} antes de habilitarla.`, "warning");
           return;
         }
-        nextAssignments[assignment.value] = { enabled: true, versionId };
+        nextCatalog[versionId] = { stationAssignment, enabled: enabled && Boolean(stationAssignment) };
+        if (version.id !== BUILT_IN_SOP_VERSION_ID && version.document.stationAssignment !== stationAssignment) {
+          changedVersionAssignments.push({
+            ...version,
+            document: { ...version.document, stationAssignment },
+          });
+        }
       }
       try {
-        await saveStoredStationSopAssignments(nextAssignments);
-        state.stationSopAssignments = nextAssignments;
-        state.stationAssignmentsLoaded = true;
-        recordLocalAuditEvent("sop_station_assignments_updated", {
-          details: WORK_STATION_ASSIGNMENTS.map((assignment) => {
-            const config = nextAssignments[assignment.value];
-            const version = allVersions.find((entry) => entry.id === config.versionId);
-            return `${assignment.value}: ${config.enabled ? `${version.document.id} Rev. ${version.document.revision}` : "deshabilitada"}`;
-          }).join(" · "),
-        });
-        showToast("Estaciones y revisiones guardadas. Los operadores verán la revisión asignada a su estación.");
+        for (const version of changedVersionAssignments) await saveSopVersion(version);
+        await saveStoredSopCatalog(nextCatalog);
+        state.sopVersionCatalog = nextCatalog;
+        state.sopVersionHistory = await listStoredSopVersions();
+        const details = allVersions.map((version) => {
+          const config = nextCatalog[version.id];
+          const station = getWorkStationAssignment(config?.stationAssignment)?.value ?? "sin estación";
+          return `${version.document.id} Rev. ${version.document.revision}: ${config?.enabled ? `habilitada en ${station}` : `deshabilitada · ${station}`}`;
+        }).join(" · ");
+        recordLocalAuditEvent("sop_catalog_updated", { details });
+        showToast("Catálogo de SOP actualizado. Los operadores verán solo las SOP habilitadas para su estación.");
+        render();
       } catch (error) {
-        showToast(error?.message || "No se pudieron guardar las asignaciones de estación.", "warning");
+        showToast(error?.message || "No se pudo guardar el catálogo de SOP.", "warning");
       }
       return;
     }

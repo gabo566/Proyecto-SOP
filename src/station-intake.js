@@ -1,14 +1,3 @@
-function getStationIntakeStatus(state) {
-  if (!isStationIntakeComplete(state.form)) return "Completa los cuatro datos obligatorios para continuar.";
-  if (!findSopVersionForStation(state, state.form.stationAssignment)) {
-    const assignment = getWorkStationAssignment(state.form.stationAssignment);
-    return assignment?.value === "MFG:TDR"
-      ? "La SOP TDR está pendiente de cargar y asignar por Administración."
-      : "No hay una SOP asignada a esta estación.";
-  }
-  return "Información completa. Puedes abrir la SOP correspondiente.";
-}
-
 function snapshotStationIntake(state) {
   return !state.operatorFlowReady && !state.activeWorkId ? { ...state.form } : null;
 }
@@ -21,17 +10,15 @@ async function prepareStationSop(state) {
   const assignment = getWorkStationAssignment(state.form.stationAssignment);
   if (!assignment) return { ok: false, message: "Selecciona una estación de trabajo." };
   if (!isStationIntakeComplete(state.form)) return { ok: false, message: "Completa el PN y serie del nodo y de la tarjeta." };
-  const version = findSopVersionForStation(state, assignment.value);
+  const version = findSopVersionForStation(state, assignment.value, state.form.sopVersionId);
   if (!version) {
     return {
       ok: false,
-      message: assignment.value === "MFG:TDR"
-        ? "La SOP TDR todavía no está cargada. Cuando Administración la cargue y asigne a MFG · TDR, podrás continuar."
-        : "No hay una SOP asignada a esta estación.",
+      message: `No hay una SOP habilitada para ${assignment.type} · ${assignment.label}.`,
     };
   }
 
-  const savedForm = { ...state.form, stationAssignment: assignment.value };
+  const savedForm = { ...state.form, stationAssignment: assignment.value, sopVersionId: version.id };
   const currentVersionId = state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID;
   if (version.id !== currentVersionId) {
     const previousVersionId = currentVersionId;
@@ -73,33 +60,26 @@ function updateStationIntakeUI(state) {
   const form = document.querySelector("#station-intake-form");
   if (!form) return;
   const assignment = getWorkStationAssignment(state.form.stationAssignment);
-  const activeVersion = findSopVersionForStation(state, assignment?.value);
+  const activeVersion = findSopVersionForStation(state, assignment?.value, state.form.sopVersionId);
   const canContinue = isStationIntakeComplete(state.form) && Boolean(activeVersion);
   const button = form.querySelector(".station-intake-continue");
   const status = form.querySelector("#station-intake-status");
   const error = form.querySelector("#station-intake-error");
-  const sopCard = form.querySelector(".station-assigned-sop");
-  const sopName = form.querySelector(".station-assigned-sop-title");
-  const sopRevision = form.querySelector(".station-assigned-sop-revision");
-  const sopState = form.querySelector(".station-assigned-sop-state");
-  const sopIcon = form.querySelector(".station-assigned-sop-icon");
-  const stationSelector = form.querySelector(".station-choice-selector--active select");
+  const sopSummary = form.querySelector(".station-summary-sop");
   if (button) button.disabled = !canContinue;
   if (status) {
     status.textContent = getStationIntakeStatus(state);
     status.classList.toggle("station-intake-status--ready", canContinue);
   }
-  if (sopName) sopName.textContent = activeVersion?.document?.title ?? "No hay una SOP asignada";
-  if (sopRevision) sopRevision.textContent = activeVersion
-    ? `${activeVersion.document.id} · Rev. ${activeVersion.document.revision}`
-    : "Administración debe cargar y asignar una SOP para poder continuar.";
-  if (sopState) sopState.textContent = activeVersion ? "Lista para abrir" : "Sin SOP";
-  if (sopIcon) sopIcon.innerHTML = renderStationIntakeIcon(activeVersion ? "document" : "pending");
-  if (sopCard) {
-    sopCard.classList.toggle("station-assigned-sop--ready", Boolean(activeVersion));
-    sopCard.classList.toggle("station-assigned-sop--missing", !activeVersion);
+  if (sopSummary) {
+    const small = sopSummary.querySelectorAll("small");
+    const strong = sopSummary.querySelector("strong");
+    if (small[0]) small[0].textContent = `SOP seleccionada · ${assignment?.type ?? ""} · ${assignment?.label ?? ""}`;
+    if (strong) strong.textContent = activeVersion?.document?.title ?? "No hay una SOP habilitada";
+    if (small[1]) small[1].textContent = activeVersion
+      ? `${activeVersion.document.id} · Rev. ${activeVersion.document.revision}`
+      : "Administración debe asignar y habilitar una SOP.";
   }
-  if (stationSelector && assignment) stationSelector.value = assignment.value;
   if (!state.formError) error?.remove();
   for (const card of form.querySelectorAll(".station-choice")) {
     const radio = card.querySelector("[data-station-type]");

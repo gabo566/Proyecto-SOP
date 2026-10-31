@@ -50,9 +50,10 @@ Estas notas son advertencias editoriales del prototipo, no una resolución de in
 
 ### Seguimiento de SOP y producción
 
-- Después de iniciar sesión, el operador elige MFG o RWK. En MFG el selector muestra las estaciones habilitadas por Administración, por ejemplo TDR. La pantalla indica la SOP y revisión asociadas antes de comenzar.
-- Al continuar, el sistema abre la revisión exacta asignada a esa estación. El operador no elige versiones ni carga archivos. Una estación deshabilitada o sin una revisión válida no se puede seleccionar ni iniciar.
-- La cuenta 140784 carga o edita los PDF desde «Administrar estaciones y SOPs». En el apartado «Habilitar estaciones y asignar revisiones» habilita cada estación y elige qué versión guardada usar; puede asignar una revisión anterior sin cambiar las otras estaciones.
+- Después de iniciar sesión, el operador elige MFG o RWK. Solo aparecen los tipos y estaciones donde existe al menos una SOP habilitada por Administración. Si una estación tiene varias SOP habilitadas, el operador elige cuál utilizar; si solo hay una, queda seleccionada automáticamente.
+- Antes de comenzar, la pantalla muestra el nombre, identificador y revisión de la SOP seleccionada. Al continuar, el sistema abre esa revisión exacta y registra su identificador con la validación.
+- La cuenta 140784 carga PDF desde «Modificar SOP». El borrador detectado solicita la estación MFG/TDR o RWK/RWK y permite revisar pasos. Al guardarse, la revisión queda deshabilitada hasta que Administración la habilite en el catálogo.
+- En el catálogo, cada SOP del historial muestra su revisión, quién la guardó, estación y disponibilidad. Administración puede cambiar la estación y habilitar o deshabilitar cada revisión. Si habilita una revisión, la revisión anterior del mismo identificador se deshabilita automáticamente; otras SOP distintas pueden seguir habilitadas en esa estación.
 - La pantalla inicial conserva el diseño anterior de registro de validación, con la selección MFG/RWK, los datos del nodo y la tarjeta, y un resumen de la estación y la SOP que se abrirá. La selección queda guardada en la validación.
 - Cada hoja se presenta como una hoja digital controlada, con identificador, revisión, categoría, título, número de hoja, rango de pasos y referencias visuales disponibles. El PDF original queda como consulta secundaria y ya no es la pantalla principal de ejecución.
 - El recorrido avanza en orden por todas las hojas de la revisión activa que contienen pasos; las hojas informativas sin pasos se omiten.
@@ -125,13 +126,13 @@ Para crear una revisión, el administrador carga **un solo archivo PDF**. El nav
 
 El PDF debe tener texto seleccionable y conservar una numeración de pasos reconocible, como `1.-`, `7.1.1.-` o `54.5.-`, dentro de un diseño de SOP similar al PDF de referencia. Los PDF escaneados requieren una capa de texto OCR antes de cargarlos; esta función no ejecuta OCR. La extracción se comprueba con la SOP incluida, donde reconoce sus 132 pasos. Aun así, el administrador debe revisar el borrador: ningún extractor puede asegurar por sí solo que entendió correctamente todos los documentos o instrucciones.
 
-Al guardar, el PDF original queda como referencia visual y la revisión aparece en el historial y en las opciones de asignación por estación. La SOP solo queda disponible para operadores cuando Administración habilita la estación y la asigna explícitamente. El historial registra la revisión, el nombre del archivo, quién la cargó, fecha, hojas y cantidad de pasos; una revisión anterior puede volver a asignarse sin afectar otras estaciones. Cada validación conserva `sopDocumentId`, `sopRevision` y `sopVersionId`; los registros y evidencias anteriores no se reescriben.
+Al guardar, el PDF original queda como referencia visual y la revisión aparece en el catálogo. Cada revisión guarda su estación y se mantiene oculta al operador hasta ser habilitada por Administración. El historial registra revisión, nombre del archivo, quién la cargó, fecha, hojas y cantidad de pasos. Habilitar una revisión nueva del mismo identificador deshabilita la anterior; las SOP de otros identificadores pueden estar habilitadas al mismo tiempo en una estación. Cada validación conserva `sopDocumentId`, `sopRevision` y `sopVersionId`; los registros y evidencias anteriores no se reescriben.
 
 Las versiones se guardan en IndexedDB y quedan disponibles para los usuarios que inicien sesión en **ese mismo navegador, perfil y origen local**. No se sincronizan a otros equipos, perfiles ni navegadores; para compartirlas a distancia o centralizar evidencias se necesita un backend. Borrar los datos del sitio puede eliminar las versiones, por lo que se deben conservar los PDF originales como respaldo.
 
 ## Persistencia y límites
 
-La aplicación no tiene backend. Los registros de validación, trabajos (incluido el avance de la SOP guiada), perfiles de demostración y bitácora se guardan en `localStorage`; la sesión activa vive en `sessionStorage`; las evidencias, los PDF fuente y las asignaciones de revisiones por estación se guardan en IndexedDB. Las versiones y asignaciones usan la base `sop-operador-sop-versions-v1`. Las claves locales de perfiles/bitácora incluyen `sop-operador-local-users-v1`, `sop-operador-active-user-v1`, `sop-operador-auth-session-v1`, `sop-operador-audit-trail-v1` y `sop-operador-audit-session-v1`. Esto significa que:
+La aplicación no tiene backend. Los registros de validación, trabajos (incluido el avance de la SOP guiada), perfiles de demostración y bitácora se guardan en `localStorage`; la sesión activa vive en `sessionStorage`; las evidencias, los PDF fuente, las versiones y la disponibilidad/estación de cada SOP se guardan en IndexedDB. Las versiones y configuración del catálogo usan la base `sop-operador-sop-versions-v1`. Las claves locales de perfiles/bitácora incluyen `sop-operador-local-users-v1`, `sop-operador-active-user-v1`, `sop-operador-auth-session-v1`, `sop-operador-audit-trail-v1` y `sop-operador-audit-session-v1`. Esto significa que:
 
 - Los datos pertenecen al perfil de navegador y al origen local que se usó para abrir la aplicación.
 - Los usuarios que inicien sesión en el mismo perfil de navegador usan esos mismos datos; otros equipos, perfiles y navegadores no los comparten.
@@ -165,7 +166,7 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | --- | --- |
 | `index.html` | Documento inicial, CSS y orden de carga de scripts. |
 | `src/data/sopData.js` | Metadata de la SOP, los 42 procedimientos, pasos, referencias visuales, categorías y registros ficticios. |
-| `src/data/workStations.js` | Catálogo MFG/RWK y resolución automática de la versión SOP por estación. |
+| `src/data/workStations.js` | Catálogo MFG/RWK y resolución de las SOP habilitadas para cada estación. |
 | `src/user-control.js` | Perfiles de demostración, selector de usuario, roles ilustrativos, gestión local y bitácora del navegador. |
 | `src/app.js` | Estado de pantalla, recorrido activo, usuario conectado, guardado de registros y composición de vistas. |
 | `src/interactions.js` | Eventos de navegación, formularios, búsqueda, diálogos, imágenes y evidencia. |
@@ -188,7 +189,7 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | `scripts/prepare-sites-build.mjs` | Copia el worker y la configuración de hosting a `dist` para empaquetado de Sites. No se requiere para desarrollo local. |
 | `tests/sites-worker.test.mjs` | Pruebas del comportamiento del worker y de los archivos del paquete de Sites; no cubren todo el flujo de la interfaz. |
 | `tests/sop-version-control.test.mjs` | Extracción de los 132 pasos de la SOP de referencia y restricción de administración a 140784. |
-| `tests/work-stations.test.mjs` | Asignación automática, prioridad de la versión activa, selección de la última versión por estación y fallback de RWK. |
+| `tests/work-stations.test.mjs` | Visibilidad por estación, selección entre SOP habilitadas, revisión exacta y respeto del estado habilitado/deshabilitado. |
 | `tests/sop-run.test.mjs` | Bloqueo de avance si faltan pasos, progreso por hoja y confirmación solo al completar el recorrido. |
 | `.openai/hosting.json` | Configuración de hosting actual: sin bindings configurados para D1 o R2. |
 | `src/views/procedure (1).js` | Archivo presente en el repositorio que no se carga desde `index.html`; la vista activa es `src/views/procedure.js`. |

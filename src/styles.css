@@ -395,8 +395,8 @@ button { color: inherit; }
 .station-choice-copy { min-width: 0; display: grid; gap: 4px; padding-left: 12px; border-left: 1px solid #d2dce7; }
 .station-choice-copy strong { color: #1d3250; font-size: 14px; }
 .station-choice-copy small { color: #65768c; font-size: 10px; line-height: 1.45; }
-.station-choice-selector { grid-column: 2 / 4; display: flex; align-items: center; gap: 12px; padding-top: 3px; color: #344862; font-size: 11px; font-weight: 700; }
-.station-choice-selector select { width: min(100%, 330px); min-height: 36px; padding: 0 10px; border: 1px solid #cbd6e2; border-radius: 7px; color: #203650; background: #fff; font-size: 12px; }
+.station-choice-selector, .station-choice-sop-selector { grid-column: 2 / 4; min-width: 0; display: flex; align-items: center; gap: 12px; padding-top: 3px; color: #344862; font-size: 11px; font-weight: 700; }
+.station-choice-selector select, .station-choice-sop-selector select { width: min(100%, 420px); min-width: 0; min-height: 36px; padding: 0 10px; border: 1px solid #cbd6e2; border-radius: 7px; color: #203650; background: #fff; font-size: 12px; }
 .station-asset-section { padding: 13px 16px 15px; border: 1px solid #dce3eb; border-radius: 10px; background: #fff; }
 .station-asset-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 32px; row-gap: 13px; margin-top: 14px; }
 .station-asset-grid label { min-width: 0; display: grid; gap: 6px; color: #203550; font-size: 12px; font-weight: 700; }
@@ -1256,24 +1256,31 @@ td small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px;
 .station-choice--disabled:hover { border-color: #d9e1e9; }
 .station-choice-status { grid-column: 2 / 4; color: #187045; font-size: 10px; line-height: 1.4; }
 .station-choice-status--disabled { color: #835409; }
-.sop-station-assignment-manager { display: grid; gap: 10px; margin: 15px 0 19px; padding: 16px; border: 1px solid #dce3eb; border-radius: 11px; background: #f7fafc; }
-.sop-station-assignment-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.sop-station-assignment-heading h3 { margin: 2px 0 0; color: #213752; font-size: 15px; }
-.sop-station-assignment-heading > .material-symbols-rounded { width: 37px; height: 37px; display: grid; place-items: center; border-radius: 10px; color: #fff; background: #1e577e; }
-.sop-station-assignment-manager > p { margin: 0; color: #596d84; font-size: 10px; line-height: 1.5; }
-.sop-station-assignment-list { display: grid; gap: 8px; }
-.sop-station-assignment-row { display: grid; grid-template-columns: minmax(180px,.8fr) minmax(250px,1.3fr); align-items: center; gap: 14px; padding: 11px 12px; border: 1px solid #dce4ec; border-radius: 8px; background: #fff; }
-.sop-station-assignment-toggle { min-width: 0; display: flex; align-items: center; gap: 9px; color: #213752; cursor: pointer; }
-.sop-station-assignment-toggle input { width: 17px; height: 17px; margin: 0; accent-color: #17804d; }
-.sop-station-assignment-toggle span { min-width: 0; display: grid; gap: 3px; }
-.sop-station-assignment-toggle strong { font-size: 11px; }
-.sop-station-assignment-toggle small { color: #69798d; font-size: 9px; line-height: 1.3; }
-.sop-station-assignment-version { min-width: 0; display: grid; gap: 5px; color: #41556d; font-size: 9px; font-weight: 700; }
-.sop-station-assignment-version select { width: 100%; min-height: 36px; padding: 0 9px; border: 1px solid #cbd6e2; border-radius: 6px; color: #203650; background: #fff; font-size: 10px; }
-.sop-station-assignment-version select:disabled { color: #8995a4; background: #f0f2f4; }
-.sop-station-assignment-manager form > .button { min-height: 38px; margin-top: 9px; font-size: 10px; }
+.sop-catalog-manager { display: grid; gap: 10px; margin: 15px 0 19px; padding: 16px; border: 1px solid #dce3eb; border-radius: 11px; background: #f7fafc; }
+.sop-catalog-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sop-catalog-heading h3 { margin: 2px 0 0; color: #213752; font-size: 15px; }
+.sop-catalog-heading > .material-symbols-rounded { width: 37px; height: 37px; display: grid; place-items: center; border-radius: 10px; color: #fff; background: #1e577e; }
+.sop-catalog-manager > p { margin: 0; color: #596d84; font-size: 10px; line-height: 1.5; }
+.sop-catalog-list { display: grid; gap: 8px; max-height: 480px; overflow: auto; }
+.sop-catalog-row { display: grid; grid-template-columns: minmax(190px,1.25fr) minmax(170px,.8fr) minmax(175px,.7fr) max-content; align-items: center; gap: 12px; padding: 11px 12px; border: 1px solid #dce4ec; border-radius: 8px; background: #fff; }
+.sop-catalog-copy { min-width: 0; }
+.sop-catalog-copy strong, .sop-catalog-copy small { display: block; }
+.sop-catalog-copy strong { color: #213752; font-size: 11px; line-height: 1.4; }
+.sop-catalog-copy small { margin-top: 4px; color: #69798d; font-size: 9px; line-height: 1.4; overflow-wrap: anywhere; }
+.sop-catalog-station { min-width: 0; display: grid; gap: 5px; color: #41556d; font-size: 9px; font-weight: 700; }
+.sop-catalog-station select { width: 100%; min-height: 36px; padding: 0 9px; border: 1px solid #cbd6e2; border-radius: 6px; color: #203650; background: #fff; font-size: 10px; }
+.sop-catalog-enabled { min-width: 0; display: flex; align-items: center; gap: 8px; color: #213752; cursor: pointer; }
+.sop-catalog-enabled input { width: 17px; height: 17px; flex: 0 0 auto; margin: 0; accent-color: #17804d; }
+.sop-catalog-enabled span { min-width: 0; display: grid; gap: 3px; }
+.sop-catalog-enabled strong { font-size: 10px; }
+.sop-catalog-enabled small { color: #69798d; font-size: 9px; line-height: 1.3; }
+.sop-catalog-row > .text-button { font-size: 10px; }
+.sop-catalog-manager form > .button { min-height: 38px; margin-top: 9px; font-size: 10px; }
+.sop-catalog-empty { margin: 0; padding: 14px; color: var(--muted); font-size: 11px; }
 @media (max-width: 650px) {
   .station-choice-status { grid-column: 2 / 4; font-size: 9px; }
-  .sop-station-assignment-row { grid-template-columns: minmax(0,1fr); gap: 10px; }
-  .sop-station-assignment-manager { padding: 11px; }
+  .station-choice-selector, .station-choice-sop-selector { grid-column: 2 / 4; align-items: flex-start; flex-direction: column; gap: 5px; }
+  .station-choice-selector select, .station-choice-sop-selector select { width: 100%; }
+  .sop-catalog-row { grid-template-columns: minmax(0,1fr); gap: 10px; }
+  .sop-catalog-manager { padding: 11px; }
 }
