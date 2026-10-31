@@ -2,7 +2,7 @@ const SOP_VERSION_DATABASE = "sop-operador-sop-versions-v1";
 const SOP_VERSION_STORE = "versions";
 const SOP_VERSION_SETTINGS = "settings";
 const SOP_VERSION_ACTIVE_KEY = "active-version";
-const SOP_VERSION_MAX_IMAGE_BYTES = 100 * 1024 * 1024;
+const SOP_VERSION_MAX_PDF_BYTES = 100 * 1024 * 1024;
 
 function canManageSopVersions(user = getActiveLocalUser()) {
   return String(user?.employeeNumber ?? "") === "140784" && user?.role === "admin";
@@ -167,83 +167,253 @@ function hasOpenSopWork(state, targetVersionId = state.sopVersionMeta?.id ?? BUI
     && (item.sopVersionId ?? BUILT_IN_SOP_VERSION_ID) !== targetVersionId);
 }
 
-function normalizeSopImageReference(reference, filesByName, context) {
-  const filename = typeof reference === "string" ? reference : reference?.file;
-  if (!filename) return null;
-  const file = filesByName.get(filename);
-  if (!file) throw new Error(`Falta la imagen «${filename}» referenciada en ${context}.`);
-  return { blob: file, name: file.name };
+let sopPdfJsPromise;
+
+async function loadSopPdfJs() {
+  if (!sopPdfJsPromise) {
+    sopPdfJsPromise = import(new URL("./public/vendor/pdfjs/pdf.min.mjs", document.baseURI).href).then((pdfjs) => {
+      pdfjs.GlobalWorkerOptions.workerSrc = new URL("./public/vendor/pdfjs/pdf.worker.mjs", document.baseURI).href;
+      return pdfjs;
+    }).catch((error) => {
+      sopPdfJsPromise = null;
+      throw error;
+    });
+  }
+  return sopPdfJsPromise;
 }
 
-function normalizeSopPackage(manifest, imageFiles, pdfFile) {
-  if (!pdfFile || (!pdfFile.name.toLocaleLowerCase("es-MX").endsWith(".pdf") && pdfFile.type !== "application/pdf") || !pdfFile.size) {
-    throw new Error("Selecciona el PDF fuente de esta revisión.");
-  }
-  if (pdfFile.size > SOP_VERSION_MAX_IMAGE_BYTES) throw new Error("El PDF excede el límite local de 100 MB.");
-  const document = manifest?.document;
-  if (!document || !String(document.id ?? "").trim() || !String(document.title ?? "").trim() || !String(document.revision ?? "").trim()) {
-    throw new Error("El JSON debe incluir document.id, document.title y document.revision.");
-  }
-  if (!Array.isArray(manifest.procedures) || !manifest.procedures.length) {
-    throw new Error("Agrega al menos un procedimiento en procedures.");
-  }
-  if (manifest.procedures.length > 500) throw new Error("El paquete excede el límite de 500 procedimientos.");
+function normalizeExtractedSopText(value) {
+  return String(value ?? "").replace(/\s+/g, " ").replace(/\s+([,.;:!?])/g, "$1")
+    .replace(/([¿¡(])\s+/g, "$1").replace(/(\d)\.\s+(?=\d)/g, "$1.")
+    .replace(/\s*-\s*/g, "-").replace(/\bP\s+N\b/gi, "PN").trim();
+}
 
-  const totalImageBytes = imageFiles.reduce((total, file) => total + file.size, 0);
-  if (totalImageBytes > SOP_VERSION_MAX_IMAGE_BYTES) throw new Error("Las imágenes exceden el límite local de 100 MB por versión.");
-  const filesByName = new Map();
-  for (const file of imageFiles) {
-    if (filesByName.has(file.name)) throw new Error(`Hay más de una imagen llamada «${file.name}». Renombra los archivos para que sean únicos.`);
-    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error(`El archivo «${file.name}» no es JPG, PNG o WebP.`);
-    filesByName.set(file.name, file);
-  }
+function readSopMarker(items, index) {
+  const direct = items[index].str.trim().replace(/\s/g, "").match(/^(\d+(?:\.\d+)*\.?)-(.*)$/);
+  if (direct) return { id: direct[1].replace(/\.$/, ""), endIndex: index, tail: direct[2] };
 
-  const procedureIds = new Set();
-  const sheetNumbers = new Set();
-  const procedures = manifest.procedures.map((rawProcedure, procedureIndex) => {
-    const sheet = Number(rawProcedure.sheet);
-    const id = String(rawProcedure.id || `sheet-${sheet}`);
-    if (!Number.isInteger(sheet) || sheet < 1) throw new Error(`El procedimiento ${procedureIndex + 1} requiere un número de hoja entero mayor que cero.`);
-    if (procedureIds.has(id) || sheetNumbers.has(sheet)) throw new Error(`Los identificadores y números de hoja deben ser únicos (hoja ${sheet}).`);
-    if (!String(rawProcedure.category ?? "").trim() || !String(rawProcedure.title ?? "").trim() || !Array.isArray(rawProcedure.steps)) {
-      throw new Error(`El procedimiento de la hoja ${sheet} requiere category, title y una lista steps.`);
+  let combined = "";
+  let previous = null;
+  for (let endIndex = index; endIndex < Math.min(items.length, index + 8); endIndex += 1) {
+    const item = items[endIndex];
+    if (previous && item.x - (previous.x + previous.width) > 22) break;
+    combined += item.str.trim().replace(/\s/g, "");
+    const match = combined.match(/^(\d+(?:\.\d+)*\.?)-(.*)$/);
+    if (match) return { id: match[1].replace(/\.$/, ""), endIndex, tail: match[2] };
+    if (!/^\d+(?:\.\d+)*\.?$/.test(combined) && !/^\d*[.]?$/.test(combined)) break;
+    previous = item;
+  }
+  return null;
+}
+
+function isSopMarkerStart(items, index) {
+  if (index === 0) return true;
+  const previous = items[index - 1];
+  return items[index].x - (previous.x + previous.width) >= 18;
+}
+
+function isSopStepNumber(value) {
+  return /^(?:[1-9]\d{0,2})(?:\.\d+)*$/.test(String(value ?? ""));
+}
+
+function groupSopPdfRows(items) {
+  const rows = [];
+  for (const item of items) {
+    if (!item.str?.trim()) continue;
+    const y = item.transform[5];
+    let row = rows.find((candidate) => Math.abs(candidate.y - y) < 1.5);
+    if (!row) {
+      row = { y, items: [] };
+      rows.push(row);
     }
-    if (rawProcedure.steps.length > 500) throw new Error(`La hoja ${sheet} excede el límite de 500 pasos.`);
-    procedureIds.add(id);
-    sheetNumbers.add(sheet);
-    const stepNumbers = new Set();
-    const steps = rawProcedure.steps.map((rawStep, stepIndex) => {
-      const number = String(rawStep.number ?? "").trim();
-      const text = String(rawStep.text ?? "").trim();
-      if (!number || !text) throw new Error(`El paso ${stepIndex + 1} de la hoja ${sheet} requiere number y text.`);
-      if (stepNumbers.has(number)) throw new Error(`El número de paso ${number} está repetido en la hoja ${sheet}.`);
-      stepNumbers.add(number);
-      const images = (rawStep.images ?? []).map((reference, imageIndex) => {
-        const resolved = normalizeSopImageReference(reference, filesByName, `el paso ${number} de la hoja ${sheet}`);
-        if (!resolved) throw new Error(`Indica el archivo de imagen del recurso ${imageIndex + 1} del paso ${number}, hoja ${sheet}.`);
-        return { ...resolved, alt: String(reference?.alt || `Referencia del paso ${number}, hoja ${sheet}`) };
-      });
-      return { number, text, sourceNote: String(rawStep.sourceNote ?? ""), images };
-    });
-    const pageImage = rawProcedure.pageImage
-      ? normalizeSopImageReference(rawProcedure.pageImage, filesByName, `la hoja ${sheet}`)
-      : null;
-    const stepRange = String(rawProcedure.stepRange || (steps.length ? `${steps[0].number}–${steps.at(-1).number}` : ""));
-    return {
-      id, sheet, category: String(rawProcedure.category).trim(), title: String(rawProcedure.title).trim(),
-      stepRange, partNumber: String(rawProcedure.partNumber ?? ""), steps, pageImage,
-    };
-  });
+    row.items.push({ x: item.transform[4], y, width: item.width, str: item.str });
+  }
+  return rows.sort((a, b) => b.y - a.y).map((row) => ({
+    ...row,
+    items: row.items.sort((a, b) => a.x - b.x),
+  }));
+}
 
-  const maxSheet = Math.max(...procedures.map((procedure) => procedure.sheet));
+function readSopMarkersInRow(row, pageWidth) {
+  const markersByColumn = { left: [], right: [] };
+  for (let index = 0; index < row.items.length; index += 1) {
+    if (!isSopMarkerStart(row.items, index)) continue;
+    const marker = readSopMarker(row.items, index);
+    if (!marker || !isSopStepNumber(marker.id)) continue;
+    const column = row.items[index].x < pageWidth * 0.44 ? "left" : "right";
+    markersByColumn[column].push({ ...marker, index, x: row.items[index].x, column });
+  }
+  return { ...markersByColumn, all: [...markersByColumn.left, ...markersByColumn.right].sort((a, b) => a.index - b.index) };
+}
+
+function readSopRowText(items) {
+  return normalizeExtractedSopText(items.map((item) => item.str).join(" "));
+}
+
+function hasUsefulSopText(value) {
+  const text = normalizeExtractedSopText(value).replace(/^[\s([{"'¿¡]+/, "");
+  return (text.match(/\p{L}/gu) ?? []).length >= 4;
+}
+
+function isUsefulSopInstruction(value) {
+  const text = normalizeExtractedSopText(value).replace(/^[\s([{"'¿¡]+/, "");
+  return hasUsefulSopText(text) && !/^\d/.test(text);
+}
+
+function appendSopContinuation(instruction, continuation) {
+  const current = normalizeExtractedSopText(instruction);
+  const next = normalizeExtractedSopText(continuation);
+  if (!current) return next;
+  if (!next) return current;
+  if (current.endsWith("-")) {
+    return normalizeExtractedSopText(`${/^[a-záéíóúüñ]/i.test(next) ? current.slice(0, -1) : current}${next}`);
+  }
+  return normalizeExtractedSopText(`${current} ${next}`);
+}
+
+function compareSopStepNumbers(left, right) {
+  const leftParts = String(left).split(".").map(Number);
+  const rightParts = String(right).split(".").map(Number);
+  for (let index = 0; index < Math.max(leftParts.length, rightParts.length); index += 1) {
+    const difference = (leftParts[index] ?? -1) - (rightParts[index] ?? -1);
+    if (difference) return difference;
+  }
+  return 0;
+}
+
+function extractSopMetadata(text, fileName, sheetLabels) {
+  const documentId = text.match(/#\s*Control\s*:\s*([A-Z0-9][A-Z0-9._-]+)/i)?.[1] ?? "";
+  const revision = text.match(/\bRev\s*:\s*([A-Z0-9][A-Z0-9._-]*)/i)?.[1] ?? "1";
+  const baseName = String(fileName ?? "SOP").replace(/\.pdf$/i, "").replace(/[_-]+/g, " ").trim();
+  const totalSheets = Math.max(0, ...sheetLabels.map((label) => label.total));
+  return {
+    id: documentId || baseName || "SOP-NUEVA",
+    title: baseName || "SOP nueva",
+    revision,
+    family: "",
+    customer: "",
+    station: "",
+    nodePartNumber: "",
+    totalSheets,
+  };
+}
+
+async function extractSopPdfVersion(pdfFile, pdfjsOverride = null) {
+  if (!pdfFile || (!String(pdfFile.name ?? "").toLowerCase().endsWith(".pdf") && pdfFile.type !== "application/pdf") || !pdfFile.size) {
+    throw new Error("Selecciona un archivo PDF válido.");
+  }
+  if (pdfFile.size > SOP_VERSION_MAX_PDF_BYTES) throw new Error("El PDF excede el límite local de 100 MB.");
+
+  const pdfjs = pdfjsOverride ?? await loadSopPdfJs();
+  const assetRoot = new URL("./public/vendor/pdfjs/", globalThis.document.baseURI).href;
+  const loadingTask = pdfjs.getDocument({
+    data: new Uint8Array(await pdfFile.arrayBuffer()),
+    standardFontDataUrl: `${assetRoot}standard_fonts/`,
+    cMapUrl: `${assetRoot}cmaps/`,
+    cMapPacked: true,
+    disableWorker: typeof window === "undefined",
+    verbosity: pdfjs.VerbosityLevel?.ERROR,
+  });
+  const pdf = await loadingTask.promise;
+  const extractedPages = [];
+  const sheetLabels = [];
+  const pageTexts = [];
+  let readableCharacters = 0;
+
+  try {
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+      const page = await pdf.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: 1 });
+      const content = await page.getTextContent();
+      const fullText = content.items.map((item) => item.str).join(" ").replace(/\s+/g, " ");
+      pageTexts.push(fullText);
+      readableCharacters += fullText.length;
+      const label = fullText.match(/P[aá]gina\s*(\d+)\s*D\s*E\s*(\d+)/i);
+      if (label) sheetLabels.push({ sheet: Number(label[1]), total: Number(label[2]) });
+      const rows = groupSopPdfRows(content.items).filter((row) => row.y > viewport.height * 0.12 && row.y < viewport.height * 0.9);
+      const procedure = {
+        id: `sheet-${label ? Number(label[1]) : pageNumber}`,
+        sheet: label ? Number(label[1]) : pageNumber,
+        pdfPage: pageNumber,
+        category: "Procedimiento",
+        title: `Hoja ${label ? Number(label[1]) : pageNumber}`,
+        stepRange: "",
+        partNumber: "",
+        steps: [],
+      };
+      const activeByColumn = { left: null, right: null };
+
+      for (const row of rows) {
+        const markersByColumn = readSopMarkersInRow(row, viewport.width);
+        for (const column of ["left", "right"]) {
+          const hasBothActiveColumns = activeByColumn.left && activeByColumn.right;
+          const continuationBoundary = hasBothActiveColumns ? activeByColumn.right.startX - 30 : viewport.width * 0.44;
+          const columnItems = row.items.filter((item) => column === "left" ? item.x < continuationBoundary : item.x >= continuationBoundary);
+          const markers = markersByColumn[column];
+          if (markers.length) {
+            for (let markerIndex = 0; markerIndex < markers.length; markerIndex += 1) {
+              const marker = markers[markerIndex];
+              const nextMarker = markersByColumn.all.find((candidate) => candidate.index > marker.index);
+              const bodyItems = row.items.slice(marker.endIndex + 1, nextMarker?.index ?? row.items.length);
+              const text = readSopRowText([{ str: marker.tail }, ...bodyItems]);
+              if (!isUsefulSopInstruction(text)) continue;
+              const step = { number: marker.id, text, sourceNote: "", images: [] };
+              procedure.steps.push(step);
+              activeByColumn[column] = { step, y: row.y, startX: marker.x };
+            }
+            continue;
+          }
+
+          const active = activeByColumn[column];
+          if (!active) continue;
+          const lineGap = active.y - row.y;
+          const continuationItems = columnItems.filter((item) => item.x >= active.startX - 30);
+          const startX = continuationItems[0]?.x;
+          if (lineGap <= 0 || lineGap > 18) {
+            activeByColumn[column] = null;
+            continue;
+          }
+          if (startX === undefined || startX > active.startX + 60) continue;
+          const continuation = readSopRowText(continuationItems);
+          if (hasUsefulSopText(continuation)) {
+            active.step.text = appendSopContinuation(active.step.text, continuation);
+            active.y = row.y;
+          }
+        }
+      }
+
+      procedure.steps = procedure.steps.filter((step) => step.text);
+      if (procedure.steps.length) {
+        procedure.steps.sort((a, b) => compareSopStepNumbers(a.number, b.number));
+        procedure.stepRange = `${procedure.steps[0].number}–${procedure.steps.at(-1).number}`;
+        extractedPages.push(procedure);
+      }
+    }
+  } finally {
+    await pdf.destroy();
+  }
+
+  const processPages = extractedPages.filter((procedure) => procedure.sheet >= 5);
+  const procedures = processPages.length ? processPages : extractedPages;
+  const stepCount = procedures.reduce((total, procedure) => total + procedure.steps.length, 0);
+  if (!stepCount) {
+    if (readableCharacters < 100) {
+      throw new Error("El PDF parece escaneado o no contiene texto seleccionable. Guarda el mismo PDF con OCR de texto y vuelve a cargarlo.");
+    }
+    throw new Error("Se pudo leer el PDF, pero no se detectaron pasos con numeración y formato reconocibles. Revisa que sea la SOP controlada y no un escaneo sin OCR.");
+  }
+
+  const sopDocument = extractSopMetadata(pageTexts.join(" "), pdfFile.name, sheetLabels);
+  const sheetNumbers = procedures.map((procedure) => procedure.sheet).sort((a, b) => a - b);
+  const minSheet = sheetNumbers[0];
+  const maxSheet = sheetNumbers.at(-1);
+  sopDocument.totalSheets = Math.max(sopDocument.totalSheets, maxSheet);
   return {
     id: `sop-version-${crypto.randomUUID()}`,
     document: {
-      id: String(document.id).trim(), title: String(document.title).trim(), revision: String(document.revision).trim(),
-      family: String(document.family ?? ""), customer: String(document.customer ?? ""), station: String(document.station ?? ""),
-      nodePartNumber: String(document.nodePartNumber ?? ""), totalSheets: Math.max(maxSheet, Number(document.totalSheets) || maxSheet),
-      processSheets: procedures.filter((procedure) => procedure.steps.length).length,
-      processSheetRange: String(document.processSheetRange ?? ""),
+      ...sopDocument,
+      processSheets: procedures.length,
+      processSheetRange: `${minSheet}–${maxSheet}`,
       pdfPath: "",
     },
     pdf: { blob: pdfFile, name: pdfFile.name },
@@ -251,6 +421,50 @@ function normalizeSopPackage(manifest, imageFiles, pdfFile) {
     createdAt: new Date().toISOString(),
     createdBy: getActiveLocalUser().name,
   };
+}
+
+function validateSopDraft(draft) {
+  const version = structuredClone(draft);
+  const document = version.document;
+  for (const field of ["id", "title", "revision"]) {
+    if (!String(document[field] ?? "").trim()) throw new Error(`Completa el campo ${field === "id" ? "identificador" : field === "title" ? "título" : "revisión"} del documento.`);
+    document[field] = String(document[field]).trim();
+  }
+
+  const sheetNumbers = new Set();
+  const procedures = version.procedures.filter((procedure) => procedure.steps.length).map((procedure, procedureIndex) => {
+    const sheet = Number(procedure.sheet);
+    if (!Number.isInteger(sheet) || sheet < 1) throw new Error(`La hoja ${procedureIndex + 1} requiere un número entero mayor que cero.`);
+    if (sheetNumbers.has(sheet)) throw new Error(`Hay más de un procedimiento asignado a la hoja ${sheet}.`);
+    sheetNumbers.add(sheet);
+    const seenStepNumbers = new Set();
+    const steps = procedure.steps.map((step, stepIndex) => {
+      const number = String(step.number ?? "").trim();
+      const text = String(step.text ?? "").trim();
+      if (!number || !text) throw new Error(`Completa el número y el texto del paso ${stepIndex + 1} de la hoja ${sheet}.`);
+      if (seenStepNumbers.has(number)) throw new Error(`El paso ${number} está repetido en la hoja ${sheet}.`);
+      seenStepNumbers.add(number);
+      return { ...step, number, text, images: step.images ?? [] };
+    });
+    steps.sort((a, b) => compareSopStepNumbers(a.number, b.number));
+    return {
+      ...procedure,
+      id: `sheet-${sheet}`,
+      sheet,
+      title: String(procedure.title || `Hoja ${sheet}`).trim(),
+      category: String(procedure.category || "Procedimiento").trim(),
+      steps,
+      stepRange: `${steps[0].number}–${steps.at(-1).number}`,
+    };
+  });
+  if (!procedures.length) throw new Error("La SOP debe conservar al menos un paso de validación.");
+  procedures.sort((a, b) => a.sheet - b.sheet);
+  const sheets = procedures.map((procedure) => procedure.sheet);
+  document.totalSheets = Math.max(Number(document.totalSheets) || 0, ...sheets);
+  document.processSheets = procedures.length;
+  document.processSheetRange = `${sheets[0]}–${sheets.at(-1)}`;
+  version.procedures = procedures;
+  return version;
 }
 
 function formatSopVersionDate(value) {
@@ -261,9 +475,20 @@ function formatSopVersionDate(value) {
 
 function renderSopVersionPreview(version, state) {
   const stepCount = version.procedures.reduce((total, procedure) => total + procedure.steps.length, 0);
-  const rows = version.procedures.map((procedure) => `<li><strong>Hoja ${escapeHtml(procedure.sheet)} · ${escapeHtml(procedure.title)}</strong><span>${procedure.steps.length} pasos · ${escapeHtml(procedure.category)}</span></li>`).join("");
-  return `<section class="sop-version-preview" aria-labelledby="sop-version-preview-title"><h3 id="sop-version-preview-title">Vista previa · Rev. ${escapeHtml(version.document.revision)}</h3>
-    <p>${escapeHtml(version.document.title)} · ${version.procedures.length} hojas · ${stepCount} pasos</p><ul>${rows}</ul>
+  const procedureEditors = version.procedures.map((procedure, procedureIndex) => `<details class="sop-version-procedure" ${procedureIndex === 0 ? "open" : ""}>
+    <summary><strong>Hoja ${escapeHtml(procedure.sheet)} · ${escapeHtml(procedure.title)}</strong><span>${procedure.steps.length} pasos</span></summary>
+    <label class="sop-version-sheet-title">Nombre de la hoja<input type="text" data-procedure-index="${procedureIndex}" data-procedure-field="title" value="${escapeHtml(procedure.title)}" /></label>
+    <ol class="sop-version-step-editor">${procedure.steps.map((step, stepIndex) => `<li><label>Número<input type="text" data-procedure-index="${procedureIndex}" data-step-index="${stepIndex}" data-step-field="number" value="${escapeHtml(step.number)}" /></label>
+      <label>Instrucción<textarea rows="2" data-procedure-index="${procedureIndex}" data-step-index="${stepIndex}" data-step-field="text">${escapeHtml(step.text)}</textarea></label>
+      <button class="text-button sop-version-delete-step" type="button" data-action="delete-sop-step" data-procedure-index="${procedureIndex}" data-step-index="${stepIndex}" aria-label="Eliminar paso ${escapeHtml(step.number)} de la hoja ${escapeHtml(procedure.sheet)}">Eliminar paso</button></li>`).join("")}</ol>
+    <button class="text-button" type="button" data-action="add-sop-step" data-procedure-index="${procedureIndex}">Añadir paso a esta hoja</button>
+  </details>`).join("");
+  return `<section class="sop-version-preview" aria-labelledby="sop-version-preview-title"><h3 id="sop-version-preview-title">Revisa y corrige la extracción automática</h3>
+    <p>Se detectaron ${stepCount} pasos en ${version.procedures.length} hojas. Corrige números o textos, elimina falsos positivos y agrega pasos omitidos antes de activarla.</p>
+    <div class="sop-version-document-fields"><label>Identificador<input type="text" data-sop-document-field="id" value="${escapeHtml(version.document.id)}" /></label>
+      <label>Nombre de la SOP<input type="text" data-sop-document-field="title" value="${escapeHtml(version.document.title)}" /></label>
+      <label>Revisión<input type="text" data-sop-document-field="revision" value="${escapeHtml(version.document.revision)}" /></label></div>
+    <div class="sop-version-procedures">${procedureEditors}</div>
     <button class="button button--primary" type="button" data-action="publish-sop-version" ${state.sopVersionBusy || hasOpenSopWork(state, version.id) ? "disabled" : ""}>Guardar y activar esta revisión</button>
     ${hasOpenSopWork(state, version.id) ? '<p class="sop-version-blocked">Completa los trabajos abiertos con su revisión actual antes de activar esta versión.</p>' : ""}
   </section>`;
@@ -279,54 +504,64 @@ function renderSopVersionManager(state) {
   const error = state.sopDraftError ? `<p class="form-error" role="alert">${escapeHtml(state.sopDraftError)}</p>` : "";
   const preview = state.sopDraft ? renderSopVersionPreview(state.sopDraft, state) : "";
   return `<section class="sop-version-panel" aria-labelledby="sop-version-title"><div class="section-heading"><div class="section-title"><span class="heading-icon material-symbols-rounded" aria-hidden="true">rule_settings</span><div><p class="eyebrow">Solo cuenta 140784</p><h2 id="sop-version-title">Modificar SOP</h2></div></div></div>
-    <p class="sop-version-intro">Carga el PDF fuente, el JSON con los pasos y las imágenes referenciadas. El sistema valida y muestra la revisión antes de guardarla en este navegador.</p>
-    <form class="sop-version-form" id="sop-version-upload-form"><label>PDF fuente de la SOP<input name="pdf" type="file" accept="application/pdf,.pdf" required /></label><label>Archivo JSON de pasos<input name="manifest" type="file" accept="application/json,.json" required /></label>
-      <label>Imágenes indicadas en el JSON<input name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple /></label>
-      <div class="sop-version-actions"><button class="button button--primary" type="submit" ${state.sopVersionBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">preview</span>Validar y previsualizar</button><button class="text-button" type="button" data-action="download-sop-template">Descargar plantilla JSON</button></div>
-      <p class="dialog-note"><span class="material-symbols-rounded" aria-hidden="true">info</span>Formatos de imagen: JPG, PNG o WebP. PDF e imágenes: máximo 100 MB cada uno. El PDF y las imágenes quedan dentro del almacenamiento local del navegador.</p>${error}</form>
+    <p class="sop-version-intro">Carga un solo PDF. El sistema lee sus páginas, detecta los pasos numerados y prepara una vista editable antes de activar la nueva revisión.</p>
+    <form class="sop-version-form" id="sop-version-upload-form"><label>Archivo PDF de la SOP<input name="pdf" type="file" accept="application/pdf,.pdf" required /></label>
+      <div class="sop-version-actions"><button class="button button--primary" type="submit" ${state.sopVersionBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.sopVersionBusy ? "hourglass_top" : "auto_awesome"}</span>${state.sopVersionBusy ? "Leyendo y extrayendo pasos…" : "Cargar PDF y detectar pasos"}</button></div>
+      <p class="dialog-note"><span class="material-symbols-rounded" aria-hidden="true">info</span>PDF de hasta 100 MB. El archivo debe contener texto seleccionable y conservar la numeración de pasos del formato SOP. Un escaneo sin OCR no se puede interpretar automáticamente.</p>${error}</form>
     ${preview}
     <section class="sop-version-history" aria-labelledby="sop-version-history-title"><h3 id="sop-version-history-title">Versiones de SOP guardadas en este navegador</h3><ul>${historyRows}</ul></section>
-    <p class="sop-version-warning">Los cambios solo están disponibles en este navegador y perfil. Exporta o conserva los archivos originales para tener respaldo. Las evidencias ya guardadas conservarán la revisión con la que se registraron.</p>
+    <p class="sop-version-warning">Las revisiones se guardan en este navegador. Los demás usuarios que entren desde este mismo navegador verán la revisión activa; otros equipos o perfiles no se sincronizan automáticamente. Conserva el PDF original como respaldo. Las evidencias previas conservarán su revisión.</p>
   </section>`;
 }
 
-function renderSopTemplateDownload() {
-  return {
-    document: {
-      id: "SOP-EJEMPLO-001", title: "Nombre de la SOP", revision: "1", family: "GB200", customer: "Nvidia Racks",
-      station: "Rework", nodePartNumber: "", totalSheets: 1, processSheetRange: "1",
-    },
-    procedures: [{
-      id: "sheet-1", sheet: 1, category: "Chasis", title: "Nombre del procedimiento", stepRange: "1–2", partNumber: "",
-      pageImage: "hoja-1.jpg",
-      steps: [
-        { number: "1", text: "Describe la acción que debe ejecutar el operador.", images: [{ file: "paso-1.jpg", alt: "Referencia del paso 1" }] },
-        { number: "2", text: "Describe la siguiente acción.", images: [] },
-      ],
-    }],
-  };
-}
-
-function downloadSopTemplate() {
-  const blob = new Blob([JSON.stringify(renderSopTemplateDownload(), null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = "plantilla-sop.json";
-  anchor.click();
-  URL.revokeObjectURL(url);
-}
-
 function bindSopVersionInteractions(app, { state, render, showToast }) {
+  app.addEventListener("input", (event) => {
+    if (!canManageSopVersions() || !state.sopDraft) return;
+    if (state.sopDraftError) {
+      state.sopDraftError = "";
+      app.querySelector(".sop-version-panel .form-error")?.remove();
+    }
+    const documentField = event.target.dataset.sopDocumentField;
+    if (documentField) {
+      state.sopDraft.document[documentField] = event.target.value;
+      return;
+    }
+    const procedureIndex = Number(event.target.dataset.procedureIndex);
+    if (!Number.isInteger(procedureIndex)) return;
+    const procedure = state.sopDraft.procedures[procedureIndex];
+    if (!procedure) return;
+    const procedureField = event.target.dataset.procedureField;
+    if (procedureField) {
+      procedure[procedureField] = event.target.value;
+      return;
+    }
+    const stepIndex = Number(event.target.dataset.stepIndex);
+    const stepField = event.target.dataset.stepField;
+    if (stepField && procedure.steps[stepIndex]) procedure.steps[stepIndex][stepField] = event.target.value;
+  });
+
   app.addEventListener("click", async (event) => {
     const action = event.target.closest("[data-action]");
     if (!action || !app.contains(action)) return;
-    if (action.dataset.action === "download-sop-template") {
-      if (canManageSopVersions()) downloadSopTemplate();
+    if (action.dataset.action === "add-sop-step" || action.dataset.action === "delete-sop-step") {
+      if (!canManageSopVersions() || !state.sopDraft) return;
+      const procedure = state.sopDraft.procedures[Number(action.dataset.procedureIndex)];
+      if (!procedure) return;
+      state.sopDraftError = "";
+      if (action.dataset.action === "add-sop-step") procedure.steps.push({ number: "", text: "", sourceNote: "", images: [] });
+      else procedure.steps.splice(Number(action.dataset.stepIndex), 1);
+      render();
     } else if (action.dataset.action === "publish-sop-version") {
       if (!canManageSopVersions() || !state.sopDraft) return;
       if (hasOpenSopWork(state, state.sopDraft.id)) {
         showToast("Finaliza los trabajos abiertos antes de cambiar la versión activa de la SOP.", "warning");
+        return;
+      }
+      try {
+        state.sopDraft = validateSopDraft(state.sopDraft);
+      } catch (error) {
+        state.sopDraftError = error?.message || "Corrige los campos incompletos antes de guardar.";
+        render();
         return;
       }
       state.sopVersionBusy = true;
@@ -382,15 +617,11 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
     }
     const form = event.target;
     const pdfFile = form.elements.namedItem("pdf").files?.[0];
-    const manifestFile = form.elements.namedItem("manifest").files?.[0];
-    const imageFiles = [...(form.elements.namedItem("images").files ?? [])];
     state.sopVersionBusy = true;
     state.sopDraftError = "";
     render();
     try {
-      if (!manifestFile) throw new Error("Selecciona el archivo JSON de la SOP.");
-      const manifest = JSON.parse(await manifestFile.text());
-      state.sopDraft = normalizeSopPackage(manifest, imageFiles, pdfFile);
+      state.sopDraft = await extractSopPdfVersion(pdfFile);
       state.sopDraftError = "";
     } catch (error) {
       state.sopDraft = null;
