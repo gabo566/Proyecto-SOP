@@ -291,6 +291,10 @@ button { color: inherit; }
 
 /* Recorrido de SOP: hoja original y checklist alineados como una sola estación de trabajo. */
 .sop-execution-panel { display: grid; gap: 8px; }
+.sop-execution-panel > .operator-flow-progress { max-width: 900px; gap: 5px; margin: 4px auto 8px; }
+.sop-execution-panel > .operator-flow-progress .operator-flow-step { gap: 4px; }
+.sop-execution-panel > .operator-flow-progress .operator-flow-step > span { width: 31px; height: 31px; font-size: 12px; }
+.sop-execution-panel > .operator-flow-progress > i { margin-top: 14px; }
 .sop-document-selector { display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 8px; padding: 6px 9px; }
 .sop-document-selector .selector-fields { display: grid; grid-template-columns: max-content minmax(0,1fr); align-items: center; gap: 9px; min-width: 0; }
 .sop-document-selector .selector-fields label { margin: 0; color: #46566a; font-size: 11px; font-weight: 650; white-space: nowrap; }
@@ -308,6 +312,28 @@ button { color: inherit; }
 .sop-page-checklist-layout { grid-template-columns: minmax(0,1.75fr) minmax(330px,.9fr); gap: 9px; align-items: stretch; }
 .sop-page-checklist-layout > .guided-sop-page,
 .sop-page-checklist-layout > .guided-checklist-panel { min-height: min(70vh, 760px); max-height: min(78vh, 920px); padding: 10px; border-radius: 10px; }
+.sop-page-checklist-layout[data-page-zoom="110"] .guided-pdf-viewport,
+.sop-page-checklist-layout[data-page-zoom="120"] .guided-pdf-viewport,
+.sop-page-checklist-layout[data-page-zoom="130"] .guided-pdf-viewport,
+.sop-page-checklist-layout[data-page-zoom="140"] .guided-pdf-viewport,
+.sop-page-checklist-layout[data-page-zoom="150"] .guided-pdf-viewport { justify-content: flex-start; align-items: flex-start; }
+@media (min-width: 901px) {
+  .sop-page-checklist-layout[data-page-zoom="110"],
+  .sop-page-checklist-layout[data-page-zoom="120"] { grid-template-columns: minmax(0,1.95fr) minmax(320px,.86fr); }
+  .sop-page-checklist-layout[data-page-zoom="110"] > .guided-sop-page,
+  .sop-page-checklist-layout[data-page-zoom="110"] > .guided-checklist-panel,
+  .sop-page-checklist-layout[data-page-zoom="120"] > .guided-sop-page,
+  .sop-page-checklist-layout[data-page-zoom="120"] > .guided-checklist-panel { min-height: min(74vh, 800px); max-height: min(84vh, 980px); }
+  .sop-page-checklist-layout[data-page-zoom="130"],
+  .sop-page-checklist-layout[data-page-zoom="140"],
+  .sop-page-checklist-layout[data-page-zoom="150"] { grid-template-columns: minmax(0,2.2fr) minmax(300px,.78fr); }
+  .sop-page-checklist-layout[data-page-zoom="130"] > .guided-sop-page,
+  .sop-page-checklist-layout[data-page-zoom="130"] > .guided-checklist-panel,
+  .sop-page-checklist-layout[data-page-zoom="140"] > .guided-sop-page,
+  .sop-page-checklist-layout[data-page-zoom="140"] > .guided-checklist-panel,
+  .sop-page-checklist-layout[data-page-zoom="150"] > .guided-sop-page,
+  .sop-page-checklist-layout[data-page-zoom="150"] > .guided-checklist-panel { min-height: min(78vh, 840px); max-height: min(90vh, 1040px); }
+}
 .guided-page-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 35px; }
 .guided-page-heading { display: flex; align-items: center; gap: 7px; color: #253c56; }
 .guided-page-heading > .material-symbols-rounded { color: #315b87; font-size: 18px; }
@@ -346,11 +372,8 @@ button { color: inherit; }
 .guided-sheet-actions .guided-continue-button { min-width: 0; flex: 1 1 auto; }
 .guided-sheet-actions .guided-continue-button:disabled { color: #fff; background: #aab3bd; border-color: #aab3bd; box-shadow: none; cursor: not-allowed; }
 .guided-sheet-actions .guided-previous-button { flex: 0 0 auto; }
-.guided-checklist-operator { display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid #e5eaf0; }
-.guided-checklist-operator > span:nth-child(2) { min-width: 0; display: grid; gap: 2px; }
-.guided-checklist-operator strong { overflow: hidden; color: #2a3d52; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
-.guided-checklist-operator small { color: var(--muted); font-size: 8px; }
-.guided-checklist-operator .guided-progress-copy { margin-left: auto; white-space: nowrap; }
+.guided-return-selection { width: 100%; min-height: 36px; display: inline-flex; justify-content: center; align-items: center; gap: 7px; font-size: 10px; }
+.guided-return-selection .material-symbols-rounded { font-size: 17px; }
 .sop-version-row-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
 .sop-version-note { margin: 0; padding: 9px 11px; border-radius: 7px; color: #3d526b; background: #eef5fb; font-size: 10px; line-height: 1.5; }
 
@@ -424,16 +447,17 @@ button { color: inherit; }
 .station-intake-continue:disabled { color: #fff; border-color: #aeb8c4; background: #aeb8c4; box-shadow: none; cursor: not-allowed; }
 .station-intake-continue .material-symbols-rounded { font-size: 20px; }
 .station-intake-footnote { margin: 10px 0 0; color: #738198; font-size: 10px; text-align: center; }
-.station-sop-context { display: grid; grid-template-columns: .8fr 1fr 1fr 1.5fr; gap: 0; overflow: hidden; border-radius: 10px; background: #edf6fe; }
-.station-context-tile { min-width: 0; display: flex; align-items: center; gap: 9px; padding: 9px 11px; }
+.station-sop-context { display: grid; grid-template-columns: .68fr .92fr .92fr 1fr 1.42fr; gap: 0; overflow: hidden; border-radius: 10px; background: #edf6fe; }
+.station-context-tile { min-width: 0; display: flex; align-items: center; gap: 7px; padding: 6px 8px; }
 .station-context-tile + .station-context-tile { border-left: 1px solid #ccdeed; }
-.station-context-tile > .material-symbols-rounded { width: 36px; height: 36px; flex: 0 0 36px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #2779bd; font-size: 19px; }
+.station-context-tile > .material-symbols-rounded { width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #2779bd; font-size: 16px; }
 .station-context-tile--station > .material-symbols-rounded { background: #11956e; }
 .station-context-tile--card > .material-symbols-rounded { background: #df8b18; }
+.station-context-tile--operator > .material-symbols-rounded { background: #536579; }
 .station-context-tile--sop > .material-symbols-rounded { background: #c91820; }
 .station-context-tile > span:last-child { min-width: 0; display: grid; gap: 2px; }
-.station-context-tile small { overflow-wrap: anywhere; color: #64758b; font-size: 9px; }
-.station-context-tile strong { overflow-wrap: anywhere; color: #213752; font-size: 10px; line-height: 1.35; }
+.station-context-tile small { overflow-wrap: anywhere; color: #64758b; font-size: 8px; line-height: 1.25; }
+.station-context-tile strong { overflow-wrap: anywhere; color: #213752; font-size: 9px; line-height: 1.3; }
 .operator-flow-progress--compact { max-width: 800px; margin: 1px auto 4px; }
 .operator-flow-progress--compact .operator-flow-step > span { width: 28px; height: 28px; font-size: 11px; }
 .operator-flow-progress--compact > i { margin-top: 12px; }
@@ -444,9 +468,9 @@ button { color: inherit; }
   .station-work-summary { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .station-summary-sop { grid-column: 1 / -1; border-top: 1px solid #c6d8e8; }
   .station-summary-item + .station-summary-sop { border-left: 0; }
-  .station-sop-context { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .station-context-tile:nth-child(3) { border-left: 0; }
-  .station-context-tile:nth-child(n+3) { border-top: 1px solid #ccdeed; }
+  .station-sop-context { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .station-context-tile:nth-child(4) { border-left: 0; }
+  .station-context-tile:nth-child(n+4) { border-top: 1px solid #ccdeed; }
 }
 @media (max-width: 650px) {
   .station-intake-screen { padding: 0 12px 18px; }
@@ -491,7 +515,7 @@ button { color: inherit; }
   .station-sop-context { grid-template-columns: minmax(0,1fr); }
   .station-context-tile { padding: 7px 9px; }
   .station-context-tile + .station-context-tile { border-top: 1px solid #ccdeed; border-left: 0; }
-  .station-context-tile:nth-child(3) { border-top: 1px solid #ccdeed; }
+  .station-context-tile:nth-child(n+2) { border-top: 1px solid #ccdeed; }
   .station-context-tile--sop { grid-column: auto; }
 }
 

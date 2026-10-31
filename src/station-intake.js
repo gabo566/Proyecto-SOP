@@ -17,6 +17,12 @@ async function prepareStationSop(state) {
       message: `No hay una SOP habilitada para ${assignment.type} · ${assignment.label}.`,
     };
   }
+  const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
+  const activeAssignment = activeWork?.form?.stationAssignment ?? state.form.stationAssignment;
+  const activeVersionId = activeWork?.sopVersionId ?? state.sopRun?.versionId;
+  if (state.activeWorkId && (assignment.value !== activeAssignment || version.id !== activeVersionId)) {
+    return { ok: false, message: "Este trabajo ya inició con su estación y SOP/revisión originales. Detén el trabajo antes de cambiar el procedimiento." };
+  }
 
   const savedForm = { ...state.form, stationAssignment: assignment.value, sopVersionId: version.id };
   const currentVersionId = state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID;

@@ -75,7 +75,12 @@ async function renderSopPagePreview() {
     const fitScale = Math.min(availableWidth / naturalViewport.width, availableHeight / naturalViewport.height);
     const scale = Math.max(0.2, fitScale * zoom / 100);
     const pageViewport = page.getViewport({ scale });
-    const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+    const outputScale = Math.max(1, Math.min(
+      Math.max(window.devicePixelRatio || 1, 2),
+      3,
+      4096 / pageViewport.width,
+      4096 / pageViewport.height,
+    ));
     const context = canvas.getContext("2d", { alpha: false });
     if (!context) throw new Error("El navegador no pudo preparar el visor PDF.");
 

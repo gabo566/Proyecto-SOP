@@ -34,7 +34,8 @@ function renderStationSopContext(state, procedure) {
     <div class="station-context-tile station-context-tile--station"><span class="material-symbols-rounded" aria-hidden="true">factory</span><span><small>Estación</small><strong>${escapeHtml(stationLabel)}</strong></span></div>
     <div class="station-context-tile station-context-tile--node"><span class="material-symbols-rounded" aria-hidden="true">dns</span><span><small>Nodo</small><strong>PN ${escapeHtml(state.form.nodePartNumber || "—")}</strong><small>Serie ${escapeHtml(state.form.serial || "—")}</small></span></div>
     <div class="station-context-tile station-context-tile--card"><span class="material-symbols-rounded" aria-hidden="true">memory</span><span><small>Tarjeta</small><strong>PN ${escapeHtml(state.form.componentPartNumber || "—")}</strong><small>Serie ${escapeHtml(state.form.componentSerial || "—")}</small></span></div>
-    <div class="station-context-tile station-context-tile--sop"><span class="material-symbols-rounded" aria-hidden="true">description</span><span><small>SOP utilizada · ${escapeHtml(user.name)}</small><strong>${escapeHtml(document.title)}</strong><small>${escapeHtml(document.id)} · Rev. ${escapeHtml(document.revision)} · Hoja ${escapeHtml(procedure.sheet)}</small></span></div>
+    <div class="station-context-tile station-context-tile--operator"><span class="material-symbols-rounded" aria-hidden="true">person</span><span><small>Operador responsable</small><strong>${escapeHtml(user.name)}</strong><small>No. empleado ${escapeHtml(user.employeeNumber)}</small></span></div>
+    <div class="station-context-tile station-context-tile--sop"><span class="material-symbols-rounded" aria-hidden="true">description</span><span><small>SOP utilizada</small><strong>${escapeHtml(document.title)}</strong><small>${escapeHtml(document.id)} · Rev. ${escapeHtml(document.revision)} · Hoja ${escapeHtml(procedure.sheet)}</small></span></div>
   </section>`;
 }
 
@@ -67,7 +68,7 @@ function renderProcedurePanel(procedure, state) {
     ${renderOperatorFlowProgress(run.stage === "confirmation" ? 3 : 2)}
     ${renderStationSopContext(state, procedure)}
     ${ownerMessage}
-    <div class="guided-page-layout sop-page-checklist-layout">
+    <div class="guided-page-layout sop-page-checklist-layout" data-page-zoom="${pageZoom}">
       <section class="guided-sop-page" aria-label="Hoja completa ${escapeHtml(procedure.sheet)} de la SOP">
         <div class="guided-page-toolbar">
           <div class="guided-page-heading"><span class="material-symbols-rounded" aria-hidden="true">description</span><strong>Hoja ${escapeHtml(procedure.sheet)} <small>de ${escapeHtml(totalSheets)}</small></strong></div>
@@ -100,7 +101,7 @@ function renderProcedurePanel(procedure, state) {
             <button class="button button--primary guided-continue-button" type="button" data-action="${nextAction}" data-focus-key="continue-sop-sheet" ${!canOperate || run.stage !== "confirmation" && !isComplete ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${run.stage === "confirmation" ? "fact_check" : "arrow_forward"}</span>${nextLabel}</button>
           </div>
         </div>
-        <div class="guided-checklist-operator"><span class="profile-avatar">${escapeHtml(user.name.slice(0, 2).toLocaleUpperCase("es-MX"))}</span><span><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.position || "Técnico de FA")}</small></span><span class="guided-progress-copy">${progress.complete} / ${progress.total} SOP</span></div>
+        <button class="button button--secondary guided-return-selection" type="button" data-action="return-to-sop-selection" ${canOperate ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Regresar a selección de SOP</button>
       </section>
     </div>
   </section>`;
