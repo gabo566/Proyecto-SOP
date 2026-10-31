@@ -18,13 +18,8 @@ function persistWorkItems(items) {
   }
 }
 
-function isReworkWorkItem(item) {
-  return item?.workKind === "rework"
-    || getWorkStationAssignment(item?.form?.stationAssignment)?.type === "RWK";
-}
-
-function isActiveReworkWorkItem(item) {
-  return isReworkWorkItem(item) && ["En proceso", "Retrabajo en proceso"].includes(item.status);
+function isActiveHandoffWorkItem(item) {
+  return ["En proceso", "Retrabajo en proceso"].includes(item?.status);
 }
 
 function workItemStatusClass(status) {

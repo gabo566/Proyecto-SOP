@@ -200,24 +200,22 @@ function bindInteractions(app, handlers) {
       case "resume-work": resumeWorkItem(action.dataset.workId); break;
       case "open-operator-handoff": {
         const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
-        const canHandOffActiveWork = activeWork
-          ? isActiveReworkWorkItem(activeWork)
-          : getWorkStationAssignment(state.form.stationAssignment)?.type === "RWK";
+        const canHandOffActiveWork = !activeWork || isActiveHandoffWorkItem(activeWork);
         if (state.evidenceBusy) {
           showToast("Espera a que termine de guardarse la evidencia antes de cambiar el operador.", "warning");
           break;
         }
         if (!canHandOffActiveWork || !canOperateGuidedSopRun()) {
-          showToast("El cambio solo está disponible para el operador actual de un retrabajo RWK en curso.", "warning");
+          showToast("El cambio solo está disponible para el operador asignado a un trabajo activo.", "warning");
           break;
         }
         if (!persistWorkState()) {
-          showToast("No se pudo guardar el avance del retrabajo. Inténtalo de nuevo.", "warning");
+          showToast("No se pudo guardar el avance de la SOP. Inténtalo de nuevo.", "warning");
           break;
         }
         const savedWork = state.workItems.find((item) => item.id === state.activeWorkId);
-        if (!isActiveReworkWorkItem(savedWork)) {
-          showToast("No se pudo guardar un retrabajo RWK activo para entregar.", "warning");
+        if (!isActiveHandoffWorkItem(savedWork)) {
+          showToast("No se pudo guardar un trabajo activo para entregar.", "warning");
           break;
         }
         state.operatorHandoffError = "";
@@ -436,8 +434,8 @@ function bindInteractions(app, handlers) {
       const formData = new FormData(event.target);
       const result = handoffWorkOperator(String(formData.get("operatorUsername") ?? "").trim(), String(formData.get("operatorPassword") ?? ""));
       const errors = {
-        "not-rework": "No hay un retrabajo activo que se pueda transferir.",
-        "not-current-operator": "Solo el operador actualmente asignado puede entregar este retrabajo.",
+        "not-active-work": "No hay un trabajo SOP activo que se pueda transferir.",
+        "not-current-operator": "Solo el operador actualmente asignado puede entregar este trabajo.",
         "sop-loading": "Espera a que termine de cargarse la SOP y el historial local para cambiar de operador.",
         "invalid-credentials": "El número de empleado o la contraseña no son correctos, o la cuenta está inactiva.",
         "same-operator": "Ingresa las credenciales de otra persona para cambiar de operador.",

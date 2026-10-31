@@ -47,9 +47,8 @@ function renderProcedurePanel(procedure, state) {
   const checkedCount = procedure.steps.filter((step) => checkedSteps.has(String(step.number))).length;
   const canOperate = canOperateGuidedSopRun();
   const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
-  const isReworkStation = getWorkStationAssignment(state.form.stationAssignment)?.type === "RWK";
-  const hasHandoffTarget = isActiveReworkWorkItem(activeWork) || (!activeWork && isReworkStation);
-  const canHandoffRework = state.sopStorageReady && Boolean(run) && hasHandoffTarget && canOperate;
+  const hasHandoffTarget = !activeWork || isActiveHandoffWorkItem(activeWork);
+  const canHandoffOperator = state.sopStorageReady && Boolean(run) && state.operatorFlowReady && hasHandoffTarget && canOperate;
   const pageNumber = procedure.pdfPage ?? procedure.sheet;
   const totalSheets = Number(SOP_DOCUMENT.totalSheets) || 46;
   const pageZoom = Math.max(50, Math.min(150, Number(state.sopPageZoom) || 100));
@@ -73,7 +72,6 @@ function renderProcedurePanel(procedure, state) {
     ${renderOperatorFlowProgress(run.stage === "confirmation" ? 3 : 2)}
     ${renderStationSopContext(state, procedure)}
     ${ownerMessage}
-    ${canHandoffRework ? `<aside class="rework-handoff-banner" aria-label="Cambiar operador del retrabajo"><div class="rework-handoff-copy"><span class="material-symbols-rounded" aria-hidden="true">swap_horiz</span><span><strong>¿Necesitas entregar este retrabajo?</strong><small>El avance de la SOP se guardará antes de cambiar de operador.</small></span></div><button class="button button--primary guided-handoff-button" type="button" data-action="open-operator-handoff" data-focus-key="change-operator" ${state.evidenceBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.evidenceBusy ? "hourglass_top" : "swap_horiz"}</span>${state.evidenceBusy ? "Guardando evidencia…" : "Cambiar operador"}</button></aside>` : ""}
     <div class="guided-page-layout sop-page-checklist-layout" data-page-zoom="${pageZoom}">
       <section class="guided-sop-page" aria-label="Hoja completa ${escapeHtml(procedure.sheet)} de la SOP">
         <div class="guided-page-toolbar">
@@ -108,6 +106,7 @@ function renderProcedurePanel(procedure, state) {
           </div>
         </div>
         <div class="guided-work-utility-actions">
+          ${canHandoffOperator ? `<button class="button button--outlined guided-handoff-button" type="button" data-action="open-operator-handoff" data-focus-key="change-operator" ${state.evidenceBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.evidenceBusy ? "hourglass_top" : "swap_horiz"}</span>${state.evidenceBusy ? "Guardando avance…" : "Cambiar operador"}</button>` : ""}
           <button class="button button--secondary guided-return-selection" type="button" data-action="return-to-sop-selection" ${canOperate ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Regresar a selección de SOP</button>
         </div>
       </section>

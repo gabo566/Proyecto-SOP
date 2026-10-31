@@ -21,10 +21,10 @@ const {
   getEnabledWorkStationAssignments,
   getSopVersionStationAssignment,
   getWorkStationAssignment,
-  isActiveReworkWorkItem,
+  isActiveHandoffWorkItem,
   normalizeStationIntakeAssignment,
 } = vm.runInContext(
-  "({ findSopVersionForStation, getEnabledSopVersionsForStation, getEnabledWorkStationAssignments, getSopVersionStationAssignment, getWorkStationAssignment, isActiveReworkWorkItem, normalizeStationIntakeAssignment })",
+  "({ findSopVersionForStation, getEnabledSopVersionsForStation, getEnabledWorkStationAssignments, getSopVersionStationAssignment, getWorkStationAssignment, isActiveHandoffWorkItem, normalizeStationIntakeAssignment })",
   context,
 );
 
@@ -99,11 +99,12 @@ test("includes SYS_ASSY_1 and SYS_ASSY_2 as administrator-assignable MFG station
   assert.equal(findSopVersionForStation(state, "MFG:SYS_ASSY_2").id, sysAssy2.id);
 });
 
-test("treats an active RWK-station run as eligible for operator handoff", () => {
-  assert.equal(isActiveReworkWorkItem({ workKind: "guided", status: "En proceso", form: { stationAssignment: "RWK:RWK" } }), true);
-  assert.equal(isActiveReworkWorkItem({ workKind: "rework", status: "Retrabajo en proceso", form: { stationAssignment: "MFG:TDR" } }), true);
-  assert.equal(isActiveReworkWorkItem({ workKind: "guided", status: "En proceso", form: { stationAssignment: "MFG:TDR" } }), false);
-  assert.equal(isActiveReworkWorkItem({ workKind: "rework", status: "Pendiente de revisión", form: { stationAssignment: "RWK:RWK" } }), false);
+test("allows operator handoff for active MFG and RWK SOP work, but not closed work", () => {
+  assert.equal(isActiveHandoffWorkItem({ workKind: "guided", status: "En proceso", form: { stationAssignment: "RWK:RWK" } }), true);
+  assert.equal(isActiveHandoffWorkItem({ workKind: "guided", status: "En proceso", form: { stationAssignment: "MFG:TDR" } }), true);
+  assert.equal(isActiveHandoffWorkItem({ workKind: "rework", status: "Retrabajo en proceso", form: { stationAssignment: "MFG:TDR" } }), true);
+  assert.equal(isActiveHandoffWorkItem({ workKind: "guided", status: "Completado", form: { stationAssignment: "MFG:TDR" } }), false);
+  assert.equal(isActiveHandoffWorkItem({ workKind: "rework", status: "Pendiente de revisión", form: { stationAssignment: "RWK:RWK" } }), false);
 });
 
 test("normalizes a disabled SOP selection to the first available revision", () => {
