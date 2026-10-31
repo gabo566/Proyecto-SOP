@@ -4,6 +4,7 @@ import test from "node:test";
 import vm from "node:vm";
 
 const source = await readFile(new URL("../src/data/workStations.js", import.meta.url), "utf8");
+const workItemsSource = await readFile(new URL("../src/work-items.js", import.meta.url), "utf8");
 const context = vm.createContext({
   BUILT_IN_SOP_VERSION_ID: "__built-in-sop__",
   BUILT_IN_SOP_VERSION: {
@@ -13,15 +14,17 @@ const context = vm.createContext({
   },
 });
 vm.runInContext(source, context);
+vm.runInContext(workItemsSource, context);
 const {
   findSopVersionForStation,
   getEnabledSopVersionsForStation,
   getEnabledWorkStationAssignments,
   getSopVersionStationAssignment,
   getWorkStationAssignment,
+  isActiveReworkWorkItem,
   normalizeStationIntakeAssignment,
 } = vm.runInContext(
-  "({ findSopVersionForStation, getEnabledSopVersionsForStation, getEnabledWorkStationAssignments, getSopVersionStationAssignment, getWorkStationAssignment, normalizeStationIntakeAssignment })",
+  "({ findSopVersionForStation, getEnabledSopVersionsForStation, getEnabledWorkStationAssignments, getSopVersionStationAssignment, getWorkStationAssignment, isActiveReworkWorkItem, normalizeStationIntakeAssignment })",
   context,
 );
 
@@ -94,6 +97,13 @@ test("includes SYS_ASSY_1 and SYS_ASSY_2 as administrator-assignable MFG station
   );
   assert.equal(findSopVersionForStation(state, "MFG:SYS_ASSY_1").id, sysAssy1.id);
   assert.equal(findSopVersionForStation(state, "MFG:SYS_ASSY_2").id, sysAssy2.id);
+});
+
+test("treats an active RWK-station run as eligible for operator handoff", () => {
+  assert.equal(isActiveReworkWorkItem({ workKind: "guided", status: "En proceso", form: { stationAssignment: "RWK:RWK" } }), true);
+  assert.equal(isActiveReworkWorkItem({ workKind: "rework", status: "Retrabajo en proceso", form: { stationAssignment: "MFG:TDR" } }), true);
+  assert.equal(isActiveReworkWorkItem({ workKind: "guided", status: "En proceso", form: { stationAssignment: "MFG:TDR" } }), false);
+  assert.equal(isActiveReworkWorkItem({ workKind: "rework", status: "Pendiente de revisión", form: { stationAssignment: "RWK:RWK" } }), false);
 });
 
 test("normalizes a disabled SOP selection to the first available revision", () => {

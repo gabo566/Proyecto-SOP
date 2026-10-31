@@ -200,16 +200,24 @@ function bindInteractions(app, handlers) {
       case "resume-work": resumeWorkItem(action.dataset.workId); break;
       case "open-operator-handoff": {
         const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
+        const canHandOffActiveWork = activeWork
+          ? isActiveReworkWorkItem(activeWork)
+          : getWorkStationAssignment(state.form.stationAssignment)?.type === "RWK";
         if (state.evidenceBusy) {
           showToast("Espera a que termine de guardarse la evidencia antes de cambiar el operador.", "warning");
           break;
         }
-        if (activeWork?.workKind !== "rework" || activeWork.status !== "Retrabajo en proceso" || !canOperateGuidedSopRun()) {
-          showToast("El cambio solo está disponible para el operador actual de un retrabajo en curso.", "warning");
+        if (!canHandOffActiveWork || !canOperateGuidedSopRun()) {
+          showToast("El cambio solo está disponible para el operador actual de un retrabajo RWK en curso.", "warning");
           break;
         }
         if (!persistWorkState()) {
           showToast("No se pudo guardar el avance del retrabajo. Inténtalo de nuevo.", "warning");
+          break;
+        }
+        const savedWork = state.workItems.find((item) => item.id === state.activeWorkId);
+        if (!isActiveReworkWorkItem(savedWork)) {
+          showToast("No se pudo guardar un retrabajo RWK activo para entregar.", "warning");
           break;
         }
         state.operatorHandoffError = "";

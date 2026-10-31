@@ -56,7 +56,7 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
 
   function handoffOperator(username, password) {
     const item = state.workItems.find((workItem) => workItem.id === state.activeWorkId);
-    if (!item || item.workKind !== "rework" || item.status !== "Retrabajo en proceso") return "not-rework";
+    if (!isActiveReworkWorkItem(item)) return "not-rework";
     if (!state.sopStorageReady) return "sop-loading";
     if (!state.sopRun || !canOperateGuidedSopRun()) return "not-current-operator";
     const nextUser = verifyLocalUserCredentials(username, password);
