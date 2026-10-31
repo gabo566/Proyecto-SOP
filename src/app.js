@@ -47,6 +47,8 @@ const state = {
   sopPdfUpdating: false,
   sopVersionMeta: { id: BUILT_IN_SOP_VERSION_ID, revision: SOP_DOCUMENT.revision, builtIn: true },
   sopVersionHistory: [],
+  stationSopAssignments: {},
+  stationAssignmentsLoaded: false,
   sopDraft: null,
   sopDraftError: "",
   sopVersionBusy: false,
@@ -124,7 +126,11 @@ function canOperateGuidedSopRun() {
 function restoreOperatorFlowForSession() {
   const user = getAuthenticatedLocalUser();
   const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
-  if (!user || !activeWork) return;
+  if (!user) return;
+  if (!activeWork) {
+    normalizeStationIntakeAssignment(state);
+    return;
+  }
   if (activeWork.form?.employeeNumber !== user.employeeNumber) {
     state.activeWorkId = "";
     state.completedSteps = [];
@@ -145,6 +151,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     return;
   }
   if (!state.operatorFlowReady && !(state.activeSection === "sop-admin" && canManageSopVersions())) {
+    normalizeStationIntakeAssignment(state);
     app.innerHTML = renderStationIntake(state);
     return;
   }
@@ -600,4 +607,8 @@ restoreCurrentSopVersion(state).then(async () => {
   render();
 }).catch((error) => {
   console.error("No se pudo restaurar la versión local de la SOP.", error);
+  state.stationSopAssignments = { "RWK:RWK": { enabled: true, versionId: BUILT_IN_SOP_VERSION_ID } };
+  state.stationAssignmentsLoaded = true;
+  restoreOperatorFlowForSession();
+  render();
 });

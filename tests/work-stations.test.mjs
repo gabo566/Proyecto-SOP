@@ -53,3 +53,23 @@ test("uses the built-in RWK SOP as fallback and does not invent an MFG assignmen
   assert.equal(findSopVersionForStation(state, "MFG:TDR"), null);
   assert.equal(getWorkStationAssignment("MFG:TDR").type, "MFG");
 });
+
+test("respects the administrator's enabled station and exact assigned SOP revision", () => {
+  const earlier = makeVersion("mfg-rev-4", "MFG:TDR", "2025-01-01T00:00:00.000Z");
+  const latest = makeVersion("mfg-rev-5", "MFG:TDR", "2025-02-01T00:00:00.000Z");
+  const activeRwk = makeVersion("active-rwk", "RWK:RWK", "2025-03-01T00:00:00.000Z");
+  const state = {
+    stationAssignmentsLoaded: true,
+    sopVersionMeta: { id: activeRwk.id },
+    sopVersionHistory: [earlier, latest, activeRwk],
+    stationSopAssignments: {
+      "MFG:TDR": { enabled: true, versionId: earlier.id },
+      "RWK:RWK": { enabled: false, versionId: "" },
+    },
+  };
+
+  assert.equal(findSopVersionForStation(state, "MFG:TDR").id, earlier.id);
+  assert.equal(findSopVersionForStation(state, "RWK:RWK"), null);
+  state.stationSopAssignments["MFG:TDR"].enabled = false;
+  assert.equal(findSopVersionForStation(state, "MFG:TDR"), null);
+});
