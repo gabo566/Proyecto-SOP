@@ -35,7 +35,7 @@ function renderSerialRows(records, workItems = []) {
   return records.map((record) => `<tr>
     <td><span>${escapeHtml(record.displayDate ?? TODAY_DATE_LABEL)}</span><small>${escapeHtml(record.time)}</small></td>
     <td class="serial-cell">${escapeHtml(record.serial)}${isDemoRecord(record) ? '<small class="record-origin record-origin--demo">DEMO</small>' : ""}</td><td>${escapeHtml(record.nodePartNumber)}</td>
-    <td>${escapeHtml(record.operation ?? record.category)}<small>${escapeHtml(record.category)} · hoja ${escapeHtml(record.sheet ?? "—")}</small></td>
+    <td>${escapeHtml(record.operation ?? record.category)}<small>${escapeHtml(record.category)} · hoja ${escapeHtml(record.sheet ?? "—")} · SOP Rev. ${escapeHtml(record.sopRevision ?? "sin dato")}</small></td>
     <td>${escapeHtml(record.repairType ?? "—")}</td><td>${escapeHtml(record.componentPartNumber ?? "—")}</td><td>${escapeHtml(record.componentSerial ?? "—")}</td>
     <td>${escapeHtml(record.sheet ?? "—")}</td><td><span>${escapeHtml(record.operator)}</span></td><td>${escapeHtml(record.employeeNumber)}</td><td>${escapeHtml(record.position ?? "Técnico de FA")}</td>
     <td><span class="status-chip ${recordStatusClass(record.status)}"><span></span>${escapeHtml(record.status)}</span></td>${renderRecordEvidenceCell(record, workItems)}
@@ -73,7 +73,7 @@ function renderSerialTable(records, query = "", workItems = []) {
 function renderDialogRows(records, query, workItems = []) {
   const filtered = records.filter((record) => recordMatchesQuery(record, query));
   if (!filtered.length) return '<tr><td class="empty-row" colspan="9">No hay coincidencias.</td></tr>';
-  return filtered.map((record) => `<tr><td>${escapeHtml(record.operation ?? record.category)}<small>${escapeHtml(record.category)} · hoja ${escapeHtml(record.sheet ?? "—")}</small></td><td class="serial-cell">${escapeHtml(record.serial)}</td>
+  return filtered.map((record) => `<tr><td>${escapeHtml(record.operation ?? record.category)}<small>${escapeHtml(record.category)} · hoja ${escapeHtml(record.sheet ?? "—")} · SOP Rev. ${escapeHtml(record.sopRevision ?? "sin dato")}</small></td><td class="serial-cell">${escapeHtml(record.serial)}</td>
     <td>${escapeHtml(record.nodePartNumber)}</td><td>${escapeHtml(record.componentPartNumber)}</td><td>${escapeHtml(record.componentSerial ?? "—")}</td><td>${escapeHtml(record.repairType ?? "—")}</td>
     <td>${escapeHtml(record.operator)}<small>${escapeHtml(record.employeeNumber)} · ${escapeHtml(record.position ?? "Técnico de FA")}</small></td><td>${escapeHtml(record.time)}</td>${renderRecordEvidenceCell(record, workItems)}</tr>`).join("");
 }

@@ -191,6 +191,7 @@ function renderLocalAuditTable() {
     work_resumed: "Reanudó trabajo",
     evidence_review_approved: "Aprobó retrabajo",
     evidence_review_correction_requested: "Solicitó corrección",
+    sop_version_activated: "Activó una versión de SOP",
     local_login: "Ingresó al sistema",
     local_logout: "Cerró sesión",
     local_user_password_changed: "Cambió la contraseña de un usuario",

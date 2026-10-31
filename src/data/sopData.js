@@ -8,7 +8,7 @@ const TODAY_DATE_LABEL = new Intl.DateTimeFormat("es-MX", {
 
 const TODAY_DATE_KEY = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, "0")}-${String(TODAY.getDate()).padStart(2, "0")}`;
 
-const SOP_DOCUMENT = {
+let SOP_DOCUMENT = {
   id: "SOP-NVD-GB200-141",
   title: "Desensamble general de Compu tray modelo 2000",
   pdfPath: "./public/documents/SOP-NVD-GB200-141.pdf",
@@ -56,7 +56,7 @@ function createProcedure(sheet, category, title, stepRange, partNumber, steps) {
   };
 }
 
-const PROCEDURES = [
+let PROCEDURES = [
   createProcedure(5, "Chasis", "Preparación del nodo y retiro de manijas", "1–3", "", [
     [1, "Coloque el chasis del nodo sobre el carrito de trabajo."],
     [2, "Retire la tapa del chasis y colóquela debajo del carrito."],
@@ -281,9 +281,15 @@ const SOP_FRONT_MATTER = [
   createProcedure(3, "Información general", "Índice de procedimientos · continuación", "", "", []),
   createProcedure(4, "Información general", "Listado de partes y materiales", "", "", []),
 ];
-const SOP_SHEETS = [...SOP_FRONT_MATTER, ...PROCEDURES];
+let SOP_SHEETS = [...SOP_FRONT_MATTER, ...PROCEDURES];
 
-const SOP_STEP_COUNT = PROCEDURES.reduce((total, procedure) => total + procedure.steps.length, 0);
+let SOP_STEP_COUNT = PROCEDURES.reduce((total, procedure) => total + procedure.steps.length, 0);
+const BUILT_IN_SOP_VERSION_ID = "__built-in-sop__";
+const BUILT_IN_SOP_VERSION = {
+  id: BUILT_IN_SOP_VERSION_ID,
+  document: structuredClone(SOP_DOCUMENT),
+  procedures: structuredClone(SOP_SHEETS),
+};
 
 const DEMO_GROUPS = [
   { procedureId: "sheet-8", sheet: 8, category: "BMC", count: 5, componentPn: "692-13809-2404-000", operation: "Desmontaje de tarjeta BMC y cables MCIO" },

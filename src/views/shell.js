@@ -4,13 +4,15 @@ const NAV_ITEMS = [
   { id: "traceability", label: "Trazabilidad", icon: "inventory_2", target: "traceability-title" },
   { id: "reports", label: "Reportes", icon: "bar_chart", target: "reports-title" },
   { id: "users", label: "Crear usuarios", icon: "person_add", target: "users-panel" },
+  { id: "sop-admin", label: "Modificar SOP", icon: "edit_document", target: "sop-version-title" },
 ];
 
 function renderSidebar(state) {
   const user = getActiveLocalUser();
   const role = user.role;
   const visibleItems = NAV_ITEMS.filter((item) => item.id !== "users" || role === "admin")
-    .filter((item) => item.id !== "reports" || ["supervisor", "admin"].includes(role));
+    .filter((item) => item.id !== "reports" || ["supervisor", "admin"].includes(role))
+    .filter((item) => item.id !== "sop-admin" || canManageSopVersions(user));
   const navItems = visibleItems.map((item) => `
     <button class="nav-item ${state.activeSection === item.id ? "nav-item--active" : ""}"
       type="button" data-action="navigate" data-nav-id="${item.id}" data-focus-key="nav-${item.id}"
@@ -28,7 +30,7 @@ function renderSidebar(state) {
     </aside>`;
 }
 
-function renderTopbar() {
+function renderTopbar(state = {}) {
   const user = getActiveLocalUser();
   return `<header class="topbar" id="top">
     <button class="icon-button menu-toggle" type="button" data-action="open-menu" data-focus-key="menu-open" aria-label="Abrir menú">
@@ -36,7 +38,7 @@ function renderTopbar() {
     </button>
     <div class="topbar-title">
       <span class="topbar-title-icon"><span class="material-symbols-rounded" aria-hidden="true">description</span></span>
-      <div class="topbar-title-copy"><span class="topbar-kicker">SOP actual</span><h1>Desensamble General de Compu Tray Modelo 2000 Rev 2</h1><p>Control de ejecución, validación y trazabilidad</p></div>
+      <div class="topbar-title-copy"><span class="topbar-kicker">SOP actual · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}</span><h1>${escapeHtml(SOP_DOCUMENT.title)}</h1><p>Control de ejecución, validación y trazabilidad</p></div>
     </div>
     <div class="topbar-profile">
       <details class="profile-menu">
@@ -81,8 +83,8 @@ function renderSopSelector(selectedId, pageZoom = 100, state = {}) {
   const options = SOP_SHEETS.map((procedure) => `<option value="${escapeHtml(procedure.id)}" ${procedure.id === selectedId ? "selected" : ""}>${escapeHtml(procedure.category)} · ${escapeHtml(procedure.title)} · hoja ${procedure.sheet}</option>`).join("");
   const procedure = SOP_SHEETS.find((item) => item.id === selectedId) ?? SOP_SHEETS[0];
   const pdfPath = state.sopPdfUrl || SOP_DOCUMENT.pdfPath;
-  const sourceUrl = `${pdfPath}#page=${procedure.sheet}`;
-  const canUpdateSop = ["supervisor", "admin"].includes(getActiveLocalUser().role);
+  const sourceUrl = pdfPath ? `${pdfPath}#page=${procedure.sheet}` : "";
+  const canUpdateSop = canManageSopVersions();
 
   return `<section class="selector-panel procedure-selector-panel" aria-label="Selección de SOP y hoja">
     <div class="selector-fields"><label for="procedure-select">Seleccionar SOP</label>
@@ -94,8 +96,8 @@ function renderSopSelector(selectedId, pageZoom = 100, state = {}) {
       <button class="icon-button" type="button" data-action="sop-page-zoom-in" data-focus-key="sop-page-zoom-in" aria-label="Ampliar hoja SOP" title="Ampliar hoja SOP" ${pageZoom >= 150 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">add</span></button>
       <button class="text-button" type="button" data-action="sop-page-zoom-reset" data-focus-key="sop-page-zoom-reset" aria-label="Ajustar hoja al panel">Ajustar</button>
     </div>
-    <div class="sop-source-actions"><a class="text-button source-link" href="${sourceUrl}" target="_blank" rel="noreferrer"><span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>${state.sopPdfName ? "Ver PDF local" : "Ver PDF"}</a>
-      ${canUpdateSop ? `<button class="text-button sop-update-button" type="button" data-action="select-sop-pdf" data-focus-key="update-sop" ${state.sopPdfUpdating ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">upload_file</span>${state.sopPdfUpdating ? "Guardando PDF…" : "Actualizar SOP"}</button><input id="sop-pdf-input" class="sop-upload-input" type="file" accept="application/pdf,.pdf" hidden aria-label="Seleccionar PDF actualizado de la SOP" />` : ""}
+    <div class="sop-source-actions">${sourceUrl ? `<a class="text-button source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer"><span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>${state.sopPdfName ? "Ver PDF local" : "Ver PDF"}</a>` : ""}
+      ${canUpdateSop ? `<button class="text-button sop-update-button" type="button" data-action="navigate" data-nav-id="sop-admin" data-focus-key="nav-sop-admin"><span class="material-symbols-rounded" aria-hidden="true">edit_document</span>Modificar SOP</button>` : ""}
     </div>
   </section>`;
 }

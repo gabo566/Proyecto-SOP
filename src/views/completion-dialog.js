@@ -50,7 +50,7 @@ function renderValidationSteps(procedure, state) {
     const auditLabel = checked && audit ? `<small class="step-audit-label">Marcó ${escapeHtml(audit.actor.name)} · ${escapeHtml(new Intl.DateTimeFormat("es-MX", { dateStyle: "short", timeStyle: "short" }).format(new Date(audit.at)))}</small>` : "";
     return `<div class="validation-step ${checked ? "validation-step--checked" : ""}">
       <input id="validation-step-${escapeHtml(step.number)}" type="checkbox" data-step="${escapeHtml(step.number)}" data-focus-key="step-${escapeHtml(step.number)}" aria-label="Confirmo que realicé el paso ${escapeHtml(step.number)}" ${checked ? "checked" : ""} />
-      <span class="validation-step-number" aria-hidden="true">${escapeHtml(step.number)}</span><span class="validation-step-copy" aria-label="Instrucción completa del paso ${escapeHtml(step.number)}">${escapeHtml(step.text)}${step.sourceNote ? `<small class="validation-source-note">${escapeHtml(step.sourceNote)}</small>` : ""}${auditLabel}</span>
+      <span class="validation-step-number" aria-hidden="true">${escapeHtml(step.number)}</span><div class="validation-step-details"><span class="validation-step-copy" aria-label="Instrucción completa del paso ${escapeHtml(step.number)}">${escapeHtml(step.text)}${step.sourceNote ? `<small class="validation-source-note">${escapeHtml(step.sourceNote)}</small>` : ""}${auditLabel}</span>${step.images?.length ? renderStepImages(step, procedure.sheet) : ""}</div>
     </div>`;
   }).join("");
 }

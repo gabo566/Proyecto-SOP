@@ -27,7 +27,7 @@ function renderProcedureSteps(procedure, state, hasMoreSteps) {
 
 function renderProcedurePanel(procedure, state) {
   const user = getActiveLocalUser();
-  const pageImageUrl = `./public/assets/sop-pages/sop-page-${String(procedure.sheet).padStart(2, "0")}.jpg?resolution=200dpi`;
+  const pageImageUrl = procedure.pageImage || (state.sopVersionMeta?.builtIn ? `./public/assets/sop-pages/sop-page-${String(procedure.sheet).padStart(2, "0")}.jpg?resolution=200dpi` : "");
   const pageZoom = Math.max(50, Math.min(150, Number(state.sopPageZoom) || 100));
   const pageWidth = pageZoom;
   const pageMargin = pageZoom > 100 ? 0 : (100 - pageWidth) / 2;
@@ -45,16 +45,19 @@ function renderProcedurePanel(procedure, state) {
     </div>
     <div class="sop-page-preview ${pageZoom > 100 ? "sop-page-preview--zoomed" : ""}" id="sop-page-preview">${state.sopPdfUrl
       ? `<iframe class="sop-pdf-page-preview" src="${escapeHtml(state.sopPdfUrl)}#page=${procedure.sheet}&zoom=${pageZoom === 100 ? "page-fit" : pageZoom}" title="PDF SOP local · hoja ${procedure.sheet}" loading="eager"></iframe>`
-      : `<img src="${pageImageUrl}" alt="${escapeHtml(SOP_DOCUMENT.title)} · hoja ${procedure.sheet} completa" style="width:${pageWidth}%;margin-left:${pageMargin}%" loading="eager" decoding="async" />`}</div>
+      : pageImageUrl ? `<img src="${escapeHtml(pageImageUrl)}" alt="${escapeHtml(SOP_DOCUMENT.title)} · hoja ${procedure.sheet} completa" style="width:${pageWidth}%;margin-left:${pageMargin}%" loading="eager" decoding="async" />` : '<p class="sop-page-empty">Esta revisión no incluye una imagen de hoja completa. Consulta los pasos y sus referencias visuales.</p>'}</div>
   </section>`;
 }
 
 function renderSopSourceNotice(state) {
+  if (!state.sopVersionMeta?.builtIn) {
+    return `<aside class="sop-source-notice" role="note"><span class="material-symbols-rounded" aria-hidden="true">verified</span><span><strong>SOP local activa · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}.</strong> PDF, pasos e imágenes guardados en este navegador. Solo la cuenta 140784 puede cargar o activar otra versión.</span></aside>`;
+  }
   const discrepancyCount = PROCEDURES.reduce((count, procedure) => count + procedure.steps.filter((step) => step.sourceNote).length, 0);
   const savedSource = state.sopPdfName
-    ? `<strong>PDF local:</strong> ${escapeHtml(state.sopPdfName)}. El PDF cambia en este navegador; el texto y las imágenes por paso del catálogo permanecen como estaban y requieren cotejo manual.`
+    ? `<strong>PDF local:</strong> ${escapeHtml(state.sopPdfName)}.`
     : "Selecciona un PDF controlado para actualizar la referencia local.";
-  return `<aside class="sop-source-notice" role="note"><span class="material-symbols-rounded" aria-hidden="true">fact_check</span><span><strong>Revisión de la fuente pendiente.</strong> El título visible indica Rev. 2 y el catálogo Rev. ${escapeHtml(SOP_DOCUMENT.revision)}; ${discrepancyCount} pasos tienen discrepancias de P/N anotadas. ${savedSource}</span></aside>`;
+  return `<aside class="sop-source-notice" role="note"><span class="material-symbols-rounded" aria-hidden="true">fact_check</span><span><strong>SOP incluida en el proyecto · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}.</strong> ${discrepancyCount} pasos tienen discrepancias de P/N anotadas. ${savedSource}</span></aside>`;
 }
 
 function renderStepImageDialog() {
