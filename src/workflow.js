@@ -1,4 +1,4 @@
-function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, showToast, persistSavedRecords }) {
+function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, showToast, persistSavedRecords, authenticateLocalUser }) {
   function getTimestamp() {
     const now = new Date();
     return {
@@ -52,6 +52,82 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
       updatedAt: Date.now(),
     });
     return persistWorkItems(state.workItems);
+  }
+
+  function handoffOperator(username, password) {
+    const item = state.workItems.find((workItem) => workItem.id === state.activeWorkId);
+    if (!item || item.workKind !== "rework" || item.status !== "Retrabajo en proceso") return "not-rework";
+    if (!state.sopStorageReady) return "sop-loading";
+    if (!state.sopRun || !canOperateGuidedSopRun()) return "not-current-operator";
+    const nextUser = verifyLocalUserCredentials(username, password);
+    if (!nextUser) return "invalid-credentials";
+    const currentUser = getActiveLocalUser();
+    if (nextUser.employeeNumber === currentUser.employeeNumber) return "same-operator";
+    if (!persistProgress()) return "save-failed";
+
+    const itemIndex = state.workItems.indexOf(item);
+    const previousItem = structuredClone(item);
+    const previousRun = structuredClone(state.sopRun);
+    const previousForm = { ...state.form };
+    const previousCompletedSteps = [...state.completedSteps];
+    const timestamp = getTimestamp();
+    const nextOperator = getLocalUserSnapshot(nextUser);
+    const handoff = handoffGuidedSopRun(state.sopRun, nextOperator);
+    if (!handoff) return "not-current-operator";
+    const savedHandoff = Object.assign(handoff, {
+      at: timestamp.at,
+      date: timestamp.date,
+      time: timestamp.time,
+      sheet: getProcedure().sheet,
+      workItemId: item.id,
+    });
+
+    state.form = {
+      ...state.form,
+      name: nextUser.name,
+      employeeNumber: nextUser.employeeNumber,
+      position: nextUser.position || "Técnico de FA",
+      declaration: false,
+    };
+    item.operatorHandoffs = [...(item.operatorHandoffs ?? []), savedHandoff];
+    item.currentOperator = nextOperator;
+    item.employeeNumber = nextUser.employeeNumber;
+    item.form = { ...state.form };
+    item.sopRun = structuredClone(state.sopRun);
+    item.completedSteps = state.sopRun.procedureIds.flatMap((procedureId) => getGuidedSopCheckedSteps(state.sopRun, procedureId));
+    appendEvent(item, item.status, `Cambio de operador: ${currentUser.name} (${currentUser.employeeNumber}) entregó el retrabajo a ${nextUser.name} (${nextUser.employeeNumber}) en la hoja ${savedHandoff.sheet}.`);
+    if (!persistWorkItems(state.workItems)) {
+      state.workItems[itemIndex] = previousItem;
+      state.sopRun = previousRun;
+      state.form = previousForm;
+      state.completedSteps = previousCompletedSteps;
+      return "save-failed";
+    }
+
+    const authenticatedUser = authenticateLocalUser(username, password);
+    if (!authenticatedUser) {
+      state.workItems[itemIndex] = previousItem;
+      state.sopRun = previousRun;
+      state.form = previousForm;
+      state.completedSteps = previousCompletedSteps;
+      persistWorkItems(state.workItems);
+      return "invalid-credentials";
+    }
+    state.auditSessionId = `session-${crypto.randomUUID()}`;
+    localStorage.setItem("sop-operador-audit-session-v1", state.auditSessionId);
+    recordLocalAuditEvent("operator_handoff", {
+      sessionId: state.auditSessionId,
+      workItemId: item.id,
+      serial: item.serial,
+      nodeNumber: item.nodeNumber,
+      procedureId: item.procedureId,
+      procedureTitle: item.procedureTitle,
+      sheet: savedHandoff.sheet,
+      fromOperator: savedHandoff.from,
+      toOperator: savedHandoff.to,
+      details: `${savedHandoff.from.name} (${savedHandoff.from.employeeNumber}) entregó a ${savedHandoff.to.name} (${savedHandoff.to.employeeNumber}) en hoja ${savedHandoff.sheet}.`,
+    });
+    return "ok";
   }
 
   function startGuidedWork(run) {
@@ -324,6 +400,7 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
 
   return {
     persistProgress,
+    handoffOperator,
     startGuidedWork,
     openDialog,
     closeDialog,

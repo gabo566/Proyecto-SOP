@@ -232,7 +232,7 @@ button { color: inherit; }
 .step-note { display: flex; align-items: flex-start; gap: 7px; padding: 3px 2px; color: var(--muted); font-size: 10px; line-height: 1.4; }
 .step-note .material-symbols-rounded { flex: 0 0 auto; color: #536980; font-size: 16px; }
 .validation-panel { padding: 10px; }
-.validation-dialog { position: fixed; inset: 0; width: min(1360px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); margin: auto; padding: 0; overflow: auto; border: 1px solid var(--outline); border-radius: 14px; color: var(--ink); background: var(--surface); box-shadow: 0 24px 70px rgba(12, 25, 40, .35); }
+.validation-dialog { position: fixed; inset: 0; width: min(900px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); margin: auto; padding: 0; overflow: auto; border: 1px solid var(--outline); border-radius: 14px; color: var(--ink); background: var(--surface); box-shadow: 0 24px 70px rgba(12, 25, 40, .35); }
 .validation-dialog::backdrop { background: rgba(9, 20, 34, .66); backdrop-filter: blur(2px); }
 .validation-dialog .validation-panel { padding: 17px; border: 0; border-radius: 0; box-shadow: none; background: var(--surface); }
 .validation-dialog .validation-panel-heading { padding-right: 4px; }
@@ -277,16 +277,18 @@ button { color: inherit; }
 .guided-sheet-actions, .guided-final-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 6px; }
 .guided-checklist-note { color: var(--muted); font-size: 9px; }
 .guided-sheet-actions .button, .guided-final-actions .button { min-height: 36px; }
-.guided-final-confirmation { display: grid; gap: 10px; max-width: 900px; margin: 12px auto; padding: 18px; border: 1px solid var(--outline); border-radius: 11px; background: #fff; }
+.guided-final-confirmation { display: grid; gap: 8px; max-width: 820px; margin: 0 auto; padding: 13px; border: 1px solid #d8e0e9; border-top: 3px solid var(--brand); border-radius: 10px; background: linear-gradient(180deg,#f8fafc 0%,#fff 38%); box-shadow: 0 5px 18px rgba(27,47,70,.07); }
 .guided-final-confirmation h3 { margin: 0; color: #263d55; font-size: 18px; }
 .guided-final-confirmation > .eyebrow { margin: 0; }
 .guided-confirmation-copy, .guided-confirmation-warning { margin: 0; color: #3f4855; font-size: 12px; line-height: 1.6; }
-.guided-confirmation-warning { padding: 10px 12px; border-radius: 8px; color: #6d4d18; background: #fff6df; }
-.guided-confirmation-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
-.guided-confirmation-summary > div { min-width: 0; padding: 9px; border-radius: 7px; background: #f4f6f8; }
+.guided-confirmation-warning { padding: 8px 10px; border: 1px solid #f1dfb5; border-radius: 7px; color: #6d4d18; background: #fff8e8; font-size: 11px; }
+.guided-confirmation-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
+.guided-confirmation-summary > div { min-width: 0; padding: 8px; border: 1px solid #e5eaf0; border-radius: 7px; background: #f5f7f9; }
+.guided-confirmation-summary > .guided-confirmation-asset { border-color: #cbdcec; background: #eef5fb; }
 .guided-confirmation-summary span, .guided-confirmation-summary strong { display: block; }
 .guided-confirmation-summary span { color: var(--muted); font-size: 9px; }
-.guided-confirmation-summary strong { margin-top: 4px; color: #263243; font-size: 10px; overflow-wrap: anywhere; }
+.guided-confirmation-summary strong { margin-top: 3px; color: #263243; font-size: 10px; line-height: 1.35; overflow-wrap: anywhere; }
+.guided-confirmation-summary small { display: block; margin-top: 3px; color: #52657b; font-size: 9px; line-height: 1.35; overflow-wrap: anywhere; }
 .guided-final-declaration { margin: 0; }
 
 /* Recorrido de SOP: hoja original y checklist alineados como una sola estación de trabajo. */
@@ -372,8 +374,10 @@ button { color: inherit; }
 .guided-sheet-actions .guided-continue-button { min-width: 0; flex: 1 1 auto; }
 .guided-sheet-actions .guided-continue-button:disabled { color: #fff; background: #aab3bd; border-color: #aab3bd; box-shadow: none; cursor: not-allowed; }
 .guided-sheet-actions .guided-previous-button { flex: 0 0 auto; }
-.guided-return-selection { width: 100%; min-height: 36px; display: inline-flex; justify-content: center; align-items: center; gap: 7px; font-size: 10px; }
+.guided-work-utility-actions { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.25fr); gap: 6px; }
+.guided-return-selection, .guided-handoff-button { width: 100%; min-width: 0; min-height: 36px; display: inline-flex; justify-content: center; align-items: center; gap: 6px; padding-inline: 7px; font-size: 9px; }
 .guided-return-selection .material-symbols-rounded { font-size: 17px; }
+.guided-handoff-button .material-symbols-rounded { font-size: 17px; }
 .sop-version-row-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
 .sop-version-note { margin: 0; padding: 9px 11px; border-radius: 7px; color: #3d526b; background: #eef5fb; font-size: 10px; line-height: 1.5; }
 
@@ -735,6 +739,18 @@ button { color: inherit; }
 .work-item-dialog .validation-field textarea { min-height: 74px; resize: vertical; line-height: 1.4; }
 .work-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .work-dialog-actions .button { min-height: 40px; font-size: 11px; }
+.operator-handoff-dialog { width: min(500px, calc(100vw - 28px)); }
+.operator-handoff-dialog > form { display: grid; gap: 13px; padding: 20px; }
+.operator-handoff-intro { margin: -2px 0 0; color: #526176; font-size: 11px; line-height: 1.5; }
+.operator-handoff-context { display: flex; align-items: center; gap: 10px; padding: 10px 11px; border: 1px solid #d5e1ed; border-radius: 9px; color: #294a6a; background: #f1f6fb; }
+.operator-handoff-context > .material-symbols-rounded { width: 35px; height: 35px; flex: 0 0 35px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #315b87; font-size: 19px; }
+.operator-handoff-context > span:last-child { min-width: 0; display: grid; gap: 3px; }
+.operator-handoff-context small { color: #65768a; font-size: 9px; }
+.operator-handoff-context strong { color: #263e58; font-size: 11px; }
+.operator-handoff-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.operator-handoff-fields label { min-width: 0; display: grid; gap: 5px; color: #3d4d61; font-size: 10px; font-weight: 650; }
+.operator-handoff-fields input { width: 100%; min-height: 40px; padding: 0 10px; border: 1px solid var(--outline-strong); border-radius: 7px; color: var(--ink); background: #fff; font: inherit; font-size: 12px; }
+.operator-handoff-error { margin: 0; }
 .rework-evidence-section { display: grid; gap: 7px; margin-top: 8px; padding: 9px; border: 1px solid #cbd8e7; border-radius: 8px; background: #f7faff; }
 .rework-evidence-heading { display: flex; align-items: flex-start; gap: 7px; color: #345677; }
 .rework-evidence-heading > .material-symbols-rounded { font-size: 19px; }
@@ -1264,6 +1280,9 @@ td small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px;
   .validation-dialog { width: calc(100vw - 12px); max-height: calc(100dvh - 12px); }
   .validation-dialog .validation-panel { padding: 9px; }
   .validation-dialog .validation-panel-heading { align-items: flex-start; }
+  .guided-work-utility-actions, .operator-handoff-fields { grid-template-columns: 1fr; }
+  .guided-work-utility-actions .button { min-height: 40px; }
+  .operator-handoff-dialog > form { padding: 15px; }
   .guided-run-details .validation-asset-grid, .guided-run-components { grid-template-columns: 1fr; }
   .guided-run-detail-row { grid-template-columns: 1fr; }
   .guided-pdf-viewport { height: 42vh; min-height: 260px; }

@@ -20,6 +20,10 @@ function restoreFocus(previousFocus, { focusDialog, initial }, state) {
     (document.querySelector("#guided-confirmation-heading") ?? document.querySelector("#completion-form [name='declaration']"))?.focus();
     return;
   }
+  if (focusDialog && state.operatorHandoffDialogOpen) {
+    document.querySelector("#operator-handoff-form [name='operatorUsername']")?.focus();
+    return;
+  }
   if (!previousFocus.key) {
     if (!initial && !state.recordsDialogOpen && state.dialogTriggerFocusKey) {
       document.querySelector(`[data-focus-key="${CSS.escape(state.dialogTriggerFocusKey)}"]`)?.focus();

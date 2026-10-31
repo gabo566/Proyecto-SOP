@@ -9,6 +9,7 @@ const state = {
   selectedId: restorableWork?.procedureId ?? PROCEDURES[0].id,
   operatorFlowReady: false,
   sopPageZoom: 100,
+  sopStorageReady: false,
   sopRunContextOpen: false,
   completedSteps: restorableWork?.completedSteps ?? [],
   sopRun: restorableWork?.sopRun ?? null,
@@ -17,6 +18,8 @@ const state = {
   activeWorkId: restorableWork?.id ?? "",
   workDialogOpen: false,
   validationDialogOpen: false,
+  operatorHandoffDialogOpen: false,
+  operatorHandoffError: "",
   workDraft: { type: "pause", failedStep: "", note: "" },
   validationEvidenceFiles: [],
   workError: "",
@@ -118,7 +121,7 @@ function ensureGuidedSopRun() {
 }
 
 function canOperateGuidedSopRun() {
-  const owner = state.sopRun?.startedBy?.employeeNumber;
+  const owner = getGuidedSopCurrentOperator(state.sopRun)?.employeeNumber;
   return state.sopRun?.versionId === (state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID)
     && (!owner || owner === getActiveLocalUser().employeeNumber);
 }
@@ -178,7 +181,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     : renderSummaryMetrics(todayRecords, state);
   app.innerHTML = `${renderSidebar(state)}<main class="main-area" id="main-content">
     ${renderTopbar(state)}<div class="dashboard-content">${dashboard}${renderFooter()}</div></main>
-    ${renderOperatorValidationDialog(getProcedure(), state)}${renderRecordsDialog(records, state.recordsQuery, state.workItems)}${renderWorkItemDialog(state)}${renderEvidenceReviewDialog(state)}${renderEvidenceImageDialog(state)}${renderStepImageDialog()}${renderHelpDialog()}
+    ${renderOperatorValidationDialog(getProcedure(), state)}${renderRecordsDialog(records, state.recordsQuery, state.workItems)}${renderWorkItemDialog(state)}${renderEvidenceReviewDialog(state)}${renderEvidenceImageDialog(state)}${renderStepImageDialog()}${renderHelpDialog()}${renderOperatorHandoffDialog(state)}
     ${renderToast()}`;
 
   renderSopPagePreview();
@@ -189,6 +192,8 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   validationDialog.addEventListener("close", () => handleNativeDialogClose("validationDialogOpen"));
   const workDialog = document.querySelector("#work-item-dialog");
   workDialog.addEventListener("close", () => handleNativeDialogClose("workDialogOpen"));
+  const operatorHandoffDialog = document.querySelector("#operator-handoff-dialog");
+  operatorHandoffDialog.addEventListener("close", () => handleNativeDialogClose("operatorHandoffDialogOpen"));
   const evidenceReviewDialog = document.querySelector("#evidence-review-dialog");
   evidenceReviewDialog.addEventListener("close", workflow.handleReviewDialogClose);
   const evidenceImageDialog = document.querySelector("#evidence-image-dialog");
@@ -202,6 +207,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   if (state.recordsDialogOpen) recordsDialog.showModal();
   if (state.validationDialogOpen) validationDialog.showModal();
   if (state.workDialogOpen) workDialog.showModal();
+  if (state.operatorHandoffDialogOpen) operatorHandoffDialog.showModal();
   if (state.evidenceReviewDialogOpen) evidenceReviewDialog.showModal();
   if (state.evidenceImageDialogOpen) evidenceImageDialog.showModal();
   if (state.helpDialogOpen) helpDialog.showModal();
@@ -275,7 +281,7 @@ function selectProcedure(id) {
   document.querySelector("#production")?.scrollIntoView({ block: "start" });
 }
 
-const workflow = createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, showToast, persistSavedRecords });
+const workflow = createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, showToast, persistSavedRecords, authenticateLocalUser });
 
 function moveProcedure(direction) {
   const currentIndex = SOP_SHEETS.findIndex((item) => item.id === getProcedure().id);
@@ -292,7 +298,7 @@ function openRecords(triggerKey) {
 
 function continueGuidedSopSheet() {
   if (!canOperateGuidedSopRun()) {
-    showToast("Solo la persona que inició este recorrido puede continuar y conservar la autoría del registro.", "warning");
+    showToast("Solo el operador actualmente asignado puede continuar con este recorrido.", "warning");
     return;
   }
   const procedure = getProcedure();
@@ -434,7 +440,7 @@ function saveCompletion() {
     validatedSheets: runProcedures.map((item) => ({ id: item.id, sheet: item.sheet, pdfPage: item.pdfPage ?? item.sheet, category: item.category, title: item.title, stepRange: item.stepRange, steps: item.steps.map((step) => ({ number: String(step.number), text: step.text })) })),
     validatedSteps: allSteps,
     validatedStepCount: allSteps.length,
-    declarationText: `Confirmo que el procedimiento ${run.document.title}, revisión ${run.document.revision}, para el nodo con P/N ${state.form.nodePartNumber.trim()} y serie ${state.form.serial.trim()}, se realizó de acuerdo con los procedimientos establecidos por la empresa. Reportaré cualquier daño o desviación para recibir la retroalimentación correspondiente.`,
+    declarationText: `Confirmo que el procedimiento ${run.document.title}, revisión ${run.document.revision}, se realizó de acuerdo con los procedimientos establecidos por la empresa para el nodo con P/N ${state.form.nodePartNumber.trim()} y serie ${state.form.serial.trim()}, y la tarjeta con P/N ${state.form.componentPartNumber.trim()} y serie ${state.form.componentSerial.trim()}. Reportaré cualquier daño o desviación para recibir la retroalimentación correspondiente.`,
     declaredAt: now.toISOString(),
     nodeNumber: state.form.nodeNumber?.trim() ?? "",
     serial: state.form.serial.trim(),
@@ -444,8 +450,13 @@ function saveCompletion() {
     operator: user.name,
     employeeNumber: user.employeeNumber,
     actor: { id: user.id, name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", role: user.role },
+    operatorStartedBy: { ...(run.startedBy ?? user) },
+    operatorHandoffs: [...(run.operatorHandoffs ?? [])],
     sessionId: state.auditSessionId,
-    auditEventIds: readLocalAuditTrail().filter((event) => event.sessionId === state.auditSessionId && run.procedureIds.includes(event.procedureId)).map((event) => event.id),
+    auditEventIds: readLocalAuditTrail().filter((event) => run.procedureIds.includes(event.procedureId)
+      && ["step_completed", "step_reopened", "operator_handoff"].includes(event.action)
+      && event.serial === state.form.serial.trim()
+      && (!event.at || new Date(event.at).getTime() >= (run.startedAt ?? 0))).map((event) => event.id),
     position: user.position || "Técnico de FA",
     repairType: state.form.repairType,
     stationAssignment: state.form.stationAssignment,
@@ -522,6 +533,7 @@ bindInteractions(app, {
   closeWorkItemDialog: workflow.closeDialog,
   handleWorkItemSubmit: workflow.submit,
   resumeWorkItem: workflow.resume,
+  handoffWorkOperator: workflow.handoffOperator,
   persistWorkState: workflow.persistProgress,
   authenticateLocalUser,
   endLocalUserSession: () => {
@@ -604,11 +616,13 @@ restoreCurrentSopVersion(state).then(async () => {
     await restoreStoredSopSource(state);
   }
   restoreOperatorFlowForSession();
+  state.sopStorageReady = true;
   render();
 }).catch((error) => {
   console.error("No se pudo restaurar la versión local de la SOP.", error);
   state.sopVersionCatalog = { [BUILT_IN_SOP_VERSION_ID]: { stationAssignment: "RWK:RWK", enabled: true } };
   state.sopCatalogLoaded = true;
   restoreOperatorFlowForSession();
+  state.sopStorageReady = true;
   render();
 });

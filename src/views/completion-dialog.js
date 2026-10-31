@@ -53,24 +53,37 @@ function renderReworkEvidenceSection(workItem, state) {
 function renderGuidedFinalConfirmation(procedure, state) {
   const run = state.sopRun;
   const document = run?.document ?? SOP_DOCUMENT;
-  const nodePartNumber = String(state.form.nodePartNumber ?? "").trim() || "P/N del nodo pendiente";
-  const serial = String(state.form.serial ?? "").trim() || "serie sin capturar";
+  const nodePartNumber = String(state.form.nodePartNumber ?? "").trim() || "pendiente";
+  const nodeSerial = String(state.form.serial ?? "").trim() || "pendiente";
+  const cardPartNumber = String(state.form.componentPartNumber ?? "").trim() || "pendiente";
+  const cardSerial = String(state.form.componentSerial ?? "").trim() || "pendiente";
   const operation = document.title || procedure.title || "procedimiento SOP";
   const station = getWorkStationAssignment(state.form.stationAssignment)?.value ?? "Sin estación";
   const accepted = Boolean(state.form.declaration);
   const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
+  const progress = getGuidedSopProgress(run, SOP_SHEETS);
+  const originalOperator = run.startedBy ?? state.form;
+  const currentOperator = run.currentOperator ?? state.form;
+  const operatorChanged = originalOperator.employeeNumber !== currentOperator.employeeNumber;
   return `<section class="guided-final-confirmation" aria-labelledby="guided-confirmation-heading">
     <p class="eyebrow">Revisión final · ${escapeHtml(document.id)}</p>
     <h3 id="guided-confirmation-heading" data-focus-key="guided-confirmation-heading" tabindex="-1">Confirma el procedimiento realizado</h3>
-    <p class="guided-confirmation-copy">¿Confirmas que el procedimiento <strong>${escapeHtml(operation)}</strong>, revisión <strong>${escapeHtml(document.revision)}</strong>, para el nodo con P/N <strong>${escapeHtml(nodePartNumber)}</strong> y serie <strong id="guided-confirmation-serial">${escapeHtml(serial)}</strong>, se realizó de acuerdo con los procedimientos establecidos por la empresa?</p>
+    <p class="guided-confirmation-copy">¿Confirmas que <strong>${escapeHtml(operation)}</strong>, revisión <strong>${escapeHtml(document.revision)}</strong>, se realizó de acuerdo con los procedimientos establecidos por la empresa para el nodo y la tarjeta identificados abajo?</p>
     <p class="guided-confirmation-warning">Cualquier daño, desviación o situación fuera de lo esperado debe reportarse para recibir la retroalimentación correspondiente.</p>
     ${activeWork?.workKind === "rework" ? renderReworkEvidenceSection(activeWork, state) : ""}
-    <div class="guided-confirmation-summary"><div><span>Estación</span><strong>${escapeHtml(station)}</strong></div><div><span>SOP utilizada</span><strong>${escapeHtml(operation)}</strong></div><div><span>Revisión</span><strong>${escapeHtml(document.revision)}</strong></div><div><span>Hojas validadas</span><strong>${run.procedureIds.length}</strong></div><div><span>Pasos validados</span><strong>${getGuidedSopProgress(run, SOP_SHEETS).complete}</strong></div><div><span>Operador responsable</span><strong>${escapeHtml(state.form.name)} · ${escapeHtml(state.form.employeeNumber)}</strong></div></div>
+    <div class="guided-confirmation-summary">
+      <div><span>Estación</span><strong>${escapeHtml(station)}</strong></div>
+      <div><span>SOP y revisión</span><strong>${escapeHtml(operation)}</strong><small>${escapeHtml(document.id)} · Rev. ${escapeHtml(document.revision)}</small></div>
+      <div class="guided-confirmation-asset"><span>Nodo</span><strong>PN ${escapeHtml(nodePartNumber)}</strong><small>Serie ${escapeHtml(nodeSerial)}</small></div>
+      <div class="guided-confirmation-asset"><span>Tarjeta</span><strong>PN ${escapeHtml(cardPartNumber)}</strong><small>Serie ${escapeHtml(cardSerial)}</small></div>
+      <div><span>Avance validado</span><strong>${run.procedureIds.length} hojas</strong><small>${progress.complete} pasos</small></div>
+      <div><span>${operatorChanged ? "Operadores" : "Operador responsable"}</span><strong>${escapeHtml(originalOperator.name)} · ${escapeHtml(originalOperator.employeeNumber)}</strong><small>${operatorChanged ? `Continúa y finaliza: ${escapeHtml(currentOperator.name)} · ${escapeHtml(currentOperator.employeeNumber)}` : escapeHtml(currentOperator.position || "Técnico de FA")}</small></div>
+    </div>
     <label class="declaration-check guided-final-declaration"><input type="checkbox" name="declaration" data-form-field="declaration" ${accepted ? "checked" : ""} ${state.formError.includes("Confirm") ? 'aria-describedby="completion-form-error" aria-invalid="true"' : ""} />
-      <span>Confirmo que realicé todos los pasos de esta SOP y que reportaré cualquier daño o desviación para recibir la retroalimentación correspondiente.</span>
+      <span>Confirmo que realicé todos los pasos de esta SOP para el nodo y la tarjeta identificados, y que reportaré cualquier daño o desviación para recibir la retroalimentación correspondiente.</span>
     </label>
     <div class="guided-final-actions"><button class="button button--secondary" type="button" data-action="previous-sop-sheet"><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Volver a la última hoja</button><button class="button button--primary validation-submit" type="submit" ${accepted ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">task_alt</span>Finalizar y guardar registro</button></div>
-    <p class="validation-note">El registro guardará el nodo, la SOP y revisión utilizadas, los pasos confirmados, la fecha y el usuario conectado.</p>
+    <p class="validation-note">El registro conservará los datos del nodo y la tarjeta, la SOP y revisión, los pasos confirmados, operadores y fecha.</p>
   </section>`;
 }
 
@@ -91,4 +104,22 @@ function renderOperatorValidationPanel(procedure, state) {
 function renderOperatorValidationDialog(procedure, state) {
   const confirmation = state.sopRun?.stage === "confirmation";
   return `<dialog class="validation-dialog" id="validation-dialog" aria-labelledby="validation-heading">${confirmation ? renderOperatorValidationPanel(procedure, state) : ""}</dialog>`;
+}
+
+function renderOperatorHandoffDialog(state) {
+  const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
+  const currentOperator = state.sopRun?.currentOperator ?? state.sopRun?.startedBy ?? getActiveLocalUser();
+  const procedure = getGuidedSopProcedure(state.sopRun, PROCEDURES);
+  const progress = getGuidedSopProgress(state.sopRun, PROCEDURES);
+  const error = state.operatorHandoffError ?? "";
+  return `<dialog class="app-dialog operator-handoff-dialog" id="operator-handoff-dialog" aria-labelledby="operator-handoff-title">
+    <form id="operator-handoff-form" novalidate>
+      <div class="dialog-header"><div><p class="eyebrow">Entrega de retrabajo · ${escapeHtml(activeWork?.serial ?? state.form.serial)}</p><h2 id="operator-handoff-title">Cambiar operador</h2></div><button class="icon-button" type="button" data-action="close-operator-handoff" aria-label="Cerrar"><span class="material-symbols-rounded" aria-hidden="true">close</span></button></div>
+      <p class="operator-handoff-intro">Guardaremos el avance actual y la evidencia del retrabajo. La persona que continúa debe confirmar su identidad con su número de empleado y contraseña.</p>
+      <div class="operator-handoff-context"><span class="material-symbols-rounded" aria-hidden="true">swap_horiz</span><span><small>Entrega</small><strong>${escapeHtml(currentOperator.name)} · ${escapeHtml(currentOperator.employeeNumber)}</strong><small>Hoja ${escapeHtml(procedure?.sheet ?? activeWork?.sheet ?? "—")} · ${progress.complete} de ${progress.total} pasos marcados</small></span></div>
+      <div class="operator-handoff-fields"><label>Número de empleado<input name="operatorUsername" required maxlength="40" autocomplete="username" inputmode="numeric" /></label><label>Contraseña<input name="operatorPassword" type="password" required maxlength="80" autocomplete="current-password" /></label></div>
+      <p class="form-error operator-handoff-error" id="operator-handoff-error" role="alert" aria-live="polite" ${error ? "" : "hidden"}>${escapeHtml(error)}</p>
+      <div class="work-dialog-actions"><button class="button button--secondary" type="button" data-action="close-operator-handoff">Cancelar</button><button class="button button--primary" type="submit"><span class="material-symbols-rounded" aria-hidden="true">verified_user</span>Guardar avance y cambiar operador</button></div>
+    </form>
+  </dialog>`;
 }

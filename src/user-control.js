@@ -59,10 +59,14 @@ function getLocalUserSnapshot(user = getActiveLocalUser()) {
   return { id: user.id, name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", role: user.role };
 }
 
-function authenticateLocalUser(username, password) {
+function verifyLocalUserCredentials(username, password) {
   const normalizedUsername = String(username ?? "").trim();
   const suppliedPassword = String(password ?? "");
-  const user = listLocalUsers().find((item) => item.active && item.username === normalizedUsername && item.password === suppliedPassword);
+  return listLocalUsers().find((item) => item.active && item.username === normalizedUsername && item.password === suppliedPassword) ?? null;
+}
+
+function authenticateLocalUser(username, password) {
+  const user = verifyLocalUserCredentials(username, password);
   if (!user) return null;
   localStorage.setItem(ACTIVE_LOCAL_USER_KEY, user.id);
   sessionStorage.setItem(LOCAL_AUTH_SESSION_KEY, "1");
@@ -190,6 +194,7 @@ function renderLocalAuditTable() {
     work_paused: "Detuvo trabajo",
     rework_required: "Solicitó retrabajo",
     work_resumed: "Reanudó trabajo",
+    operator_handoff: "Cambio de operador en retrabajo",
     evidence_review_approved: "Aprobó retrabajo",
     evidence_review_correction_requested: "Solicitó corrección",
     sop_version_activated: "Activó una versión de SOP",

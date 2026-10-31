@@ -18,6 +18,7 @@ function bindInteractions(app, handlers) {
     closeWorkItemDialog,
     handleWorkItemSubmit,
     resumeWorkItem,
+    handoffWorkOperator,
     persistWorkState,
     addEvidence,
     removeEvidence,
@@ -138,6 +139,7 @@ function bindInteractions(app, handlers) {
         if (event.target.id === "step-image-dialog") event.target.close();
         else if (event.target.id === "work-item-dialog") closeWorkItemDialog();
         else if (event.target.id === "validation-dialog") event.target.close();
+        else if (event.target.id === "operator-handoff-dialog") event.target.close();
         else if (event.target.id === "evidence-review-dialog") closeEvidenceReview();
         else if (event.target.id === "help-dialog") event.target.close();
         else closeDialog("recordsDialogOpen");
@@ -170,7 +172,7 @@ function bindInteractions(app, handlers) {
       case "sop-page-zoom-reset": state.sopPageZoom = 100; render(); break;
       case "return-to-sop-selection":
         if (!canOperateGuidedSopRun()) {
-          showToast("Solo la persona que inició este recorrido puede volver a la selección de SOP.", "warning");
+          showToast("Solo el operador actualmente asignado puede volver a la selección de SOP.", "warning");
           break;
         }
         if (!persistWorkState()) {
@@ -196,6 +198,29 @@ function bindInteractions(app, handlers) {
       case "open-work-item-dialog": openWorkItemDialog(); break;
       case "close-work-item-dialog": closeWorkItemDialog(); break;
       case "resume-work": resumeWorkItem(action.dataset.workId); break;
+      case "open-operator-handoff": {
+        const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
+        if (state.evidenceBusy) {
+          showToast("Espera a que termine de guardarse la evidencia antes de cambiar el operador.", "warning");
+          break;
+        }
+        if (activeWork?.workKind !== "rework" || activeWork.status !== "Retrabajo en proceso" || !canOperateGuidedSopRun()) {
+          showToast("El cambio solo está disponible para el operador actual de un retrabajo en curso.", "warning");
+          break;
+        }
+        if (!persistWorkState()) {
+          showToast("No se pudo guardar el avance del retrabajo. Inténtalo de nuevo.", "warning");
+          break;
+        }
+        state.operatorHandoffError = "";
+        state.operatorHandoffDialogOpen = true;
+        state.dialogTriggerFocusKey = action.dataset.focusKey || "change-operator";
+        render({ focusDialog: true });
+        break;
+      }
+      case "close-operator-handoff":
+        document.querySelector("#operator-handoff-dialog")?.close();
+        break;
       case "toggle-local-user": if (getActiveLocalUser().role === "admin") toggleLocalUser(action.dataset.userId, action.dataset.active === "true"); break;
       case "remove-evidence": removeEvidence(action.dataset.evidenceId); break;
       case "remove-validation-evidence": removeValidationEvidence(action.dataset.evidenceId); break;
@@ -254,7 +279,7 @@ function bindInteractions(app, handlers) {
     } else if (target.matches("[data-step]")) {
       if (!canOperateGuidedSopRun()) {
         target.checked = !target.checked;
-        showToast("Solo la persona que inició este recorrido puede validar sus pasos.", "warning");
+        showToast("Solo el operador actualmente asignado puede validar sus pasos.", "warning");
         return;
       }
       const step = target.dataset.step;
@@ -324,6 +349,12 @@ function bindInteractions(app, handlers) {
     const { target } = event;
     if (target.matches('[data-login-field="username"]')) {
       state.loginUsername = target.value;
+    } else if (target.matches("#operator-handoff-form input")) {
+      target.removeAttribute("aria-invalid");
+      target.removeAttribute("aria-describedby");
+      state.operatorHandoffError = "";
+      const error = document.querySelector("#operator-handoff-error");
+      if (error) error.hidden = true;
     } else if (target.dataset.search === "serial") {
       state.serialQuery = target.value;
       updateSerialSearch();
@@ -392,6 +423,39 @@ function bindInteractions(app, handlers) {
     } else if (event.target.matches("#completion-form")) handleCompletionSubmit(event);
     if (event.target.matches("#work-item-form")) {
       handleWorkItemSubmit(event);
+    } else if (event.target.matches("#operator-handoff-form")) {
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      const result = handoffWorkOperator(String(formData.get("operatorUsername") ?? "").trim(), String(formData.get("operatorPassword") ?? ""));
+      const errors = {
+        "not-rework": "No hay un retrabajo activo que se pueda transferir.",
+        "not-current-operator": "Solo el operador actualmente asignado puede entregar este retrabajo.",
+        "sop-loading": "Espera a que termine de cargarse la SOP y el historial local para cambiar de operador.",
+        "invalid-credentials": "El número de empleado o la contraseña no son correctos, o la cuenta está inactiva.",
+        "same-operator": "Ingresa las credenciales de otra persona para cambiar de operador.",
+        "save-failed": "No se pudo guardar el avance. El operador actual no cambió; libera espacio e inténtalo de nuevo.",
+      };
+      if (result !== "ok") {
+        state.operatorHandoffError = errors[result] || "No se pudo cambiar el operador.";
+        const error = document.querySelector("#operator-handoff-error");
+        if (error) {
+          error.textContent = state.operatorHandoffError;
+          error.hidden = false;
+        }
+        const password = event.target.querySelector('[name="operatorPassword"]');
+        for (const field of event.target.querySelectorAll("input")) {
+          field.setAttribute("aria-invalid", "true");
+          field.setAttribute("aria-describedby", "operator-handoff-error");
+        }
+        if (password) password.value = "";
+        event.target.querySelector('[name="operatorUsername"]')?.focus();
+        return;
+      }
+      state.operatorHandoffError = "";
+      state.operatorHandoffDialogOpen = false;
+      state.dialogTriggerFocusKey = "change-operator";
+      render({ focusKey: state.dialogTriggerFocusKey });
+      showToast("Avance guardado. El retrabajo continúa con el nuevo operador.", "success");
     }
     if (event.target.matches("#local-user-form")) {
       event.preventDefault();

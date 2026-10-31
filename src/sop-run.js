@@ -3,6 +3,7 @@ function createGuidedSopRun(procedures, document, versionId, user) {
     .filter((procedure) => Array.isArray(procedure.steps) && procedure.steps.length)
     .map((procedure) => procedure.id);
   if (!procedureIds.length) throw new Error("La SOP activa no contiene pasos para validar.");
+  const operator = { id: user.id, name: user.name, employeeNumber: user.employeeNumber, position: user.position ?? "Técnico de FA", role: user.role };
   return {
     procedureIds,
     currentIndex: 0,
@@ -10,9 +11,36 @@ function createGuidedSopRun(procedures, document, versionId, user) {
     stage: "steps",
     versionId,
     document: { id: document.id, title: document.title, revision: document.revision, totalSheets: document.totalSheets },
-    startedBy: { id: user.id, name: user.name, employeeNumber: user.employeeNumber, position: user.position ?? "Técnico de FA", role: user.role },
+    startedBy: operator,
+    currentOperator: { ...operator },
+    operatorHandoffs: [],
     startedAt: Date.now(),
   };
+}
+
+function getGuidedSopCurrentOperator(run) {
+  return run?.currentOperator ?? run?.startedBy ?? null;
+}
+
+function handoffGuidedSopRun(run, nextOperator) {
+  const currentOperator = getGuidedSopCurrentOperator(run);
+  if (!run || !["steps", "confirmation"].includes(run.stage) || !nextOperator?.employeeNumber || currentOperator?.employeeNumber === nextOperator.employeeNumber) return null;
+  const to = {
+    id: nextOperator.id,
+    name: nextOperator.name,
+    employeeNumber: nextOperator.employeeNumber,
+    position: nextOperator.position ?? "Técnico de FA",
+    role: nextOperator.role,
+  };
+  const handoff = {
+    from: { ...currentOperator },
+    to,
+    procedureId: run.procedureIds[run.currentIndex],
+    at: Date.now(),
+  };
+  run.currentOperator = { ...to };
+  run.operatorHandoffs = [...(run.operatorHandoffs ?? []), handoff];
+  return handoff;
 }
 
 function getGuidedSopProcedure(run, procedures) {

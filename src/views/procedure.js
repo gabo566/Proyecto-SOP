@@ -45,6 +45,9 @@ function renderProcedurePanel(procedure, state) {
   const progress = getGuidedSopProgress(run, PROCEDURES);
   const checkedSteps = new Set(getGuidedSopCheckedSteps(run, procedure.id));
   const checkedCount = procedure.steps.filter((step) => checkedSteps.has(String(step.number))).length;
+  const canOperate = canOperateGuidedSopRun();
+  const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
+  const canHandoffRework = state.sopStorageReady && Boolean(run) && activeWork?.workKind === "rework" && activeWork.status === "Retrabajo en proceso" && canOperate;
   const pageNumber = procedure.pdfPage ?? procedure.sheet;
   const totalSheets = Number(SOP_DOCUMENT.totalSheets) || 46;
   const pageZoom = Math.max(50, Math.min(150, Number(state.sopPageZoom) || 100));
@@ -52,10 +55,10 @@ function renderProcedurePanel(procedure, state) {
   const isComplete = isGuidedSopProcedureComplete(run, procedure);
   const isFirstPage = (run?.currentIndex ?? 0) === 0;
   const isLastPage = (run?.currentIndex ?? 0) >= (run?.procedureIds.length ?? 1) - 1;
-  const canOperate = canOperateGuidedSopRun();
   const sourceUrl = pdfSource ? `${pdfSource}#page=${pageNumber}` : "";
+  const currentOperator = getGuidedSopCurrentOperator(run);
   const ownerMessage = !canOperate
-    ? `<aside class="sop-owner-lock" role="status"><span class="material-symbols-rounded" aria-hidden="true">lock</span>Este recorrido pertenece a ${escapeHtml(run.startedBy?.name ?? "otro operador")} (${escapeHtml(run.startedBy?.employeeNumber ?? "sin número")}). Inicia sesión con esa cuenta para continuar.</aside>`
+    ? `<aside class="sop-owner-lock" role="status"><span class="material-symbols-rounded" aria-hidden="true">lock</span>Este recorrido está asignado a ${escapeHtml(currentOperator?.name ?? "otro operador")} (${escapeHtml(currentOperator?.employeeNumber ?? "sin número")}). Inicia sesión con esa cuenta para continuar.</aside>`
     : "";
   const completedPercent = progress.total ? Math.round(progress.complete / progress.total * 100) : 0;
   const nextAction = run.stage === "confirmation" ? "open-final-confirmation" : "continue-sop-sheet";
@@ -101,7 +104,10 @@ function renderProcedurePanel(procedure, state) {
             <button class="button button--primary guided-continue-button" type="button" data-action="${nextAction}" data-focus-key="continue-sop-sheet" ${!canOperate || run.stage !== "confirmation" && !isComplete ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${run.stage === "confirmation" ? "fact_check" : "arrow_forward"}</span>${nextLabel}</button>
           </div>
         </div>
-        <button class="button button--secondary guided-return-selection" type="button" data-action="return-to-sop-selection" ${canOperate ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Regresar a selección de SOP</button>
+        <div class="guided-work-utility-actions">
+          ${canHandoffRework ? `<button class="button button--outlined guided-handoff-button" type="button" data-action="open-operator-handoff" data-focus-key="change-operator" ${state.evidenceBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.evidenceBusy ? "hourglass_top" : "swap_horiz"}</span>${state.evidenceBusy ? "Guardando evidencia…" : "Cambiar operador"}</button>` : ""}
+          <button class="button button--secondary guided-return-selection" type="button" data-action="return-to-sop-selection" ${canOperate ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Regresar a selección de SOP</button>
+        </div>
       </section>
     </div>
   </section>`;

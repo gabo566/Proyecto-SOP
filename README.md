@@ -64,7 +64,8 @@ Estas notas son advertencias editoriales del prototipo, no una resolución de in
 - El encabezado compacto de la hoja mantiene visibles la estación, nodo, tarjeta, SOP/revisión y nombre y número de empleado del operador responsable. El botón «Regresar a selección de SOP» vuelve a la selección conservando el avance local y la asignación del trabajo; no permite cambiar la estación ni la revisión mientras siga activo.
 - Ampliar o reducir la vista de la hoja entre 50 % y 150 %. En escritorio, la columna de la hoja gana espacio al ampliar; si el PDF excede el área visible, se puede recorrer con las barras de desplazamiento. El visor dibuja el PDF con resolución de al menos 2× y hasta 3× cuando el tamaño de página lo permite.
 - Ver el avance total y el conteo de pasos confirmados en la hoja. El pie de la hoja mantiene a la vista el estado y las acciones para continuar.
-- Al completar la última hoja, se abre automáticamente una ventana de confirmación con la SOP/revisión, nodo, serial, número de hojas, total de pasos y operador. La confirmación final guarda una sola constancia con los pasos, la autoría y la fecha.
+- En un retrabajo en curso, «Cambiar operador» guarda la hoja, pasos y datos actuales y solicita las credenciales de otra cuenta activa del navegador. El siguiente operador queda asignado al recorrido y cada entrega conserva quién entrega, quién recibe, la hoja y la fecha; la autoría original y las marcas de cada operador permanecen en la bitácora. Como el prototipo es local, esta comprobación no es autenticación corporativa.
+- Al completar la última hoja, se abre una ventana compacta de confirmación con estación, SOP/revisión, PN y serie del nodo, PN y serie de la tarjeta, avance y operador(es). La declaración incluye ambos equipos; la constancia guarda los pasos, la autoría y la fecha.
 - Reanudar un recorrido incompleto desde el mismo navegador y con la misma versión; el avance por hoja se conserva en el trabajo local.
 
 La declaración no equivale a una firma electrónica ni a una identidad autenticada. La casilla es una confirmación dentro del prototipo. La bitácora local conserva quién marcó cada paso.
@@ -178,10 +179,10 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | `src/evidence-workflow.js` | Evidencia asociada a retrabajos, visor, administración de fotos y decisión de revisión. |
 | `src/evidence-store.js` | Base IndexedDB del navegador y límites de archivos de evidencia. |
 | `src/sop-version-control.js` | Extracción y edición de pasos desde un único PDF, historial IndexedDB, activación y restauración local. |
-| `src/sop-run.js` | Recorrido secuencial de hojas, checklist por paso, avance/revisión y confirmación final de la SOP activa. |
+| `src/sop-run.js` | Recorrido secuencial de hojas, checklist por paso, avance/revisión y transferencia con historial entre operadores. |
 | `public/vendor/pdfjs/` | PDF.js, su worker, fuentes estándar y mapas de caracteres para leer PDF en el navegador sin conexión externa. |
 | `src/views/procedure.js` | Hoja digital de trabajo, checklist en pantalla principal, datos del nodo y avance entre hojas. |
-| `src/views/completion-dialog.js` | Checklist de pasos, confirmación final, formularios y diálogos de registro. |
+| `src/views/completion-dialog.js` | Confirmación final con datos de nodo/tarjeta y diálogo autenticado para cambiar operador en un retrabajo. |
 | `src/views/` | Plantillas de navegación, registros, actividad, informes y otros diálogos. |
 | `src/escape.js` | Escape de texto antes de insertarlo en plantillas HTML. |
 | `src/styles.css` | Diseño visual adaptable, estados, tablas, diálogos y componentes. |
@@ -192,7 +193,7 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | `tests/sites-worker.test.mjs` | Pruebas del comportamiento del worker y de los archivos del paquete de Sites; no cubren todo el flujo de la interfaz. |
 | `tests/sop-version-control.test.mjs` | Extracción de los 132 pasos de la SOP de referencia y restricción de administración a 140784. |
 | `tests/work-stations.test.mjs` | Visibilidad por estación, selección entre SOP habilitadas, revisión exacta y respeto del estado habilitado/deshabilitado. |
-| `tests/sop-run.test.mjs` | Bloqueo de avance si faltan pasos, progreso por hoja y confirmación solo al completar el recorrido. |
+| `tests/sop-run.test.mjs` | Bloqueo de avance si faltan pasos, progreso por hoja, confirmación y transferencia sin perder autoría ni checklist. |
 | `.openai/hosting.json` | Configuración de hosting actual: sin bindings configurados para D1 o R2. |
 | `src/views/procedure (1).js` | Archivo presente en el repositorio que no se carga desde `index.html`; la vista activa es `src/views/procedure.js`. |
 
