@@ -11,7 +11,6 @@ function bindInteractions(app, handlers) {
     openRecords,
     closeDialog,
     handleCompletionSubmit,
-    openGuidedSopValidation,
     continueGuidedSopSheet,
     previousGuidedSopSheet,
     openWorkItemDialog,
@@ -152,11 +151,9 @@ function bindInteractions(app, handlers) {
       case "sop-page-zoom-out": state.sopPageZoom = Math.max(50, state.sopPageZoom - 10); render(); break;
       case "sop-page-zoom-in": state.sopPageZoom = Math.min(150, state.sopPageZoom + 10); render(); break;
       case "sop-page-zoom-reset": state.sopPageZoom = 100; render(); break;
-      case "open-validation-dialog":
-        openGuidedSopValidation(action.dataset.focusKey || "register-validation");
-        break;
       case "close-validation-dialog": document.querySelector("#validation-dialog")?.close(); break;
       case "continue-sop-sheet": continueGuidedSopSheet(); break;
+      case "open-final-confirmation": continueGuidedSopSheet(); break;
       case "previous-sop-sheet": previousGuidedSopSheet(); break;
       case "zoom-step-image": openStepImage(action); break;
       case "step-image-zoom-in": setStepImageZoom(stepImageViewer.zoom + 25); break;
@@ -200,6 +197,11 @@ function bindInteractions(app, handlers) {
     if (target.matches("#procedure-select")) {
       selectProcedure(target.value);
     } else if (target.matches("[data-step]")) {
+      if (!canOperateGuidedSopRun()) {
+        target.checked = !target.checked;
+        showToast("Solo la persona que inició este recorrido puede validar sus pasos.", "warning");
+        return;
+      }
       const step = target.dataset.step;
       state.completedSteps = target.checked
         ? [...state.completedSteps, step]
@@ -305,9 +307,10 @@ function bindInteractions(app, handlers) {
       state.loginError = "";
       state.loginUsername = "";
       state.activeSection = "overview";
-      state.form.name = user.name;
-      state.form.employeeNumber = user.employeeNumber;
-      state.form.position = user.position || "Técnico de FA";
+      if (!state.activeWorkId) {
+        state.sopRun = null;
+        state.form = { ...state.form, name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", nodeNumber: "", serial: "", declaration: false };
+      }
       state.formError = "";
       state.auditSessionId = `session-${crypto.randomUUID()}`;
       localStorage.setItem("sop-operador-audit-session-v1", state.auditSessionId);
@@ -340,9 +343,14 @@ function updateGuidedChecklistUI(procedure, state) {
   if (currentCountLabel) currentCountLabel.textContent = `${currentCount} de ${procedure.steps.length}`;
   const progress = getGuidedSopProgress(state.sopRun, SOP_SHEETS);
   const progressCopy = document.querySelector(".guided-progress-copy");
-  if (progressCopy) progressCopy.textContent = `${progress.complete} de ${progress.total} pasos confirmados en toda la SOP.`;
-  const continueButton = document.querySelector('[data-action="continue-sop-sheet"]');
-  if (continueButton) continueButton.disabled = !isGuidedSopProcedureComplete(state.sopRun, procedure);
+  if (progressCopy) {
+    const percent = progress.total ? Math.round(progress.complete / progress.total * 100) : 0;
+    progressCopy.textContent = `${progress.complete} de ${progress.total} pasos · ${percent}%`;
+    const bar = document.querySelector(".sop-run-progress-track > span");
+    if (bar) bar.style.width = `${percent}%`;
+  }
+  const continueButton = document.querySelector('[data-action="continue-sop-sheet"], [data-action="open-final-confirmation"]');
+  if (continueButton) continueButton.disabled = !isGuidedSopProcedureComplete(state.sopRun, procedure) || !canOperateGuidedSopRun();
   if (state.formError) {
     state.formError = "";
     for (const error of document.querySelectorAll(".form-error")) {
