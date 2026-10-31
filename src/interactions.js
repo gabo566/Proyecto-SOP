@@ -418,8 +418,7 @@ function bindInteractions(app, handlers) {
         state.operatorFlowReady = false;
       } else {
         state.form = { ...state.form, name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA" };
-        normalizeStationIntakeAssignment(state);
-        state.operatorFlowReady = isStationIntakeComplete(state.form) && Boolean(findSopVersionForStation(state, state.form.stationAssignment, state.form.sopVersionId));
+        state.operatorFlowReady = false;
       }
       state.formError = "";
       state.auditSessionId = `session-${crypto.randomUUID()}`;

@@ -143,8 +143,7 @@ function restoreOperatorFlowForSession() {
     return;
   }
   state.form = { ...createEmptyForm(), ...activeWork.form };
-  state.operatorFlowReady = isStationIntakeComplete(state.form)
-    && Boolean(findSopVersionForStation(state, state.form.stationAssignment));
+  state.operatorFlowReady = false;
 }
 
 function render({ focusKey, focusDialog = false, initial = false } = {}) {
