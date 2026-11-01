@@ -8,7 +8,7 @@ const restorableWork = storedWorkItems
 const state = {
   selectedId: restorableWork?.procedureId ?? PROCEDURES[0].id,
   operatorFlowReady: false,
-  sopPageZoom: 100,
+  sopPageZoom: 110,
   sopStorageReady: false,
   sopRunContextOpen: false,
   completedSteps: restorableWork?.completedSteps ?? [],

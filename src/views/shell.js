@@ -79,7 +79,7 @@ function startCurrentShiftClock() {
   }, refreshAtNextMinute);
 }
 
-function renderSopSelector(selectedId, pageZoom = 100, state = {}) {
+function renderSopSelector(selectedId, pageZoom = 110, state = {}) {
   const options = SOP_SHEETS.map((procedure) => `<option value="${escapeHtml(procedure.id)}" ${procedure.id === selectedId ? "selected" : ""}>${escapeHtml(procedure.category)} · ${escapeHtml(procedure.title)} · hoja ${procedure.sheet}</option>`).join("");
   const procedure = SOP_SHEETS.find((item) => item.id === selectedId) ?? SOP_SHEETS[0];
   const pdfPath = state.sopPdfUrl || SOP_DOCUMENT.pdfPath;

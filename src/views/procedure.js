@@ -51,7 +51,7 @@ function renderProcedurePanel(procedure, state) {
   const canHandoffOperator = state.sopStorageReady && Boolean(run) && state.operatorFlowReady && hasHandoffTarget && canOperate;
   const pageNumber = procedure.pdfPage ?? procedure.sheet;
   const totalSheets = Number(SOP_DOCUMENT.totalSheets) || 46;
-  const pageZoom = Math.max(50, Math.min(150, Number(state.sopPageZoom) || 100));
+  const pageZoom = Math.max(50, Math.min(150, Number(state.sopPageZoom) || 110));
   const pdfSource = state.sopPdfUrl || SOP_DOCUMENT.pdfPath || "";
   const isComplete = isGuidedSopProcedureComplete(run, procedure);
   const isFirstPage = (run?.currentIndex ?? 0) === 0;

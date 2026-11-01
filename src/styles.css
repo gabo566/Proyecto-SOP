@@ -314,11 +314,6 @@ button { color: inherit; }
 .sop-page-checklist-layout { grid-template-columns: minmax(0,1.75fr) minmax(330px,.9fr); gap: 9px; align-items: stretch; }
 .sop-page-checklist-layout > .guided-sop-page,
 .sop-page-checklist-layout > .guided-checklist-panel { min-height: min(70vh, 760px); max-height: min(78vh, 920px); padding: 10px; border-radius: 10px; }
-.sop-page-checklist-layout[data-page-zoom="110"] .guided-pdf-viewport,
-.sop-page-checklist-layout[data-page-zoom="120"] .guided-pdf-viewport,
-.sop-page-checklist-layout[data-page-zoom="130"] .guided-pdf-viewport,
-.sop-page-checklist-layout[data-page-zoom="140"] .guided-pdf-viewport,
-.sop-page-checklist-layout[data-page-zoom="150"] .guided-pdf-viewport { justify-content: flex-start; align-items: flex-start; }
 @media (min-width: 901px) {
   .sop-page-checklist-layout[data-page-zoom="110"],
   .sop-page-checklist-layout[data-page-zoom="120"] { grid-template-columns: minmax(0,1.95fr) minmax(320px,.86fr); }
@@ -342,8 +337,8 @@ button { color: inherit; }
 .guided-page-heading strong { font-size: 12px; }
 .guided-page-heading small { color: var(--muted); font-size: 10px; font-weight: 500; }
 .guided-page-open-pdf { display: grid; width: 32px; height: 32px; place-items: center; flex: 0 0 auto; border: 1px solid var(--outline); border-radius: 7px; color: #315b87; }
-.guided-pdf-viewport { height: auto; min-height: 0; flex: 1 1 0; align-items: center; padding: 10px; border-color: #dfe5eb; background: #f1f4f7; }
-.guided-pdf-viewport canvas { flex: 0 0 auto; max-width: none; box-shadow: 0 2px 9px rgba(30,44,60,.16); }
+.guided-pdf-viewport { height: auto; min-height: 0; flex: 1 1 0; justify-content: flex-start; align-items: flex-start; padding: 10px; border-color: #dfe5eb; background: #f1f4f7; }
+.guided-pdf-viewport canvas { flex: 0 0 auto; max-width: none; margin: auto; box-shadow: 0 2px 9px rgba(30,44,60,.16); }
 .guided-pdf-viewport iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
 .guided-pdf-status { top: 50%; bottom: auto; transform: translateY(-50%); }
 .guided-page-footer { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 9px; }

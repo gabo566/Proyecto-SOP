@@ -96,6 +96,7 @@ async function renderSopPagePreview() {
     }).promise;
     if (sequence !== sopPageRenderSequence) return;
     canvas.hidden = false;
+    viewport.scrollLeft = Math.max(0, Math.round((viewport.scrollWidth - viewport.clientWidth) / 2));
     iframe.src = "about:blank";
     status.hidden = true;
   } catch (error) {
