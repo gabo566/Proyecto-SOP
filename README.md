@@ -2,7 +2,7 @@
 
 Aplicación web estática en español para consultar y registrar procedimientos de desensamble. El prototipo combina instrucciones y referencias visuales con un recorrido de validación SOP hoja por hoja, perfiles locales de operador/supervisor/administrador, una bitácora ilustrativa y un flujo para detener trabajos, documentar retrabajos y revisar evidencia fotográfica.
 
-> **Estado del proyecto:** prototipo de desarrollo local. La interfaz identifica expresamente un entorno de muestra sin conexión a producción. No hay servidor de aplicación, API, base de datos compartida ni despliegue configurado. El inicio de sesión y los roles son simulados en el navegador y no autentican identidades ni protegen información.
+> **Estado del proyecto:** prototipo local. La interfaz identifica expresamente un entorno de muestra sin conexión a producción. La versión web se sirve como sitio estático desde GitHub Pages; no hay servidor de aplicación, API ni base de datos compartida. El inicio de sesión y los roles son simulados en el navegador y no autentican identidades ni protegen información.
 
 ## Para qué sirve
 
@@ -161,7 +161,13 @@ Después, abre `http://127.0.0.1:8000` en el navegador. Ejecutar el servidor des
 
 No se genera `dist` para este flujo local. El archivo `scripts/prepare-sites-build.mjs` pertenece a la preparación de empaquetado para Sites y crea archivos dentro de `dist`; no forma parte del inicio ni del desarrollo local actual.
 
-La tipografía Roboto y los iconos Material Symbols se cargan desde Google Fonts. Si el navegador no tiene acceso a esos dominios, la aplicación sigue usando sus estilos y fuentes de respaldo, aunque algunos iconos o detalles visuales pueden variar.
+### Paquete extraíble para usar sin internet en Windows
+
+El proyecto incluye un paquete ZIP autocontenido. Para regenerarlo desde un checkout actualizado, ejecuta `python3 scripts/package-offline.py /ruta/Proyecto-SOP-sin-red.zip`. El proceso usa Python estándar, incluye la aplicación, el PDF base, imágenes, PDF.js, las fuentes y el iniciador local; excluye `.git`, pruebas y `dist/`.
+
+Extrae el ZIP y haz doble clic en `INICIAR-SOP-SIN-RED.bat`. El iniciador usa Windows PowerShell integrado para servir los archivos solo en `127.0.0.1:8765` y abre la aplicación en el navegador. No requiere Python, Node.js ni conexión a internet para el uso diario. Deja abierta la ventana del servidor; presiona Ctrl+C ahí para cerrarlo. Si las políticas de la empresa bloquean PowerShell, solicita revisión a TI en vez de desactivar las protecciones.
+
+Los usuarios locales, registros, evidencia y SOP nuevas se guardan en el perfil de Edge usado con esa dirección local. No viajan dentro del ZIP ni se comparten con otros equipos. No borres los datos del sitio ni uses InPrivate para trabajos que deban conservarse.
 
 ## Organización del código
 
@@ -170,6 +176,9 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | Ruta | Responsabilidad |
 | --- | --- |
 | `index.html` | Documento inicial, CSS y orden de carga de scripts. |
+| `INICIAR-SOP-SIN-RED.bat` y `offline/servidor-local.ps1` | Iniciador Windows y servidor local limitado a `127.0.0.1` para usar la aplicación extraída sin red. |
+| `scripts/package-offline.py` | Crea el ZIP offline autocontenido fuera del repositorio; excluye `.git`, pruebas y `dist/`. |
+| `public/assets/fonts/` | Fuentes locales Roboto y Material Symbols y sus licencias; no requieren Google Fonts. |
 | `src/data/sopData.js` | Metadata de la SOP, los 42 procedimientos, pasos, referencias visuales, categorías y registros ficticios. |
 | `src/data/workStations.js` | Catálogo MFG/RWK y resolución de las SOP habilitadas para cada estación. |
 | `src/user-control.js` | Perfiles de demostración, selector de usuario, roles ilustrativos, gestión local y bitácora del navegador. |
@@ -184,7 +193,7 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | `src/sop-run.js` | Recorrido secuencial de hojas, checklist por paso, avance/revisión y transferencia con historial entre operadores. |
 | `public/vendor/pdfjs/` | PDF.js, su worker, fuentes estándar y mapas de caracteres para leer PDF en el navegador sin conexión externa. |
 | `src/views/procedure.js` | Hoja digital de trabajo, checklist en pantalla principal, datos del nodo y avance entre hojas. |
-| `src/views/completion-dialog.js` | Confirmación final con datos de nodo/tarjeta y diálogo autenticado para cambiar operador en un retrabajo. |
+| `src/views/completion-dialog.js` | Confirmación final con datos de nodo/tarjeta y diálogo local para cambiar operador en una SOP activa. |
 | `src/views/` | Plantillas de navegación, registros, actividad, informes y otros diálogos. |
 | `src/escape.js` | Escape de texto antes de insertarlo en plantillas HTML. |
 | `src/styles.css` | Diseño visual adaptable, estados, tablas, diálogos y componentes. |
@@ -203,7 +212,7 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 
 - HTML, CSS y JavaScript nativo.
 - APIs del navegador: `localStorage`, IndexedDB, `crypto.randomUUID`, File API, `URL.createObjectURL` y diálogos HTML nativos.
-- Node.js solo se usa para el script y las pruebas de empaquetado para Sites; Python puede servir los archivos estáticos durante el desarrollo local.
+- Python puede servir los archivos estáticos durante el desarrollo y crear el ZIP offline. El uso del ZIP en Windows emplea PowerShell integrado; no requiere Node.js ni instalar paquetes.
 - No hay `package.json`, dependencias npm, servicio de base de datos ni variables de entorno requeridas para abrir el prototipo.
 
 Se recomienda un navegador moderno con soporte para esas APIs. Las fotos requieren un origen web que permita IndexedDB; el servidor local indicado proporciona ese contexto.

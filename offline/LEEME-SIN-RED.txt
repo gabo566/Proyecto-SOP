@@ -1,0 +1,12 @@
+PAQUETE SOP PARA USO LOCAL SIN INTERNET
+
+1. Extrae toda la carpeta Proyecto-SOP-sin-red desde el archivo ZIP.
+2. En Windows, haz doble clic en INICIAR-SOP-SIN-RED.bat.
+3. Se abrirá la aplicación en Edge en http://127.0.0.1:8765/.
+4. Deja abierta la ventana negra mientras uses la SOP. Para detenerla, presiona Ctrl+C.
+
+La aplicación, PDF, imágenes, PDF.js y fuentes están incluidos en la carpeta. No requiere conexión a internet ni instalación de Python o Node.js; el iniciador usa Windows PowerShell integrado y solo escucha en esta computadora.
+
+Los registros, usuarios locales, fotos y SOP cargadas después de extraer el ZIP se guardan en el perfil de Edge de esta computadora. No se copian al ZIP, no se comparten con otros equipos y se pueden perder si borras los datos del sitio. No uses una ventana InPrivate para trabajar, porque sus datos desaparecen al cerrarla.
+
+Si una política de la empresa bloquea el iniciador de PowerShell, solicita a TI que lo revise; no desactives las protecciones de Windows. Mantén el ZIP original como copia limpia de los archivos de la aplicación.
