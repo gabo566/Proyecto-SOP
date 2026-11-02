@@ -127,7 +127,55 @@ function bindInteractions(app, handlers) {
     if (image.complete) updateStepImageZoom();
   }
 
+  function setSopPageZoom(zoom, anchor = null) {
+    state.sopPageZoom = Math.max(50, Math.min(300, zoom));
+    const viewport = document.querySelector("#sop-page-preview");
+    if (!viewport) {
+      render();
+      return;
+    }
+    viewport.dataset.zoom = String(state.sopPageZoom);
+    const level = document.querySelector("#sop-page-zoom-level");
+    const zoomIn = document.querySelector('[data-action="sop-page-zoom-in"]');
+    const zoomOut = document.querySelector('[data-action="sop-page-zoom-out"]');
+    if (level) level.textContent = `${state.sopPageZoom}%`;
+    if (zoomIn) zoomIn.disabled = state.sopPageZoom >= 300;
+    if (zoomOut) zoomOut.disabled = state.sopPageZoom <= 50;
+    renderSopPagePreview(anchor);
+  }
+
+  function toggleSopFocusZoom() {
+    state.sopFocusedZoom = !state.sopFocusedZoom;
+    const button = document.querySelector('[data-action="sop-page-toggle-focused-zoom"]');
+    const viewport = document.querySelector("#sop-page-preview");
+    const hint = document.querySelector("#sop-page-focus-zoom-hint");
+    button?.setAttribute("aria-pressed", String(state.sopFocusedZoom));
+    if (viewport) viewport.dataset.focusZoom = String(state.sopFocusedZoom);
+    if (hint) hint.hidden = !state.sopFocusedZoom;
+  }
+
+  function handleFocusedSopWheel(event) {
+    const viewport = event.target.closest?.("#sop-page-preview");
+    const canvas = viewport?.querySelector("canvas");
+    if (!state.sopFocusedZoom || !viewport || !canvas || canvas.hidden || event.target !== canvas) return;
+    const canvasBounds = canvas.getBoundingClientRect();
+    if (event.clientX < canvasBounds.left || event.clientX > canvasBounds.right
+      || event.clientY < canvasBounds.top || event.clientY > canvasBounds.bottom) return;
+    const nextZoom = Math.max(50, Math.min(300, (Number(state.sopPageZoom) || 110) + (event.deltaY < 0 ? 10 : -10)));
+    if (nextZoom === Number(state.sopPageZoom)) return;
+    const viewportBounds = viewport.getBoundingClientRect();
+    event.preventDefault();
+    const anchor = {
+      pointX: Math.max(0, Math.min(1, (event.clientX - canvasBounds.left) / Math.max(1, canvasBounds.width))),
+      pointY: Math.max(0, Math.min(1, (event.clientY - canvasBounds.top) / Math.max(1, canvasBounds.height))),
+      pointerX: event.clientX - viewportBounds.left - viewport.clientLeft,
+      pointerY: event.clientY - viewportBounds.top - viewport.clientTop,
+    };
+    setSopPageZoom(nextZoom, anchor);
+  }
+
   window.addEventListener("resize", updateStepImageZoom, { passive: true });
+  window.addEventListener("wheel", handleFocusedSopWheel, { passive: false });
 
   app.addEventListener("click", (event) => {
     if (event.target instanceof HTMLDialogElement && event.target.open) {
@@ -165,9 +213,10 @@ function bindInteractions(app, handlers) {
       case "close-help": document.querySelector("#help-dialog")?.close(); break;
       case "previous-procedure": moveProcedure(-1); break;
       case "next-procedure": moveProcedure(1); break;
-      case "sop-page-zoom-out": state.sopPageZoom = Math.max(50, state.sopPageZoom - 10); render(); break;
-      case "sop-page-zoom-in": state.sopPageZoom = Math.min(150, state.sopPageZoom + 10); render(); break;
-      case "sop-page-zoom-reset": state.sopPageZoom = 100; render(); break;
+      case "sop-page-zoom-out": setSopPageZoom(state.sopPageZoom - 10); break;
+      case "sop-page-zoom-in": setSopPageZoom(state.sopPageZoom + 10); break;
+      case "sop-page-zoom-reset": setSopPageZoom(100); break;
+      case "sop-page-toggle-focused-zoom": toggleSopFocusZoom(); break;
       case "return-to-sop-selection":
         if (!canOperateGuidedSopRun()) {
           showToast("Solo el operador actualmente asignado puede volver a la selección de SOP.", "warning");

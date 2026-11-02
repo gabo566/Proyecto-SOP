@@ -51,7 +51,7 @@ function renderProcedurePanel(procedure, state) {
   const canHandoffOperator = state.sopStorageReady && Boolean(run) && state.operatorFlowReady && hasHandoffTarget && canOperate;
   const pageNumber = procedure.pdfPage ?? procedure.sheet;
   const totalSheets = Number(SOP_DOCUMENT.totalSheets) || 46;
-  const pageZoom = Math.max(50, Math.min(150, Number(state.sopPageZoom) || 110));
+  const pageZoom = Math.max(50, Math.min(300, Number(state.sopPageZoom) || 110));
   const pdfSource = state.sopPdfUrl || SOP_DOCUMENT.pdfPath || "";
   const isComplete = isGuidedSopProcedureComplete(run, procedure);
   const isFirstPage = (run?.currentIndex ?? 0) === 0;
@@ -79,14 +79,16 @@ function renderProcedurePanel(procedure, state) {
           <div class="sop-page-zoom-controls" role="group" aria-label="Tamaño de la hoja SOP">
             <button class="icon-button" type="button" data-action="sop-page-zoom-out" aria-label="Reducir hoja SOP" ${pageZoom <= 50 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">remove</span></button>
             <output id="sop-page-zoom-level" aria-live="polite">${pageZoom}%</output>
-            <button class="icon-button" type="button" data-action="sop-page-zoom-in" aria-label="Ampliar hoja SOP" ${pageZoom >= 150 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">add</span></button>
+            <button class="icon-button" type="button" data-action="sop-page-zoom-in" aria-label="Ampliar hoja SOP" ${pageZoom >= 300 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">add</span></button>
             <button class="text-button" type="button" data-action="sop-page-zoom-reset" aria-label="Ajustar hoja completa">Ajustar</button>
+            <button class="button button--outlined guided-focus-zoom-button" type="button" data-action="sop-page-toggle-focused-zoom" aria-pressed="${Boolean(state.sopFocusedZoom)}" aria-describedby="sop-page-focus-zoom-hint"><span class="material-symbols-rounded" aria-hidden="true">center_focus_strong</span>Ampliar en vista específica</button>
           </div>
           ${sourceUrl ? `<a class="guided-page-open-pdf" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer" aria-label="Abrir PDF en página ${escapeHtml(pageNumber)}"><span class="material-symbols-rounded" aria-hidden="true">open_in_new</span></a>` : ""}
         </div>
-        <div class="guided-pdf-viewport" id="sop-page-preview" data-pdf-source="${escapeHtml(pdfSource)}" data-pdf-page="${escapeHtml(pageNumber)}" data-zoom="${pageZoom}" role="group" aria-label="Vista completa del PDF, página ${escapeHtml(pageNumber)}">
+        <div class="guided-pdf-viewport" id="sop-page-preview" data-pdf-source="${escapeHtml(pdfSource)}" data-pdf-page="${escapeHtml(pageNumber)}" data-zoom="${pageZoom}" data-focus-zoom="${Boolean(state.sopFocusedZoom)}" role="group" aria-label="Vista completa del PDF, página ${escapeHtml(pageNumber)}">
           <div class="guided-pdf-canvas-wrap"><canvas aria-label="Página ${escapeHtml(pageNumber)} completa de ${escapeHtml(SOP_DOCUMENT.title)}"></canvas>${renderSopAnnotationOverlay(procedure.annotations ?? [])}</div>
           <iframe title="Hoja ${escapeHtml(procedure.sheet)} completa de la SOP" hidden></iframe>
+          <span class="guided-focus-zoom-hint" id="sop-page-focus-zoom-hint" role="status" ${state.sopFocusedZoom ? "" : "hidden"}>Desplaza sobre la sección que quieres ampliar.</span>
           <p class="guided-pdf-status" role="status" aria-live="polite">Cargando hoja completa…</p>
         </div>
         <footer class="guided-page-footer"><span>${escapeHtml(SOP_DOCUMENT.id)} · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}</span><span>${escapeHtml(procedure.category)} · ${procedure.steps.length} pasos</span></footer>
