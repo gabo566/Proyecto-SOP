@@ -47,13 +47,13 @@ function renderStationIntake(state) {
       : '<span class="station-choice-status station-choice-status--disabled">Sin SOP habilitadas por Administración</span>';
 
   return `<div class="station-intake-screen" aria-labelledby="station-intake-title">
-    <header class="station-intake-topbar">
-      <a class="station-intake-brand" href="#top" aria-label="Ingrasys">
+    <section class="station-intake-banner" aria-label="Registrar validación">
+      <a class="station-intake-banner-brand" href="#top" aria-label="Ingrasys">
         <img src="./public/assets/ingrasys-logo.png" alt="Ingrasys" />
       </a>
-      <div class="station-intake-user"><span class="station-intake-avatar" aria-hidden="true">${escapeHtml(user.name.slice(0,2).toLocaleUpperCase("es-MX"))}</span><span><strong>Bienvenido, ${escapeHtml(user.name)}</strong><small>${escapeHtml(user.position || "Técnico de FA")} · ${escapeHtml(LOCAL_USER_ROLES[user.role])}</small></span></div>
-    </header>
-    <section class="station-intake-banner"><span class="material-symbols-rounded" aria-hidden="true">fact_check</span><div><h1 id="station-intake-title">Registrar validación</h1><p>Seguimiento de SOPs Nvidia Racks</p></div></section>
+      <div class="station-intake-banner-heading"><span class="material-symbols-rounded" aria-hidden="true">fact_check</span><div><h1 id="station-intake-title">Registrar validación</h1><p>Seguimiento de SOPs Nvidia Racks</p></div></div>
+      <div class="station-intake-user" aria-label="Usuario activo"><span class="station-intake-avatar" aria-hidden="true">${escapeHtml(user.name.slice(0,2).toLocaleUpperCase("es-MX"))}</span><span><strong>${escapeHtml(user.name)}</strong><small>No. de empleado ${escapeHtml(user.employeeNumber)}</small><small>${escapeHtml(user.position || "Técnico de FA")} · ${escapeHtml(LOCAL_USER_ROLES[user.role])}</small></span></div>
+    </section>
     <nav class="operator-flow-progress" aria-label="Progreso del registro">
       <div class="operator-flow-step operator-flow-step--active" aria-current="step"><span>1</span><strong>Seleccionar estación</strong></div><i></i>
       <div class="operator-flow-step"><span>2</span><strong>Ver SOP asignada</strong></div><i></i>
@@ -86,9 +86,8 @@ function renderStationIntake(state) {
           <label>Serie de la tarjeta <em aria-hidden="true">*</em><input data-form-field="componentSerial" data-focus-key="intake-card-serial" value="${escapeHtml(state.form.componentSerial ?? "")}" placeholder="Ej. TG12345678" required maxlength="100" autocomplete="off" /></label>
         </div>
       </section>
-      <section class="station-work-summary" aria-label="Resumen de estación, operador y SOP">
+      <section class="station-work-summary" aria-label="Resumen de estación y SOP">
         <div class="station-summary-item station-summary-location"><span class="material-symbols-rounded" aria-hidden="true">factory</span><span><small>Estación seleccionada</small><strong>${escapeHtml(assignment?.type ?? "—")} · ${escapeHtml(assignment?.label ?? "—")}</strong></span></div>
-        <div class="station-summary-item station-summary-operator"><span class="material-symbols-rounded" aria-hidden="true">account_circle</span><span><small>Operador</small><strong>${escapeHtml(user.name)}</strong><small>Usuario registrado · ${escapeHtml(user.position || "Técnico de FA")}</small></span></div>
         <div class="station-summary-item station-summary-sop"><span class="material-symbols-rounded" aria-hidden="true">description</span><span><small>SOP seleccionada · ${escapeHtml(assignment?.type ?? "")} · ${escapeHtml(assignment?.label ?? "")}</small><strong>${escapeHtml(activeVersion?.document?.title ?? "No hay una SOP habilitada")}</strong><small>${activeVersion ? `${escapeHtml(activeVersion.document.id)} · Rev. ${escapeHtml(activeVersion.document.revision)}` : "Administración debe asignar y habilitar una SOP."}</small></span></div>
       </section>
       <footer class="station-intake-footer">${isStationIntakeComplete(state.form) ? `<p class="station-intake-status ${activeVersion ? "station-intake-status--ready" : ""}" id="station-intake-status" role="status" aria-live="polite">${escapeHtml(status)}</p>` : ""}

@@ -378,16 +378,16 @@ button { color: inherit; }
 
 /* Registro inicial MFG/RWK, fiel a la propuesta seleccionada. */
 .station-intake-screen { width: min(100%, 1440px); min-height: 100vh; margin: 0 auto; padding: 0 42px 22px; color: #172b49; background: #fff; }
-.station-intake-topbar { min-height: 92px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid #e6eaf0; }
-.station-intake-brand { width: min(265px, 34vw); flex: 0 1 265px; }
-.station-intake-brand img { display: block; width: 100%; height: auto; object-fit: contain; }
-.station-intake-user { min-width: 0; display: flex; align-items: center; gap: 12px; text-align: right; }
+.station-intake-user { min-width: 0; display: flex; align-items: center; gap: 10px; text-align: right; }
 .station-intake-user > span:last-child { min-width: 0; display: grid; gap: 3px; }
-.station-intake-user strong { overflow: hidden; color: #172b49; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
-.station-intake-user small { color: #68778e; font-size: 11px; }
-.station-intake-avatar { width: 46px; height: 46px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #213d5d; font-size: 14px; font-weight: 700; }
-.station-intake-banner { position: relative; min-height: 104px; display: flex; align-items: center; justify-content: center; margin: 0 -42px; padding: 18px 78px; color: #fff; background: #c91820; text-align: center; }
-.station-intake-banner > .material-symbols-rounded { position: absolute; left: 58px; padding-right: 18px; border-right: 1px solid rgba(255,255,255,.56); font-size: 40px; }
+.station-intake-user strong { overflow: hidden; color: #fff; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.station-intake-user small { color: #ffe4e5; font-size: 10px; }
+.station-intake-avatar { width: 42px; height: 42px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.55); border-radius: 50%; color: #fff; background: rgba(105,0,0,.18); font-size: 13px; font-weight: 700; }
+.station-intake-banner { min-height: 104px; display: grid; grid-template-columns: minmax(150px,190px) minmax(0,1fr) minmax(220px,310px); align-items: center; gap: 20px; margin: 0 -42px; padding: 14px 42px; color: #fff; background: #c91820; }
+.station-intake-banner-brand { width: 100%; display: grid; place-items: center; padding: 7px 10px; border-radius: 7px; background: #fff; }
+.station-intake-banner-brand img { display: block; width: 100%; height: auto; object-fit: contain; }
+.station-intake-banner-heading { min-width: 0; display: flex; align-items: center; gap: 15px; }
+.station-intake-banner-heading > .material-symbols-rounded { flex: 0 0 auto; padding-right: 15px; border-right: 1px solid rgba(255,255,255,.56); font-size: 36px; }
 .station-intake-banner h1 { margin: 0; font-size: clamp(24px, 2.8vw, 38px); font-weight: 750; line-height: 1.1; letter-spacing: -.025em; }
 .station-intake-banner p { margin: 5px 0 0; color: #ffe9e9; font-size: 14px; font-weight: 600; }
 .operator-flow-progress { width: min(100%, 1120px); display: grid; grid-template-columns: minmax(135px,1fr) minmax(35px,1.2fr) minmax(135px,1fr) minmax(35px,1.2fr) minmax(135px,1fr); align-items: start; gap: 7px; margin: 15px auto 19px; }
@@ -431,7 +431,6 @@ button { color: inherit; }
 .station-summary-item + .station-summary-item { border-left: 1px solid #c6d8e8; }
 .station-summary-item > .material-symbols-rounded { width: 48px; height: 48px; flex: 0 0 48px; display: grid; place-items: center; border-radius: 50%; color: #fff; font-size: 26px; }
 .station-summary-location > .material-symbols-rounded { background: #11956e; }
-.station-summary-operator > .material-symbols-rounded { background: #2374bd; }
 .station-summary-sop > .material-symbols-rounded { background: #eda817; }
 .station-summary-item > span:last-child { min-width: 0; display: grid; gap: 3px; }
 .station-summary-item small { color: #64748a; font-size: 10px; line-height: 1.35; }
@@ -459,28 +458,26 @@ button { color: inherit; }
 .operator-flow-progress--compact > i { margin-top: 12px; }
 @media (max-width: 1000px) {
   .station-intake-screen { padding-inline: 24px; }
-  .station-intake-banner { margin-inline: -24px; padding-inline: 64px; }
-  .station-intake-banner > .material-symbols-rounded { left: 36px; }
+  .station-intake-banner { grid-template-columns: minmax(130px,160px) minmax(0,1fr) minmax(190px,250px); gap: 13px; margin-inline: -24px; padding-inline: 24px; }
   .station-choice-grid { grid-template-columns: minmax(0,1fr); }
   .station-work-summary { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .station-summary-sop { grid-column: 1 / -1; border-top: 1px solid #c6d8e8; }
-  .station-summary-item + .station-summary-sop { border-left: 0; }
   .station-sop-context { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .station-context-tile:nth-child(4) { border-left: 0; }
   .station-context-tile:nth-child(n+4) { border-top: 1px solid #ccdeed; }
 }
 @media (max-width: 650px) {
   .station-intake-screen { padding: 0 12px 18px; }
-  .station-intake-topbar { min-height: 68px; gap: 8px; }
-  .station-intake-brand { width: 148px; flex-basis: 148px; }
-  .station-intake-user { gap: 7px; }
-  .station-intake-avatar { width: 34px; height: 34px; font-size: 11px; }
-  .station-intake-user strong { max-width: 180px; font-size: 10px; }
+  .station-intake-banner { min-height: 0; grid-template-columns: minmax(78px,104px) minmax(0,1fr); gap: 10px 12px; margin-inline: -12px; padding: 10px 12px; }
+  .station-intake-banner-brand { padding: 5px; }
+  .station-intake-banner-heading { gap: 9px; }
+  .station-intake-banner-heading > .material-symbols-rounded { padding-right: 8px; font-size: 26px; }
+  .station-intake-user { grid-column: 1 / -1; justify-self: end; gap: 8px; text-align: left; }
+  .station-intake-user > span:last-child { gap: 2px; }
+  .station-intake-avatar { width: 32px; height: 32px; font-size: 10px; }
+  .station-intake-user strong { max-width: 75vw; font-size: 10px; }
   .station-intake-user small { font-size: 8px; }
-  .station-intake-banner { min-height: 78px; margin-inline: -12px; padding: 12px 52px; }
-  .station-intake-banner > .material-symbols-rounded { left: 16px; padding-right: 8px; font-size: 29px; }
-  .station-intake-banner h1 { font-size: 23px; }
-  .station-intake-banner p { font-size: 10px; }
+  .station-intake-banner h1 { font-size: clamp(17px, 5vw, 23px); }
+  .station-intake-banner p { margin-top: 3px; font-size: 9px; }
   .operator-flow-progress { grid-template-columns: minmax(72px,1fr) 12px minmax(72px,1fr) 12px minmax(72px,1fr); gap: 3px; margin: 13px auto 16px; }
   .operator-flow-step { gap: 5px; }
   .operator-flow-step > span { width: 28px; height: 28px; font-size: 11px; }
