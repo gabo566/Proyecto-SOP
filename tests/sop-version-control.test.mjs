@@ -16,12 +16,13 @@ const context = vm.createContext({
   BUILT_IN_SOP_VERSION_ID: "__built-in-sop__",
   BUILT_IN_SOP_VERSION: { id: "__built-in-sop__", document: { stationAssignment: "RWK:RWK" } },
   document: { baseURI: new URL("index.html", rootUrl).href },
+  escapeHtml: (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;"),
   getActiveLocalUser: () => ({ name: "Gabriel", employeeNumber: "140784", role: "admin" }),
 });
 vm.runInContext(workStationsSource, context);
 vm.runInContext(source, context);
-const { canManageSopVersions, extractSopPdfVersion, validateSopDraft } = vm.runInContext(
-  "({ canManageSopVersions, extractSopPdfVersion, validateSopDraft })",
+const { canManageSopVersions, extractSopPdfVersion, validateSopDraft, renderSopAnnotationOverlay } = vm.runInContext(
+  "({ canManageSopVersions, extractSopPdfVersion, validateSopDraft, renderSopAnnotationOverlay })",
   context,
 );
 const pdfBytes = await readFile(new URL("../public/documents/SOP-NVD-GB200-141.pdf", import.meta.url));
@@ -62,6 +63,25 @@ test("validates editable steps before saving and rejects incomplete or duplicate
   const incomplete = structuredClone(version);
   incomplete.procedures[0].steps[0].text = "";
   assert.throws(() => validateSopDraft(incomplete), /Completa el número y el texto/);
+});
+
+test("retains administrator arrows, boxes, numbers and notes in a SOP revision", () => {
+  const annotations = [
+    { id: "a1", type: "arrow", stepNumber: "1", x1: 100, y1: 120, x2: 260, y2: 300 },
+    { id: "a2", type: "box", stepNumber: "1", x: 300, y: 240, width: 180, height: 120 },
+    { id: "a3", type: "number", stepNumber: "1", x: 550, y: 450, label: "1" },
+    { id: "a4", type: "note", stepNumber: "1", x: 600, y: 650, text: "Revisar seguro" },
+  ];
+  const version = validateSopDraft({
+    id: "version-annotated",
+    document: { id: "SOP-ANNOTATED", title: "SOP anotada", revision: "4", stationAssignment: "RWK:RWK", totalSheets: 1 },
+    procedures: [{ id: "sheet-1", sheet: 1, title: "Hoja 1", steps: [{ number: "1", text: "Revisar el conector" }], annotations }],
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(version.procedures[0].annotations)), annotations);
+
+  const overlay = renderSopAnnotationOverlay([{ type: "note", x: 20, y: 30, stepNumber: "1", text: "<script>alert(1)</script>" }]);
+  assert.match(overlay, /&lt;script&gt;/);
+  assert.doesNotMatch(overlay, /<script>/);
 });
 
 test("rejects an empty file when only one PDF is supplied", async () => {

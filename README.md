@@ -53,6 +53,7 @@ Estas notas son advertencias editoriales del prototipo, no una resolución de in
 - Después de iniciar sesión, el operador elige MFG o RWK. En MFG puede elegir TDR, SYS_ASSY_1 o SYS_ASSY_2; solo aparecen las estaciones donde existe al menos una SOP habilitada por Administración. Si una estación tiene varias SOP habilitadas, el operador elige cuál utilizar; si solo hay una, queda seleccionada automáticamente.
 - Antes de comenzar, la pantalla muestra el nombre, identificador y revisión de la SOP seleccionada. Al continuar, el sistema abre esa revisión exacta y registra su identificador con la validación.
 - La cuenta 140784 carga PDF desde «Modificar SOP». El borrador detectado solicita la estación MFG/TDR, MFG/SYS_ASSY_1, MFG/SYS_ASSY_2 o RWK/RWK y permite revisar pasos. Al guardarse, la revisión queda deshabilitada hasta que Administración la habilite en el catálogo.
+- En «Modificar SOP», la vista previa permite marcar cada hoja con flechas, recuadros, números y notas breves vinculadas a un paso. Las anotaciones se guardan dentro de la revisión local y se dibujan sobre la hoja que consulta el operador.
 - En el catálogo, cada SOP del historial muestra su revisión, quién la guardó, estación y disponibilidad. Administración puede cambiar la estación y habilitar o deshabilitar cada revisión. Si habilita una revisión, la revisión anterior del mismo identificador se deshabilita automáticamente; otras SOP distintas pueden seguir habilitadas en esa estación.
 - La pantalla inicial de registro conserva la selección MFG/RWK y los datos del nodo y la tarjeta. La franja roja concentra el logo de Ingrasys y los datos del usuario conectado (nombre, número de empleado, puesto y rol), aprovechando el espacio superior; el resumen inferior presenta la estación y la SOP sin repetir al operador. La selección queda guardada en la validación.
 - Cada hoja se presenta como una hoja digital controlada, con identificador, revisión, categoría, título, número de hoja, rango de pasos y referencias visuales disponibles. El PDF original queda como consulta secundaria y ya no es la pantalla principal de ejecución.
@@ -189,7 +190,8 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | `src/evidence-capture-workflow.js` | Selección y retiro de fotos de validación, detención y retrabajo, con referencia al perfil de demostración activo. |
 | `src/evidence-workflow.js` | Evidencia asociada a retrabajos, visor, administración de fotos y decisión de revisión. |
 | `src/evidence-store.js` | Base IndexedDB del navegador y límites de archivos de evidencia. |
-| `src/sop-version-control.js` | Extracción y edición de pasos desde un único PDF, historial IndexedDB, activación y restauración local. |
+| `src/sop-version-control.js` | Extracción y edición de pasos desde un único PDF, anotaciones visuales de hojas, historial IndexedDB, activación y restauración local. |
+| `src/sop-version-preview.js` | Vista previa de hojas PDF con marcas del administrador y resaltado del paso seleccionado. |
 | `src/sop-run.js` | Recorrido secuencial de hojas, checklist por paso, avance/revisión y transferencia con historial entre operadores. |
 | `public/vendor/pdfjs/` | PDF.js, su worker, fuentes estándar y mapas de caracteres para leer PDF en el navegador sin conexión externa. |
 | `src/views/procedure.js` | Hoja digital de trabajo, checklist en pantalla principal, datos del nodo y avance entre hojas. |

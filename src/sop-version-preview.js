@@ -51,7 +51,8 @@ async function renderSopDraftPdfPage(dialog, version, procedureIndex, stepIndex)
     const page = await pdf.getPage(pdfPage);
     if (sequence !== sopDraftPreviewSequence) return;
     const natural = page.getViewport({ scale: 1 });
-    const frame = canvas.parentElement;
+    const frame = canvas.closest(".sop-draft-preview-page");
+    const canvasWrap = canvas.parentElement;
     const availableWidth = Math.max(1, frame.clientWidth - 24);
     const availableHeight = Math.max(1, frame.clientHeight - 24);
     const scale = Math.min(availableWidth / natural.width, availableHeight / natural.height);
@@ -63,6 +64,8 @@ async function renderSopDraftPdfPage(dialog, version, procedureIndex, stepIndex)
     canvas.height = Math.ceil(viewport.height * outputScale);
     canvas.style.width = `${Math.ceil(viewport.width)}px`;
     canvas.style.height = `${Math.ceil(viewport.height)}px`;
+    canvasWrap.style.width = `${Math.ceil(viewport.width)}px`;
+    canvasWrap.style.height = `${Math.ceil(viewport.height)}px`;
     await page.render({
       canvasContext: context,
       viewport,
@@ -91,6 +94,8 @@ async function renderSopDraftPdfPage(dialog, version, procedureIndex, stepIndex)
     } else {
       status.textContent = `Hoja ${procedure.sheet} completa · consulta el texto actualizado del paso en el panel lateral`;
     }
+    const overlay = dialog.querySelector("[data-sop-annotation-overlay]");
+    if (overlay) overlay.innerHTML = renderSopAnnotationContents(procedure.annotations ?? []);
     canvas.hidden = false;
   } catch (error) {
     if (sequence !== sopDraftPreviewSequence) return;

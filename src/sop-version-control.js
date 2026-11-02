@@ -5,6 +5,49 @@ const SOP_VERSION_ACTIVE_KEY = "active-version";
 const SOP_STATION_ASSIGNMENT_KEY_PREFIX = "station-sop:";
 const SOP_CATALOG_KEY_PREFIX = "sop-catalog:";
 
+function clampSopAnnotationCoordinate(value) {
+  return Math.max(0, Math.min(1000, Math.round(Number(value) || 0)));
+}
+
+function renderSopAnnotationContents(annotations = [], preview = null) {
+  const visibleAnnotations = preview ? [...annotations, preview] : annotations;
+  const shapes = visibleAnnotations.map((annotation) => {
+    const title = annotation.stepNumber ? `Paso ${escapeHtml(annotation.stepNumber)}` : "Anotación visual";
+    if (annotation.type === "arrow") {
+      return `<g class="sop-annotation sop-annotation--arrow" pointer-events="none"><title>${title}</title><line x1="${clampSopAnnotationCoordinate(annotation.x1)}" y1="${clampSopAnnotationCoordinate(annotation.y1)}" x2="${clampSopAnnotationCoordinate(annotation.x2)}" y2="${clampSopAnnotationCoordinate(annotation.y2)}" /></g>`;
+    }
+    if (annotation.type === "box") {
+      const x = clampSopAnnotationCoordinate(annotation.x);
+      const y = clampSopAnnotationCoordinate(annotation.y);
+      const width = Math.max(1, Math.min(1000 - x, clampSopAnnotationCoordinate(annotation.width)));
+      const height = Math.max(1, Math.min(1000 - y, clampSopAnnotationCoordinate(annotation.height)));
+      return `<g class="sop-annotation sop-annotation--box" pointer-events="none"><title>${title}</title><rect x="${x}" y="${y}" width="${width}" height="${height}" /></g>`;
+    }
+    if (annotation.type === "number") {
+      const x = clampSopAnnotationCoordinate(annotation.x);
+      const y = clampSopAnnotationCoordinate(annotation.y);
+      return `<g class="sop-annotation sop-annotation--number" pointer-events="none"><title>${title}</title><circle cx="${x}" cy="${y}" r="29" /><text x="${x}" y="${y + 11}" text-anchor="middle">${escapeHtml(annotation.label || "1")}</text></g>`;
+    }
+    if (annotation.type === "note") {
+      const x = Math.max(0, Math.min(710, clampSopAnnotationCoordinate(annotation.x)));
+      const y = Math.max(0, Math.min(910, clampSopAnnotationCoordinate(annotation.y)));
+      const lines = String(annotation.text ?? "").trim().split(/\s+/).reduce((result, word) => {
+        const last = result.at(-1);
+        if (!last || `${last} ${word}`.length > 25) result.push(word);
+        else result[result.length - 1] = `${last} ${word}`;
+        return result;
+      }, []).slice(0, 3);
+      return `<g class="sop-annotation sop-annotation--note" pointer-events="none"><title>${title}</title><rect x="${x}" y="${y}" width="280" height="${Math.max(56, lines.length * 23 + 18)}" rx="8" /><text x="${x + 14}" y="${y + 25}">${lines.map((line, index) => `<tspan x="${x + 14}" dy="${index ? 22 : 0}">${escapeHtml(line)}</tspan>`).join("")}</text></g>`;
+    }
+    return "";
+  }).join("");
+  return `<defs><marker id="sop-annotation-arrowhead" markerWidth="28" markerHeight="28" refX="23" refY="14" orient="auto" markerUnits="userSpaceOnUse"><path d="M 0 0 L 28 14 L 0 28 z" /></marker></defs>${shapes}`;
+}
+
+function renderSopAnnotationOverlay(annotations = [], editable = false) {
+  return `<svg class="sop-annotation-overlay ${editable ? "sop-annotation-overlay--editable" : ""}" viewBox="0 0 1000 1000" preserveAspectRatio="none" ${editable ? 'data-sop-annotation-overlay role="img" tabindex="0" aria-label="Lienzo de anotaciones de la hoja SOP"' : 'aria-hidden="true"'}>${renderSopAnnotationContents(annotations)}</svg>`;
+}
+
 function canManageSopVersions(user = getActiveLocalUser()) {
   return String(user?.employeeNumber ?? "") === "140784" && user?.role === "admin";
 }
@@ -287,7 +330,7 @@ async function loadSopPdfJs() {
 }
 
 function normalizeExtractedSopText(value) {
-  return String(value ?? "").replace(/\s+/g, " ").replace(/\s+([,.;:!?])/g, "$1")
+  return String(value ?? "").replace(/\s+/g, " ").replace(/\s*-\s*(?=\d)/g, "-").replace(/\s+-\s+(?=(?:lb|oz|nm)\b)/gi, "-").replace(/\s+([,.;:!?])/g, "$1")
     .replace(/([¿¡(])\s+/g, "$1").replace(/(\d)\.\s+(?=\d)/g, "$1.")
     .replace(/\bP\s+N\b/gi, "PN").trim();
 }
@@ -592,6 +635,32 @@ function validateSopDraft(draft) {
       return { ...step, number, text, images: step.images ?? [] };
     });
     steps.sort((a, b) => compareSopStepNumbers(a.number, b.number));
+    const validStepNumbers = new Set(steps.map((step) => step.number));
+    const annotations = (procedure.annotations ?? []).map((annotation, annotationIndex) => {
+      const type = String(annotation.type ?? "");
+      if (!["arrow", "box", "number", "note"].includes(type)) throw new Error(`La anotación ${annotationIndex + 1} de la hoja ${sheet} tiene una herramienta desconocida.`);
+      const stepNumber = String(annotation.stepNumber ?? "").trim();
+      if (!stepNumber || !validStepNumbers.has(stepNumber)) throw new Error(`La anotación ${annotationIndex + 1} de la hoja ${sheet} debe apuntar a un paso de esta hoja.`);
+      if (type === "arrow") return {
+        ...annotation,
+        type,
+        stepNumber,
+        x1: clampSopAnnotationCoordinate(annotation.x1),
+        y1: clampSopAnnotationCoordinate(annotation.y1),
+        x2: clampSopAnnotationCoordinate(annotation.x2),
+        y2: clampSopAnnotationCoordinate(annotation.y2),
+      };
+      if (type === "box") {
+        const x = clampSopAnnotationCoordinate(annotation.x);
+        const y = clampSopAnnotationCoordinate(annotation.y);
+        return { ...annotation, type, stepNumber, x, y, width: Math.max(1, Math.min(1000 - x, clampSopAnnotationCoordinate(annotation.width))), height: Math.max(1, Math.min(1000 - y, clampSopAnnotationCoordinate(annotation.height))) };
+      }
+      if (type === "number") return { ...annotation, type, stepNumber, x: clampSopAnnotationCoordinate(annotation.x), y: clampSopAnnotationCoordinate(annotation.y), label: String(annotation.label ?? "1").slice(0, 4) };
+      const text = String(annotation.text ?? "").trim().slice(0, 70);
+      if (!text) throw new Error(`La nota ${annotationIndex + 1} de la hoja ${sheet} necesita texto.`);
+      return { ...annotation, type, stepNumber, x: clampSopAnnotationCoordinate(annotation.x), y: clampSopAnnotationCoordinate(annotation.y), text };
+    });
+    if (annotations.length > 100) throw new Error(`La hoja ${sheet} no puede tener más de 100 anotaciones.`);
     return {
       ...procedure,
       id: `sheet-${sheet}`,
@@ -599,6 +668,7 @@ function validateSopDraft(draft) {
       title: String(procedure.title || `Hoja ${sheet}`).trim(),
       category: String(procedure.category || "Procedimiento").trim(),
       steps,
+      annotations,
       stepRange: `${steps[0].number}–${steps.at(-1).number}`,
     };
   });
@@ -632,7 +702,7 @@ function renderSopVersionPreview(version, state) {
   const procedureEditors = version.procedures.map((procedure, procedureIndex) => `<details class="sop-version-procedure" ${procedureIndex === 0 ? "open" : ""}>
     <summary><strong>Hoja ${escapeHtml(procedure.sheet)} · ${escapeHtml(procedure.title)}</strong><span>${procedure.steps.length} pasos</span></summary>
     <div class="sop-version-sheet-editor-heading"><label class="sop-version-sheet-title">Nombre de la hoja<input type="text" data-procedure-index="${procedureIndex}" data-procedure-field="title" value="${escapeHtml(procedure.title)}" /></label>
-      <button class="icon-button sop-version-sheet-preview-trigger" type="button" data-action="preview-sop-sheet" data-procedure-index="${procedureIndex}" aria-label="Vista previa de la hoja ${escapeHtml(procedure.sheet)}" title="Vista previa de hoja"><span class="material-symbols-rounded" aria-hidden="true">visibility</span></button></div>
+      <div class="sop-version-sheet-tools"><small data-sop-annotation-count="${procedureIndex}">${(procedure.annotations ?? []).length} anotaciones</small><button class="icon-button sop-version-sheet-preview-trigger" type="button" data-action="preview-sop-sheet" data-procedure-index="${procedureIndex}" aria-label="Vista previa y anotaciones de la hoja ${escapeHtml(procedure.sheet)}" title="Vista previa y anotar hoja"><span class="material-symbols-rounded" aria-hidden="true">draw</span></button></div></div>
     <ol class="sop-version-step-editor">${procedure.steps.map((step, stepIndex) => `<li><label>Número<input type="text" data-procedure-index="${procedureIndex}" data-step-index="${stepIndex}" data-step-field="number" value="${escapeHtml(step.number)}" /></label>
       <label>Instrucción<textarea rows="2" data-procedure-index="${procedureIndex}" data-step-index="${stepIndex}" data-step-field="text">${escapeHtml(step.text)}</textarea></label>
       <button class="text-button sop-version-delete-step" type="button" data-action="delete-sop-step" data-procedure-index="${procedureIndex}" data-step-index="${stepIndex}" aria-label="Eliminar paso ${escapeHtml(step.number)} de la hoja ${escapeHtml(procedure.sheet)}">Eliminar paso</button></li>`).join("")}</ol>
@@ -650,13 +720,27 @@ function renderSopVersionPreview(version, state) {
       <div class="sop-draft-preview-content"><header class="sop-draft-preview-header"><div><p class="eyebrow">VISTA PREVIA DE SOP</p><h3 id="sop-draft-preview-title">Hoja de la SOP</h3></div>
         <div class="sop-draft-preview-navigation"><button class="icon-button" type="button" data-action="preview-sop-previous-sheet" aria-label="Hoja anterior"><span class="material-symbols-rounded" aria-hidden="true">chevron_left</span></button><span data-sop-preview-sheet-label></span><button class="icon-button" type="button" data-action="preview-sop-next-sheet" aria-label="Hoja siguiente"><span class="material-symbols-rounded" aria-hidden="true">chevron_right</span></button></div>
         <button class="icon-button" type="button" data-action="close-sop-sheet-preview" aria-label="Cerrar vista previa"><span class="material-symbols-rounded" aria-hidden="true">close</span></button></header>
-        <div class="sop-draft-preview-layout"><div class="sop-draft-preview-page"><canvas data-sop-preview-canvas hidden></canvas><p class="sop-draft-preview-status" data-sop-preview-status>Selecciona una hoja para mostrar su vista previa.</p></div>
-          <aside class="sop-draft-preview-edited"><label>Paso de la hoja<select data-sop-preview-step></select></label><div data-sop-preview-step-card></div><p class="sop-draft-preview-hint"><span class="material-symbols-rounded" aria-hidden="true">info</span>El recuadro azul ubica el texto editado. El contenido corregido se refleja aquí en tiempo real; el PDF fuente se conserva.</p></aside></div>
+        <div class="sop-draft-preview-layout"><div class="sop-draft-preview-page"><div class="sop-annotation-canvas-wrap"><canvas data-sop-preview-canvas hidden></canvas>${renderSopAnnotationOverlay(version.procedures[0]?.annotations ?? [], Boolean(version.procedures[0]?.steps?.length))}</div><p class="sop-draft-preview-status" data-sop-preview-status>Selecciona una hoja para mostrar su vista previa.</p></div>
+          <aside class="sop-draft-preview-edited"><label>Paso de la hoja<select data-sop-preview-step></select></label><div data-sop-preview-step-card></div><p class="sop-draft-preview-hint"><span class="material-symbols-rounded" aria-hidden="true">info</span>El recuadro azul ubica el texto editado. Las marcas rojas se guardan con esta revisión y aparecerán sobre la hoja para el operador.</p>
+            <section class="sop-annotation-editor" aria-labelledby="sop-annotation-editor-title"><div><h4 id="sop-annotation-editor-title">Anotaciones visuales</h4><p>Elige una herramienta y marca el punto o área de la hoja.</p></div>
+              <div class="sop-annotation-tools" role="toolbar" aria-label="Herramientas de anotación"><button type="button" data-action="select-sop-annotation-tool" data-annotation-tool="arrow" aria-pressed="true"><span class="material-symbols-rounded" aria-hidden="true">north_east</span>Flecha</button><button type="button" data-action="select-sop-annotation-tool" data-annotation-tool="box" aria-pressed="false"><span class="material-symbols-rounded" aria-hidden="true">crop_free</span>Recuadro</button><button type="button" data-action="select-sop-annotation-tool" data-annotation-tool="number" aria-pressed="false"><span class="material-symbols-rounded" aria-hidden="true">pin</span>Número</button><button type="button" data-action="select-sop-annotation-tool" data-annotation-tool="note" aria-pressed="false"><span class="material-symbols-rounded" aria-hidden="true">sticky_note_2</span>Nota</button></div>
+              <label class="sop-annotation-note-field" hidden>Texto de nota<input type="text" data-sop-annotation-text maxlength="70" placeholder="Escribe una indicación breve" autocomplete="off" /></label>
+              <p class="sop-annotation-tool-hint" data-sop-annotation-tool-hint role="status" aria-live="polite">Arrastra sobre la hoja para trazar una flecha.</p>
+              <div class="sop-annotation-list" data-sop-annotation-list aria-label="Anotaciones de esta hoja"></div>
+            </section>
+          </aside></div>
       </div>
     </dialog>
     <div class="sop-version-preview-actions"><button class="button button--primary" type="button" data-action="publish-sop-version" ${state.sopVersionBusy ? "disabled" : ""}>Guardar revisión y actualizar estación</button>
       <button class="button button--outlined" type="button" data-action="cancel-sop-version-draft" ${state.sopVersionBusy ? "disabled" : ""}>Cancelar revisión</button></div>
   </section>`;
+}
+
+function renderSopAnnotationList(procedure) {
+  const annotations = procedure?.annotations ?? [];
+  if (!annotations.length) return '<p class="sop-annotation-empty">Esta hoja todavía no tiene anotaciones.</p>';
+  const toolNames = { arrow: "Flecha", box: "Recuadro", number: "Número", note: "Nota" };
+  return `<ul>${annotations.map((annotation, index) => `<li><span><strong>${escapeHtml(toolNames[annotation.type] ?? "Marca")}${annotation.stepNumber ? ` · Paso ${escapeHtml(annotation.stepNumber)}` : ""}</strong><small>${escapeHtml(annotation.text || annotation.label || "Referencia visual")}</small></span><button type="button" data-action="remove-sop-annotation" data-annotation-index="${index}" aria-label="Eliminar ${escapeHtml(toolNames[annotation.type] ?? "anotación")} ${index + 1}"><span class="material-symbols-rounded" aria-hidden="true">delete</span></button></li>`).join("")}</ul>`;
 }
 
 function syncSopDraftPreviewPanel(dialog, version) {
@@ -680,6 +764,34 @@ function syncSopDraftPreviewPanel(dialog, version) {
   if (card) card.innerHTML = step
     ? `<span class="sop-draft-preview-step-number">Paso ${escapeHtml(step.number)}</span><p>${escapeHtml(step.text)}</p>`
     : '<p class="sop-page-empty">Esta hoja no tiene pasos detectados.</p>';
+  const overlayLayer = dialog.querySelector(".sop-annotation-overlay");
+  const canAnnotate = Boolean(procedure.steps.length);
+  if (overlayLayer) {
+    overlayLayer.classList.toggle("sop-annotation-overlay--editable", canAnnotate);
+    if (canAnnotate) {
+      overlayLayer.setAttribute("data-sop-annotation-overlay", "");
+      overlayLayer.setAttribute("role", "img");
+      overlayLayer.setAttribute("tabindex", "0");
+      overlayLayer.setAttribute("aria-label", "Lienzo de anotaciones de la hoja SOP");
+      overlayLayer.removeAttribute("aria-hidden");
+    } else {
+      overlayLayer.removeAttribute("data-sop-annotation-overlay");
+      overlayLayer.removeAttribute("role");
+      overlayLayer.removeAttribute("tabindex");
+      overlayLayer.removeAttribute("aria-label");
+      overlayLayer.setAttribute("aria-hidden", "true");
+    }
+  }
+  dialog.querySelectorAll("[data-annotation-tool]").forEach((button) => { button.disabled = !canAnnotate; });
+  const noteField = dialog.querySelector("[data-sop-annotation-text]");
+  if (noteField) noteField.disabled = !canAnnotate;
+  const hint = dialog.querySelector("[data-sop-annotation-tool-hint]");
+  if (hint) hint.textContent = canAnnotate
+    ? "Arrastra sobre la hoja para trazar una flecha."
+    : "Agrega al menos un paso para habilitar las anotaciones de esta hoja.";
+  if (overlayLayer) overlayLayer.innerHTML = renderSopAnnotationContents(procedure.annotations ?? []);
+  const annotationList = dialog.querySelector("[data-sop-annotation-list]");
+  if (annotationList) annotationList.innerHTML = renderSopAnnotationList(procedure);
 }
 
 function showSopDraftPreview(dialog, state, procedureIndex, stepIndex = 0) {
@@ -687,6 +799,7 @@ function showSopDraftPreview(dialog, state, procedureIndex, stepIndex = 0) {
   if (!procedure || !dialog) return;
   dialog.dataset.procedureIndex = String(procedureIndex);
   dialog.dataset.stepIndex = String(stepIndex);
+  dialog.dataset.annotationTool ||= "arrow";
   if (!dialog.open) dialog.showModal();
   syncSopDraftPreviewPanel(dialog, state.sopDraft);
   renderSopDraftPdfPage(dialog, state.sopDraft, procedureIndex, stepIndex);
@@ -760,6 +873,107 @@ function renderSopVersionManager(state) {
 }
 
 function bindSopVersionInteractions(app, { state, render, showToast }) {
+  let annotationDrag = null;
+  const getAnnotationPoint = (event, overlay) => {
+    const bounds = overlay.getBoundingClientRect();
+    return {
+      x: clampSopAnnotationCoordinate((event.clientX - bounds.left) / Math.max(1, bounds.width) * 1000),
+      y: clampSopAnnotationCoordinate((event.clientY - bounds.top) / Math.max(1, bounds.height) * 1000),
+    };
+  };
+  const updateAnnotationEditor = (dialog, procedureIndex, preview = null) => {
+    const procedure = state.sopDraft?.procedures?.[procedureIndex];
+    if (!procedure || !dialog) return;
+    const overlay = dialog.querySelector("[data-sop-annotation-overlay]");
+    if (overlay) overlay.innerHTML = renderSopAnnotationContents(procedure.annotations ?? [], preview);
+    const list = dialog.querySelector("[data-sop-annotation-list]");
+    if (list) list.innerHTML = renderSopAnnotationList(procedure);
+    const count = app.querySelector(`[data-sop-annotation-count="${procedureIndex}"]`);
+    if (count) count.textContent = `${(procedure.annotations ?? []).length} anotaciones`;
+  };
+  const commitAnnotation = (dialog, annotation) => {
+    const procedureIndex = Number(dialog.dataset.procedureIndex);
+    const procedure = state.sopDraft?.procedures?.[procedureIndex];
+    const step = procedure?.steps?.[Number(dialog.dataset.stepIndex)];
+    if (!procedure || !step) return;
+    if (!Array.isArray(procedure.annotations)) procedure.annotations = [];
+    annotation.id = crypto.randomUUID();
+    annotation.stepNumber = String(step.number);
+    procedure.annotations.push(annotation);
+    updateAnnotationEditor(dialog, procedureIndex);
+  };
+
+  app.addEventListener("pointerdown", (event) => {
+    const overlay = event.target.closest?.("[data-sop-annotation-overlay]");
+    const dialog = overlay?.closest("#sop-draft-preview-dialog");
+    if (!overlay || !dialog?.open || !canManageSopVersions() || !state.sopDraft) return;
+    const procedure = state.sopDraft.procedures[Number(dialog.dataset.procedureIndex)];
+    if (!procedure?.steps?.length) return;
+    const tool = dialog.dataset.annotationTool || "arrow";
+    if (!["arrow", "box", "number", "note"].includes(tool)) return;
+    event.preventDefault();
+    const point = getAnnotationPoint(event, overlay);
+    annotationDrag = { pointerId: event.pointerId, tool, start: point, end: point, dialog, overlay };
+    if (tool === "arrow" || tool === "box") {
+      try { overlay.setPointerCapture(event.pointerId); } catch { /* El puntero puede no admitir captura. */ }
+    }
+  });
+
+  app.addEventListener("pointermove", (event) => {
+    if (!annotationDrag || !["arrow", "box"].includes(annotationDrag.tool)) return;
+    annotationDrag.end = getAnnotationPoint(event, annotationDrag.overlay);
+    const { start, end, tool, dialog } = annotationDrag;
+    const procedure = state.sopDraft?.procedures?.[Number(dialog.dataset.procedureIndex)];
+    const step = procedure?.steps?.[Number(dialog.dataset.stepIndex)];
+    const preview = tool === "arrow"
+      ? { type: "arrow", x1: start.x, y1: start.y, x2: end.x, y2: end.y, stepNumber: step?.number }
+      : { type: "box", x: Math.min(start.x, end.x), y: Math.min(start.y, end.y), width: Math.abs(end.x - start.x), height: Math.abs(end.y - start.y), stepNumber: step?.number };
+    const svg = dialog.querySelector("[data-sop-annotation-overlay]");
+    if (svg) svg.innerHTML = renderSopAnnotationContents(procedure?.annotations ?? [], preview);
+  });
+
+  app.addEventListener("pointerup", (event) => {
+    if (!annotationDrag || annotationDrag.pointerId !== event.pointerId) return;
+    const { dialog, overlay, tool, start } = annotationDrag;
+    const end = getAnnotationPoint(event, overlay);
+    annotationDrag = null;
+    const procedure = state.sopDraft?.procedures?.[Number(dialog.dataset.procedureIndex)];
+    const step = procedure?.steps?.[Number(dialog.dataset.stepIndex)];
+    if (!procedure || !step) return;
+
+    if (tool === "arrow" || tool === "box") {
+      const distance = Math.hypot(end.x - start.x, end.y - start.y);
+      if (distance < 12) {
+        updateAnnotationEditor(dialog, Number(dialog.dataset.procedureIndex));
+        return;
+      }
+      if (tool === "arrow") commitAnnotation(dialog, { type: tool, x1: start.x, y1: start.y, x2: end.x, y2: end.y });
+      else commitAnnotation(dialog, { type: tool, x: Math.min(start.x, end.x), y: Math.min(start.y, end.y), width: Math.abs(end.x - start.x), height: Math.abs(end.y - start.y) });
+      return;
+    }
+    if (tool === "number") {
+      const nextNumber = (procedure.annotations ?? []).filter((annotation) => annotation.type === "number").length + 1;
+      commitAnnotation(dialog, { type: tool, x: start.x, y: start.y, label: String(nextNumber) });
+      return;
+    }
+    const noteField = dialog.querySelector("[data-sop-annotation-text]");
+    const text = noteField?.value.trim() ?? "";
+    if (!text) {
+      dialog.querySelector("[data-sop-annotation-tool-hint]").textContent = "Escribe el texto de la nota antes de colocarla.";
+      noteField?.focus();
+      return;
+    }
+    commitAnnotation(dialog, { type: tool, x: start.x, y: start.y, text });
+    noteField.value = "";
+  });
+
+  app.addEventListener("pointercancel", () => {
+    if (!annotationDrag) return;
+    const { dialog } = annotationDrag;
+    annotationDrag = null;
+    updateAnnotationEditor(dialog, Number(dialog.dataset.procedureIndex));
+  });
+
   app.addEventListener("input", (event) => {
     if (!canManageSopVersions() || !state.sopDraft) return;
     if (state.sopDraftError) {
@@ -787,7 +1001,13 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
     const stepIndex = Number(event.target.dataset.stepIndex);
     const stepField = event.target.dataset.stepField;
     if (stepField && procedure.steps[stepIndex]) {
+      const previousStepNumber = procedure.steps[stepIndex].number;
       procedure.steps[stepIndex][stepField] = event.target.value;
+      if (stepField === "number" && previousStepNumber !== event.target.value) {
+        procedure.annotations = (procedure.annotations ?? []).map((annotation) => annotation.stepNumber === previousStepNumber
+          ? { ...annotation, stepNumber: event.target.value }
+          : annotation);
+      }
       const preview = app.querySelector("#sop-draft-preview-dialog");
       if (Number(preview?.dataset.procedureIndex) === procedureIndex && Number(preview?.dataset.stepIndex) === stepIndex) {
         syncSopDraftPreviewPanel(preview, state.sopDraft);
@@ -798,7 +1018,32 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
   app.addEventListener("click", async (event) => {
     const action = event.target.closest("[data-action]");
     if (!action || !app.contains(action)) return;
-    if (action.dataset.action === "preview-sop-sheet") {
+    if (action.dataset.action === "select-sop-annotation-tool") {
+      const dialog = action.closest("#sop-draft-preview-dialog");
+      const tool = action.dataset.annotationTool;
+      if (!dialog?.open || !canManageSopVersions() || !["arrow", "box", "number", "note"].includes(tool)) return;
+      dialog.dataset.annotationTool = tool;
+      dialog.querySelectorAll("[data-annotation-tool]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.annotationTool === tool)));
+      const hint = dialog.querySelector("[data-sop-annotation-tool-hint]");
+      const noteField = dialog.querySelector(".sop-annotation-note-field");
+      if (noteField) noteField.hidden = tool !== "note";
+      if (hint) hint.textContent = ({
+        arrow: "Arrastra sobre la hoja para trazar una flecha.",
+        box: "Arrastra sobre la hoja para encuadrar un área.",
+        number: "Haz clic sobre la hoja para colocar el siguiente número.",
+        note: "Escribe una indicación y haz clic en la hoja para colocarla.",
+      })[tool];
+    } else if (action.dataset.action === "remove-sop-annotation") {
+      const dialog = action.closest("#sop-draft-preview-dialog");
+      const procedureIndex = Number(dialog?.dataset.procedureIndex);
+      const procedure = state.sopDraft?.procedures?.[procedureIndex];
+      const annotationIndex = Number(action.dataset.annotationIndex);
+      if (!dialog?.open || !canManageSopVersions() || !procedure?.annotations?.[annotationIndex]) return;
+      procedure.annotations.splice(annotationIndex, 1);
+      const overlay = dialog.querySelector("[data-sop-annotation-overlay]");
+      if (overlay) overlay.innerHTML = renderSopAnnotationContents(procedure.annotations);
+      updateAnnotationEditor(dialog, procedureIndex);
+    } else if (action.dataset.action === "preview-sop-sheet") {
       if (!canManageSopVersions() || !state.sopDraft) return;
       showSopDraftPreview(app.querySelector("#sop-draft-preview-dialog"), state, Number(action.dataset.procedureIndex));
     } else if (action.dataset.action === "close-sop-sheet-preview") {
@@ -876,7 +1121,10 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
       if (!procedure) return;
       state.sopDraftError = "";
       if (action.dataset.action === "add-sop-step") procedure.steps.push({ number: "", text: "", sourceNote: "", images: [] });
-      else procedure.steps.splice(Number(action.dataset.stepIndex), 1);
+      else {
+        const [removedStep] = procedure.steps.splice(Number(action.dataset.stepIndex), 1);
+        procedure.annotations = (procedure.annotations ?? []).filter((annotation) => annotation.stepNumber !== String(removedStep?.number));
+      }
       render();
     } else if (action.dataset.action === "edit-sop-version") {
       if (!canManageSopVersions() || state.sopVersionBusy) return;

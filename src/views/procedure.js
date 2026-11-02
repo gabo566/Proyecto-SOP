@@ -85,7 +85,7 @@ function renderProcedurePanel(procedure, state) {
           ${sourceUrl ? `<a class="guided-page-open-pdf" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer" aria-label="Abrir PDF en página ${escapeHtml(pageNumber)}"><span class="material-symbols-rounded" aria-hidden="true">open_in_new</span></a>` : ""}
         </div>
         <div class="guided-pdf-viewport" id="sop-page-preview" data-pdf-source="${escapeHtml(pdfSource)}" data-pdf-page="${escapeHtml(pageNumber)}" data-zoom="${pageZoom}" role="group" aria-label="Vista completa del PDF, página ${escapeHtml(pageNumber)}">
-          <canvas aria-label="Página ${escapeHtml(pageNumber)} completa de ${escapeHtml(SOP_DOCUMENT.title)}"></canvas>
+          <div class="guided-pdf-canvas-wrap"><canvas aria-label="Página ${escapeHtml(pageNumber)} completa de ${escapeHtml(SOP_DOCUMENT.title)}"></canvas>${renderSopAnnotationOverlay(procedure.annotations ?? [])}</div>
           <iframe title="Hoja ${escapeHtml(procedure.sheet)} completa de la SOP" hidden></iframe>
           <p class="guided-pdf-status" role="status" aria-live="polite">Cargando hoja completa…</p>
         </div>
