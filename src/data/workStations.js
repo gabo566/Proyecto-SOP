@@ -5,6 +5,14 @@ const WORK_STATION_ASSIGNMENTS = [
   { value: "RWK:RWK", type: "RWK", typeLabel: "Retrabajo", code: "RWK", label: "RWK" },
 ];
 
+const NODE_PART_NUMBER_OPTIONS = [
+  "675-24975-2000-000",
+  "675-24975-3000-000",
+  "675-24975-3100-000",
+  "675-24975-0000-000",
+  "675-24059-3000-000",
+];
+
 function createCustomWorkStationAssignment(type, label) {
   const normalizedType = String(type ?? "").trim().toUpperCase();
   const normalizedLabel = String(label ?? "").trim();

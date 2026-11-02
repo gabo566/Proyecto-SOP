@@ -4,7 +4,6 @@ const SOP_VERSION_SETTINGS = "settings";
 const SOP_VERSION_ACTIVE_KEY = "active-version";
 const SOP_STATION_ASSIGNMENT_KEY_PREFIX = "station-sop:";
 const SOP_CATALOG_KEY_PREFIX = "sop-catalog:";
-const SOP_VERSION_MAX_PDF_BYTES = 100 * 1024 * 1024;
 
 function canManageSopVersions(user = getActiveLocalUser()) {
   return String(user?.employeeNumber ?? "") === "140784" && user?.role === "admin";
@@ -278,6 +277,9 @@ async function loadSopPdfJs() {
       return pdfjs;
     }).catch((error) => {
       sopPdfJsPromise = null;
+      if (globalThis.location?.protocol === "file:") {
+        throw new Error("El navegador bloquea la lectura del PDF al abrir index.html como archivo. Abre el proyecto desde un servidor local HTTP y vuelve a subir la SOP.");
+      }
       throw error;
     });
   }
@@ -329,7 +331,7 @@ function groupSopPdfRows(items) {
       row = { y, items: [] };
       rows.push(row);
     }
-    row.items.push({ x: item.transform[4], y, width: item.width, str: item.str });
+    row.items.push({ x: item.transform[4], y, width: item.width, height: Math.hypot(item.transform[2], item.transform[3]) || 10, str: item.str });
   }
   return rows.sort((a, b) => b.y - a.y).map((row) => ({
     ...row,
@@ -351,6 +353,30 @@ function readSopMarkersInRow(row, pageWidth) {
 
 function readSopRowText(items) {
   return normalizeExtractedSopText(items.map((item) => item.str).join(" "));
+}
+
+function getSopSourceBounds(items, fallbackY = 0) {
+  if (!items.length) return null;
+  const left = Math.min(...items.map((item) => item.x));
+  const right = Math.max(...items.map((item) => item.x + item.width));
+  const baselines = items.map((item) => item.y ?? fallbackY);
+  const fontHeight = Math.max(6, ...items.map((item) => item.height ?? 0));
+  const bottom = Math.min(...baselines);
+  const top = Math.max(...baselines) + fontHeight;
+  return { x: left, y: bottom, width: Math.max(1, right - left), height: Math.max(fontHeight, top - bottom) };
+}
+
+function extendSopSourceBounds(current, next) {
+  if (!next) return current;
+  if (!current) return { ...next };
+  const x = Math.min(current.x, next.x);
+  const y = Math.min(current.y, next.y);
+  return {
+    x,
+    y,
+    width: Math.max(current.x + current.width, next.x + next.width) - x,
+    height: Math.max(current.y + current.height, next.y + next.height) - y,
+  };
 }
 
 function hasUsefulSopText(value) {
@@ -406,8 +432,6 @@ async function extractSopPdfVersion(pdfFile, pdfjsOverride = null) {
   if (!pdfFile || (!String(pdfFile.name ?? "").toLowerCase().endsWith(".pdf") && pdfFile.type !== "application/pdf") || !pdfFile.size) {
     throw new Error("Selecciona un archivo PDF válido.");
   }
-  if (pdfFile.size > SOP_VERSION_MAX_PDF_BYTES) throw new Error("El PDF excede el límite local de 100 MB.");
-
   const pdfjs = pdfjsOverride ?? await loadSopPdfJs();
   const assetRoot = new URL("./public/vendor/pdfjs/", globalThis.document.baseURI).href;
   const loadingTask = pdfjs.getDocument({
@@ -461,7 +485,13 @@ async function extractSopPdfVersion(pdfFile, pdfjsOverride = null) {
               const bodyItems = row.items.slice(marker.endIndex + 1, nextMarker?.index ?? row.items.length);
               const text = readSopRowText([{ str: marker.tail }, ...bodyItems]);
               if (!isUsefulSopInstruction(text)) continue;
-              const step = { number: marker.id, text, sourceNote: "", images: [] };
+              const step = {
+                number: marker.id,
+                text,
+                sourceNote: "",
+                images: [],
+                sourceBounds: getSopSourceBounds([row.items[marker.index], ...bodyItems], row.y),
+              };
               procedure.steps.push(step);
               activeByColumn[column] = { step, y: row.y, startX: marker.x };
             }
@@ -481,6 +511,7 @@ async function extractSopPdfVersion(pdfFile, pdfjsOverride = null) {
           const continuation = readSopRowText(continuationItems);
           if (hasUsefulSopText(continuation)) {
             active.step.text = appendSopContinuation(active.step.text, continuation);
+            active.step.sourceBounds = extendSopSourceBounds(active.step.sourceBounds, getSopSourceBounds(continuationItems, row.y));
             active.y = row.y;
           }
         }
@@ -600,24 +631,65 @@ function renderSopVersionPreview(version, state) {
   const customSelected = stationMode === "custom";
   const procedureEditors = version.procedures.map((procedure, procedureIndex) => `<details class="sop-version-procedure" ${procedureIndex === 0 ? "open" : ""}>
     <summary><strong>Hoja ${escapeHtml(procedure.sheet)} · ${escapeHtml(procedure.title)}</strong><span>${procedure.steps.length} pasos</span></summary>
-    <label class="sop-version-sheet-title">Nombre de la hoja<input type="text" data-procedure-index="${procedureIndex}" data-procedure-field="title" value="${escapeHtml(procedure.title)}" /></label>
+    <div class="sop-version-sheet-editor-heading"><label class="sop-version-sheet-title">Nombre de la hoja<input type="text" data-procedure-index="${procedureIndex}" data-procedure-field="title" value="${escapeHtml(procedure.title)}" /></label>
+      <button class="icon-button sop-version-sheet-preview-trigger" type="button" data-action="preview-sop-sheet" data-procedure-index="${procedureIndex}" aria-label="Vista previa de la hoja ${escapeHtml(procedure.sheet)}" title="Vista previa de hoja"><span class="material-symbols-rounded" aria-hidden="true">visibility</span></button></div>
     <ol class="sop-version-step-editor">${procedure.steps.map((step, stepIndex) => `<li><label>Número<input type="text" data-procedure-index="${procedureIndex}" data-step-index="${stepIndex}" data-step-field="number" value="${escapeHtml(step.number)}" /></label>
       <label>Instrucción<textarea rows="2" data-procedure-index="${procedureIndex}" data-step-index="${stepIndex}" data-step-field="text">${escapeHtml(step.text)}</textarea></label>
       <button class="text-button sop-version-delete-step" type="button" data-action="delete-sop-step" data-procedure-index="${procedureIndex}" data-step-index="${stepIndex}" aria-label="Eliminar paso ${escapeHtml(step.number)} de la hoja ${escapeHtml(procedure.sheet)}">Eliminar paso</button></li>`).join("")}</ol>
     <button class="text-button" type="button" data-action="add-sop-step" data-procedure-index="${procedureIndex}">Añadir paso a esta hoja</button>
   </details>`).join("");
-  return `<section class="sop-version-preview" aria-labelledby="sop-version-preview-title"><h3 id="sop-version-preview-title">Revisa y corrige la extracción automática</h3>
-    <p>Se detectaron ${stepCount} pasos en ${version.procedures.length} hojas. Corrige números o textos, elimina falsos positivos y agrega pasos omitidos antes de guardar la revisión.</p>
+  return `<section class="sop-version-preview" aria-labelledby="sop-version-preview-title"><div class="sop-version-preview-heading"><div class="sop-version-preview-heading-copy"><h3 id="sop-version-preview-title">Revisa y corrige la extracción automática</h3>
+      <p class="sop-version-preview-description">Se detectaron ${stepCount} pasos en ${version.procedures.length} hojas. Corrige números o textos, elimina falsos positivos y agrega pasos omitidos antes de guardar la revisión.</p></div></div>
     <div class="sop-version-document-fields"><label>Nombre de la SOP<input type="text" data-sop-document-field="title" value="${escapeHtml(version.document.title)}" /></label>
       <label>Revisión<input type="text" data-sop-document-field="revision" value="${escapeHtml(version.document.revision)}" placeholder="Captura la nueva revisión" /></label>
-      <label>Tipo de estación<select data-sop-station-type><option value="MFG" ${stationType === "MFG" ? "selected" : ""}>MFG · Manufactura</option><option value="RWK" ${stationType === "RWK" ? "selected" : ""}>RWK · Retrabajo</option></select></label>
-      <label>Estación de trabajo<select data-sop-station-assignment><option value="">Selecciona una estación</option>${stationOptions}<option value="__custom__" ${customSelected ? "selected" : ""}>Otra estación…</option></select></label>
+      <label>Área<select data-sop-station-type><option value="MFG" ${stationType === "MFG" ? "selected" : ""}>MFG · Manufactura</option><option value="RWK" ${stationType === "RWK" ? "selected" : ""}>RWK · Retrabajo</option></select></label>
+      <label>Estación<select data-sop-station-assignment><option value="">Selecciona una estación</option>${stationOptions}<option value="__custom__" ${customSelected ? "selected" : ""}>Otra estación…</option></select></label>
       ${customSelected ? `<label>Nombre de la estación<input type="text" data-sop-station-custom value="${escapeHtml(stationName)}" placeholder="Escribe el nombre de la estación" maxlength="80" autocomplete="off" /></label>` : ""}</div>
     <div class="sop-version-procedures">${procedureEditors}</div>
-    <div class="sop-version-preview-actions"><button class="button button--primary" type="button" data-action="publish-sop-version" ${state.sopVersionBusy ? "disabled" : ""}>Guardar nueva revisión</button>
+    <dialog class="sop-draft-preview-dialog" id="sop-draft-preview-dialog" aria-labelledby="sop-draft-preview-title">
+      <div class="sop-draft-preview-content"><header class="sop-draft-preview-header"><div><p class="eyebrow">VISTA PREVIA DE SOP</p><h3 id="sop-draft-preview-title">Hoja de la SOP</h3></div>
+        <div class="sop-draft-preview-navigation"><button class="icon-button" type="button" data-action="preview-sop-previous-sheet" aria-label="Hoja anterior"><span class="material-symbols-rounded" aria-hidden="true">chevron_left</span></button><span data-sop-preview-sheet-label></span><button class="icon-button" type="button" data-action="preview-sop-next-sheet" aria-label="Hoja siguiente"><span class="material-symbols-rounded" aria-hidden="true">chevron_right</span></button></div>
+        <button class="icon-button" type="button" data-action="close-sop-sheet-preview" aria-label="Cerrar vista previa"><span class="material-symbols-rounded" aria-hidden="true">close</span></button></header>
+        <div class="sop-draft-preview-layout"><div class="sop-draft-preview-page"><canvas data-sop-preview-canvas hidden></canvas><p class="sop-draft-preview-status" data-sop-preview-status>Selecciona una hoja para mostrar su vista previa.</p></div>
+          <aside class="sop-draft-preview-edited"><label>Paso de la hoja<select data-sop-preview-step></select></label><div data-sop-preview-step-card></div><p class="sop-draft-preview-hint"><span class="material-symbols-rounded" aria-hidden="true">info</span>El recuadro azul ubica el texto editado. El contenido corregido se refleja aquí en tiempo real; el PDF fuente se conserva.</p></aside></div>
+      </div>
+    </dialog>
+    <div class="sop-version-preview-actions"><button class="button button--primary" type="button" data-action="publish-sop-version" ${state.sopVersionBusy ? "disabled" : ""}>Guardar revisión y actualizar estación</button>
       <button class="button button--outlined" type="button" data-action="cancel-sop-version-draft" ${state.sopVersionBusy ? "disabled" : ""}>Cancelar revisión</button></div>
-    <p class="sop-version-note">Al guardar esta revisión quedará deshabilitada. Podrás asignarla a otra estación o habilitarla en el catálogo cuando esté revisada.</p>
   </section>`;
+}
+
+function syncSopDraftPreviewPanel(dialog, version) {
+  if (!dialog?.open || !version) return;
+  const procedureIndex = Number(dialog.dataset.procedureIndex);
+  const procedure = version.procedures[procedureIndex];
+  if (!procedure) return;
+  const stepSelect = dialog.querySelector("[data-sop-preview-step]");
+  const selectedIndex = Math.min(Number(dialog.dataset.stepIndex) || 0, Math.max(0, procedure.steps.length - 1));
+  dialog.dataset.stepIndex = String(selectedIndex);
+  if (stepSelect) {
+    stepSelect.replaceChildren(...procedure.steps.map((step, index) => new Option(`Paso ${step.number || index + 1}`, String(index))));
+    stepSelect.value = String(selectedIndex);
+  }
+  const step = procedure.steps[selectedIndex];
+  const label = dialog.querySelector("[data-sop-preview-sheet-label]");
+  const title = dialog.querySelector("#sop-draft-preview-title");
+  if (label) label.textContent = `Hoja ${procedure.sheet} · ${procedureIndex + 1} de ${version.procedures.length}`;
+  if (title) title.textContent = `Hoja ${procedure.sheet} · ${procedure.title}`;
+  const card = dialog.querySelector("[data-sop-preview-step-card]");
+  if (card) card.innerHTML = step
+    ? `<span class="sop-draft-preview-step-number">Paso ${escapeHtml(step.number)}</span><p>${escapeHtml(step.text)}</p>`
+    : '<p class="sop-page-empty">Esta hoja no tiene pasos detectados.</p>';
+}
+
+function showSopDraftPreview(dialog, state, procedureIndex, stepIndex = 0) {
+  const procedure = state.sopDraft?.procedures?.[procedureIndex];
+  if (!procedure || !dialog) return;
+  dialog.dataset.procedureIndex = String(procedureIndex);
+  dialog.dataset.stepIndex = String(stepIndex);
+  if (!dialog.open) dialog.showModal();
+  syncSopDraftPreviewPanel(dialog, state.sopDraft);
+  renderSopDraftPdfPage(dialog, state.sopDraft, procedureIndex, stepIndex);
 }
 
 function getSopVersionDeleteBlockReason(version, state) {
@@ -626,49 +698,63 @@ function getSopVersionDeleteBlockReason(version, state) {
     : "";
 }
 
+function getSopCatalogAreaAssignments(state, type, preferredValue = "") {
+  const assignments = getWorkStationAssignments(state).filter((entry) => entry.type === type);
+  if (type !== "RWK") return assignments;
+  const selected = assignments.find((entry) => entry.value === preferredValue)
+    ?? assignments.find((entry) => entry.value === "RWK:RWK")
+    ?? assignments[0];
+  return selected ? [selected] : [];
+}
+
 function renderSopCatalog(state) {
   const allVersions = getAllSopVersions(state);
-  const rows = allVersions.map((version) => {
+  const rows = allVersions.map((version, index) => {
     const stationAssignment = getSopVersionStationAssignment(state, version);
     const config = state.sopVersionCatalog?.[version.id] ?? { stationAssignment, enabled: false };
     const metadata = createSopVersionMetadata(version, version.id === BUILT_IN_SOP_VERSION_ID);
-    const stationOptions = getWorkStationAssignments(state).map((assignment) => `<option value="${escapeHtml(assignment.value)}" ${assignment.value === config.stationAssignment ? "selected" : ""}>${escapeHtml(assignment.type)} · ${escapeHtml(assignment.label)}</option>`).join("");
+    const assignment = getWorkStationAssignment(config.stationAssignment);
+    const currentType = assignment?.type ?? "MFG";
+    const areaAssignments = getSopCatalogAreaAssignments(state, currentType, config.stationAssignment);
+    const stationOptions = ["MFG", "RWK"].map((type) => `<option value="${type}" ${type === currentType ? "selected" : ""}>${type}</option>`).join("");
+    const areaOptions = areaAssignments.map((entry) => {
+      const areaName = entry.type === "RWK" ? "Desensamble" : entry.label;
+      return `<option value="${escapeHtml(entry.value)}" ${entry.value === config.stationAssignment ? "selected" : ""}>${escapeHtml(areaName)}</option>`;
+    }).join("");
+    const infoPopoverId = `sop-info-${index}`;
     const deleteBlockReason = getSopVersionDeleteBlockReason(version, state);
-    const deleteConfirming = state.sopDeleteConfirmVersionId === version.id;
     const versionActions = version.id === BUILT_IN_SOP_VERSION_ID
-      ? `<div class="sop-catalog-actions"><div class="sop-catalog-action-buttons"><button class="text-button" type="button" data-action="edit-sop-version" data-version-id="${escapeHtml(version.id)}">Crear nueva revisión</button>
-        <button class="text-button sop-version-delete-button" type="button" disabled title="${escapeHtml(deleteBlockReason)}">Eliminar</button></div><small class="sop-version-delete-blocked">${escapeHtml(deleteBlockReason)}</small></div>`
-      : `<div class="sop-catalog-actions"><div class="sop-catalog-action-buttons"><button class="text-button" type="button" data-action="edit-sop-version" data-version-id="${escapeHtml(version.id)}">Crear nueva revisión</button>
-        <button class="text-button sop-version-delete-button" type="button" data-action="delete-sop-version" data-version-id="${escapeHtml(version.id)}" ${deleteBlockReason || state.sopVersionBusy ? "disabled" : ""} title="${escapeHtml(deleteBlockReason || "Eliminar esta revisión guardada")}">Eliminar</button></div>
-        ${deleteBlockReason ? `<small class="sop-version-delete-blocked">${escapeHtml(deleteBlockReason)}</small>` : ""}
-        ${deleteConfirming ? `<div class="sop-version-delete-confirmation" role="group" aria-label="Confirmar eliminación de ${escapeHtml(metadata.title)} Rev. ${escapeHtml(metadata.revision)}"><span>Se eliminarán el PDF y los pasos. Los registros quedan; los trabajos detenidos de esta revisión no podrán reanudarse.</span><button class="button button--danger" type="button" data-action="confirm-delete-sop-version" data-version-id="${escapeHtml(version.id)}" ${state.sopVersionBusy ? "disabled" : ""}>Confirmar eliminación</button><button class="text-button" type="button" data-action="cancel-delete-sop-version" data-version-id="${escapeHtml(version.id)}" ${state.sopVersionBusy ? "disabled" : ""}>Cancelar</button></div>` : ""}</div>`;
-    return `<article class="sop-catalog-row" data-sop-catalog-row="${escapeHtml(version.id)}" data-sop-catalog-document-id="${escapeHtml(version.document.id)}">
-      <div class="sop-catalog-copy"><strong>${escapeHtml(metadata.title)} · Rev. ${escapeHtml(metadata.revision)}</strong><small>${escapeHtml(metadata.documentId)} · ${metadata.sheetCount} hojas · ${metadata.procedureCount} procedimientos · ${metadata.stepCount} pasos · ${escapeHtml(formatSopVersionDate(metadata.createdAt))} · ${escapeHtml(metadata.createdBy)}${metadata.pdfName ? ` · PDF ${escapeHtml(metadata.pdfName)}` : ""}</small></div>
-      <label class="sop-catalog-station"><span>Estación de esta SOP</span><select data-sop-catalog-station><option value="">Selecciona una estación</option>${stationOptions}</select></label>
-      <label class="sop-catalog-enabled"><input type="checkbox" data-sop-catalog-enabled ${config.enabled ? "checked" : ""} ${config.stationAssignment ? "" : "disabled"} /><span><strong>${config.enabled ? "Habilitada" : "Deshabilitada"}</strong><small>${config.enabled ? "Visible para operadores de su estación" : "No aparece a los operadores"}</small></span></label>
-      ${versionActions}
+      ? `<div class="sop-catalog-actions"><div class="sop-catalog-action-buttons"><button class="text-button" type="button" data-action="edit-sop-version" data-version-id="${escapeHtml(version.id)}"><span class="material-symbols-rounded" aria-hidden="true">note_add</span>Crear nueva revisión</button>
+        <button class="text-button sop-version-delete-button" type="button" disabled title="${escapeHtml(deleteBlockReason)}"><span class="material-symbols-rounded" aria-hidden="true">delete</span>Eliminar</button></div><small class="sop-version-delete-blocked">${escapeHtml(deleteBlockReason)}</small></div>`
+      : `<div class="sop-catalog-actions"><div class="sop-catalog-action-buttons"><button class="text-button" type="button" data-action="edit-sop-version" data-version-id="${escapeHtml(version.id)}"><span class="material-symbols-rounded" aria-hidden="true">note_add</span>Crear nueva revisión</button>
+        <button class="text-button sop-version-delete-button" type="button" data-action="delete-sop-version" data-version-id="${escapeHtml(version.id)}" ${deleteBlockReason || state.sopVersionBusy ? "disabled" : ""} title="${escapeHtml(deleteBlockReason || "Eliminar esta revisión guardada")}"><span class="material-symbols-rounded" aria-hidden="true">delete</span>Eliminar</button></div>
+        ${deleteBlockReason ? `<small class="sop-version-delete-blocked">${escapeHtml(deleteBlockReason)}</small>` : ""}</div>`;
+    return `<article class="sop-catalog-row ${config.enabled ? "is-enabled" : ""}" role="row" data-sop-catalog-row="${escapeHtml(version.id)}" data-sop-catalog-document-id="${escapeHtml(version.document.id)}">
+      <div class="sop-catalog-sop-cell" role="cell"><span class="sop-catalog-file-icon material-symbols-rounded" aria-hidden="true">description</span><div class="sop-catalog-copy"><strong class="sop-catalog-title">${escapeHtml(metadata.title)}</strong><div class="sop-catalog-revision-line"><span class="sop-catalog-revision">Rev. ${escapeHtml(metadata.revision)}</span><button class="sop-catalog-info-trigger material-symbols-rounded" type="button" popovertarget="${infoPopoverId}" aria-label="Ver información de ${escapeHtml(metadata.title)}" title="Información de la SOP">help</button></div><div id="${infoPopoverId}" class="sop-catalog-info-panel" popover="auto"><div class="sop-catalog-info-heading"><strong>Información de la SOP</strong><button class="material-symbols-rounded" type="button" popovertarget="${infoPopoverId}" popovertargetaction="hide" aria-label="Cerrar información">close</button></div><dl><div><dt>Documento</dt><dd>${escapeHtml(metadata.documentId)}</dd></div><div><dt>Hojas</dt><dd>${metadata.sheetCount}</dd></div><div><dt>Procedimientos</dt><dd>${metadata.procedureCount}</dd></div><div><dt>Pasos</dt><dd>${metadata.stepCount}</dd></div><div><dt>Fecha de carga</dt><dd>${escapeHtml(formatSopVersionDate(metadata.createdAt))}</dd></div><div><dt>Responsable</dt><dd>${escapeHtml(metadata.createdBy)}</dd></div><div class="sop-catalog-info-file"><dt>Archivo PDF</dt><dd>${escapeHtml(metadata.pdfName || "Sin nombre de archivo")}</dd></div></dl></div></div></div>
+      <label class="sop-catalog-area" role="cell"><small class="sop-catalog-mobile-label">Área</small><select aria-label="Área de ${escapeHtml(metadata.title)}" data-sop-catalog-type>${stationOptions}</select></label>
+      <label class="sop-catalog-station" role="cell"><span class="sop-catalog-mobile-label">Estación</span><select aria-label="Estación de ${escapeHtml(metadata.title)}" data-sop-catalog-station><option value="">Selecciona estación</option>${areaOptions}</select></label>
+      <label class="sop-catalog-enabled" role="cell"><input type="checkbox" data-sop-catalog-enabled ${config.enabled ? "checked" : ""} ${config.stationAssignment ? "" : "disabled"} /><span data-sop-catalog-status class="${config.enabled ? "is-enabled" : ""}"><strong>${config.enabled ? "Habilitada" : "Deshabilitada"}</strong></span></label>
+      <div role="cell">${versionActions}</div>
     </article>`;
   }).join("");
 
   return `<section class="sop-catalog-manager" aria-labelledby="sop-catalog-title">
     <div class="sop-catalog-heading"><div><p class="eyebrow">CATÁLOGO PARA OPERADORES</p><h3 id="sop-catalog-title">Estación y disponibilidad de cada SOP</h3></div><span class="material-symbols-rounded" aria-hidden="true">tune</span></div>
     <p>Cada archivo tiene una estación asignada. Habilita únicamente las SOP que deban aparecer al operador; puedes cambiar la estación o deshabilitar una revisión cuando lo necesites.</p>
-    <form id="sop-catalog-form"><div class="sop-catalog-list">${rows || '<p class="sop-catalog-empty">Todavía no hay SOP guardadas.</p>'}</div><button class="button button--primary" type="submit">Guardar estaciones y disponibilidad</button></form>
+    <form id="sop-catalog-form"><div class="sop-catalog-table" role="table" aria-label="SOP registradas por área, estación y disponibilidad"><div class="sop-catalog-table-head" role="row"><span role="columnheader">SOP / Revisión</span><span role="columnheader">Área</span><span role="columnheader">Estación</span><span role="columnheader">Disponibilidad</span><span role="columnheader">Acciones</span></div><div class="sop-catalog-list" role="rowgroup">${rows || '<p class="sop-catalog-empty">Todavía no hay SOP guardadas.</p>'}</div></div><div class="sop-catalog-save-bar" ${state.sopCatalogDirty ? "" : "hidden"}><button class="button button--primary" type="submit"><span class="material-symbols-rounded" aria-hidden="true">save</span>Guardar estaciones y disponibilidad</button></div></form>
   </section>`;
 }
 
 function renderSopVersionManager(state) {
   if (!canManageSopVersions()) return '<section class="sop-version-panel"><h2>Acceso no disponible</h2></section>';
   const error = state.sopDraftError ? `<p class="form-error" role="alert">${escapeHtml(state.sopDraftError)}</p>` : "";
-  const notice = state.sopDraftNotice ? `<p class="sop-version-note">${escapeHtml(state.sopDraftNotice)}</p>` : "";
   const preview = state.sopDraft ? renderSopVersionPreview(state.sopDraft, state) : "";
-  return `<section class="sop-version-panel" aria-labelledby="sop-version-title"><div class="section-heading"><div class="section-title"><span class="heading-icon material-symbols-rounded" aria-hidden="true">rule_settings</span><div><p class="eyebrow">Solo cuenta 140784</p><h2 id="sop-version-title">Modificar SOP</h2></div></div></div>
-    <p class="sop-version-intro">Sube un PDF, asigna su estación y revisa los pasos detectados. Después puedes habilitarlo para que aparezca a los operadores o dejarlo deshabilitado hasta estar listo.</p>
+  return `<section class="sop-version-panel" aria-labelledby="sop-version-title"><div class="sop-version-manager-header"><div class="section-heading"><div class="section-title"><span class="heading-icon material-symbols-rounded" aria-hidden="true">rule_settings</span><div><p class="eyebrow sop-version-access-badge"><span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>Solo cuenta 140784</p><h2 id="sop-version-title">Modificar SOP</h2></div></div></div>
+    <form class="sop-version-form sop-version-upload-form" id="sop-version-upload-form"><input class="sop-pdf-native-input" name="pdf" type="file" accept="application/pdf,.pdf" aria-label="Seleccionar archivo PDF de la SOP" required />
+      <div class="sop-version-actions"><button class="button button--primary" type="button" data-action="choose-sop-pdf" ${state.sopVersionBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.sopVersionBusy ? "hourglass_top" : "upload_file"}</span>${state.sopVersionBusy ? "Leyendo PDF…" : "Subir PDF"}</button><small data-sop-pdf-name>${escapeHtml(state.sopUploadFileName || "Selecciona un archivo PDF")}</small></div>
+      ${error}</form></div>
     ${renderSopCatalog(state)}
-    <form class="sop-version-form" id="sop-version-upload-form"><label>Archivo PDF de la SOP<input name="pdf" type="file" accept="application/pdf,.pdf" required /></label>
-      <div class="sop-version-actions"><button class="button button--primary" type="submit" ${state.sopVersionBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.sopVersionBusy ? "hourglass_top" : "auto_awesome"}</span>${state.sopVersionBusy ? "Leyendo y extrayendo pasos…" : "Cargar PDF y detectar pasos"}</button></div>
-      <p class="dialog-note"><span class="material-symbols-rounded" aria-hidden="true">info</span>PDF de hasta 100 MB. El archivo debe contener texto seleccionable y conservar la numeración de pasos del formato SOP. Un escaneo sin OCR no se puede interpretar automáticamente.</p>${error}</form>
-    ${notice}${preview}
+    ${preview}
     <p class="sop-version-warning">Las revisiones, estaciones y disponibilidad se guardan en este navegador. Otros perfiles o equipos no se sincronizan automáticamente. Las evidencias anteriores conservan la versión utilizada.</p>
   </section>`;
 }
@@ -700,13 +786,48 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
     }
     const stepIndex = Number(event.target.dataset.stepIndex);
     const stepField = event.target.dataset.stepField;
-    if (stepField && procedure.steps[stepIndex]) procedure.steps[stepIndex][stepField] = event.target.value;
+    if (stepField && procedure.steps[stepIndex]) {
+      procedure.steps[stepIndex][stepField] = event.target.value;
+      const preview = app.querySelector("#sop-draft-preview-dialog");
+      if (Number(preview?.dataset.procedureIndex) === procedureIndex && Number(preview?.dataset.stepIndex) === stepIndex) {
+        syncSopDraftPreviewPanel(preview, state.sopDraft);
+      }
+    }
   });
 
   app.addEventListener("click", async (event) => {
     const action = event.target.closest("[data-action]");
     if (!action || !app.contains(action)) return;
-    if (action.dataset.action === "cancel-sop-version-draft") {
+    if (action.dataset.action === "preview-sop-sheet") {
+      if (!canManageSopVersions() || !state.sopDraft) return;
+      showSopDraftPreview(app.querySelector("#sop-draft-preview-dialog"), state, Number(action.dataset.procedureIndex));
+    } else if (action.dataset.action === "close-sop-sheet-preview") {
+      app.querySelector("#sop-draft-preview-dialog")?.close();
+    } else if (["preview-sop-previous-sheet", "preview-sop-next-sheet"].includes(action.dataset.action)) {
+      const dialog = app.querySelector("#sop-draft-preview-dialog");
+      if (!dialog?.open || !state.sopDraft) return;
+      const direction = action.dataset.action === "preview-sop-next-sheet" ? 1 : -1;
+      const nextIndex = Number(dialog.dataset.procedureIndex) + direction;
+      if (nextIndex < 0 || nextIndex >= state.sopDraft.procedures.length) return;
+      showSopDraftPreview(dialog, state, nextIndex);
+    } else if (action.dataset.action === "choose-sop-pdf") {
+      if (state.sopVersionBusy) return;
+      const fileInput = app.querySelector("#sop-version-upload-form input[name=pdf]");
+      if (!fileInput) {
+        showToast("No se encontró el selector de archivos PDF.", "warning");
+        return;
+      }
+      try {
+        if (typeof fileInput.showPicker === "function") fileInput.showPicker();
+        else fileInput.click();
+      } catch {
+        try {
+          fileInput.click();
+        } catch {
+          showToast("El navegador no pudo abrir el selector de PDF. Revisa los permisos de archivos del navegador.", "warning");
+        }
+      }
+    } else if (action.dataset.action === "cancel-sop-version-draft") {
       if (!canManageSopVersions() || !state.sopDraft || state.sopVersionBusy) return;
       state.sopDraft = null;
       state.sopDraftError = "";
@@ -715,36 +836,15 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
       render();
     } else if (action.dataset.action === "delete-sop-version") {
       if (!canManageSopVersions() || state.sopVersionBusy) return;
-      const version = getAllSopVersions(state).find((entry) => entry.id === action.dataset.versionId);
-      if (!version) {
-        showToast("No se encontró la revisión que quieres eliminar.", "warning");
-        return;
-      }
-      const blockReason = getSopVersionDeleteBlockReason(version, state);
-      if (blockReason) {
-        showToast(blockReason, "warning");
-        return;
-      }
-      state.sopDeleteConfirmVersionId = version.id;
-      render();
-    } else if (action.dataset.action === "cancel-delete-sop-version") {
-      if (state.sopVersionBusy) return;
-      state.sopDeleteConfirmVersionId = "";
-      render();
-    } else if (action.dataset.action === "confirm-delete-sop-version") {
-      if (!canManageSopVersions() || state.sopVersionBusy) return;
       const version = state.sopVersionHistory.find((entry) => entry.id === action.dataset.versionId);
       if (!version) {
-        state.sopDeleteConfirmVersionId = "";
         showToast("No se encontró la revisión que quieres eliminar.", "warning");
         render();
         return;
       }
       const blockReason = getSopVersionDeleteBlockReason(version, state);
       if (blockReason) {
-        state.sopDeleteConfirmVersionId = "";
         showToast(blockReason, "warning");
-        render();
         return;
       }
       state.sopVersionBusy = true;
@@ -761,7 +861,6 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
           state.operatorFlowReady = false;
           state.activeWorkId = "";
         }
-        state.sopDeleteConfirmVersionId = "";
         state.sopVersionBusy = false;
         recordLocalAuditEvent("sop_version_deleted", { details: `Rev. ${version.document.revision} · ${version.document.id}` });
         showToast(`SOP Rev. ${version.document.revision} eliminada del catálogo local.`);
@@ -844,6 +943,24 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
   });
 
   app.addEventListener("change", (event) => {
+    if (event.target.matches("[data-sop-preview-step]")) {
+      const dialog = event.target.closest("#sop-draft-preview-dialog");
+      if (!dialog?.open || !state.sopDraft) return;
+      dialog.dataset.stepIndex = event.target.value;
+      syncSopDraftPreviewPanel(dialog, state.sopDraft);
+      renderSopDraftPdfPage(dialog, state.sopDraft, Number(dialog.dataset.procedureIndex), Number(dialog.dataset.stepIndex));
+      return;
+    }
+    if (event.target.matches("#sop-version-upload-form input[name=pdf]")) {
+      const selectedFile = event.target.files?.[0];
+      const fileName = app.querySelector("[data-sop-pdf-name]");
+      if (selectedFile && !state.sopVersionBusy) {
+        state.sopUploadFileName = selectedFile.name;
+        if (fileName) fileName.textContent = selectedFile.name;
+        event.target.form?.requestSubmit();
+      }
+      return;
+    }
     if (event.target.matches("[data-sop-station-type]")) {
       if (!canManageSopVersions() || !state.sopDraft) return;
       const type = event.target.value;
@@ -874,7 +991,22 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
       render();
       return;
     }
-    if (!event.target.matches("[data-sop-catalog-station], [data-sop-catalog-enabled]")) return;
+    if (event.target.matches("[data-sop-catalog-type]")) {
+      const row = event.target.closest("[data-sop-catalog-row]");
+      const areaSelect = row?.querySelector("[data-sop-catalog-station]");
+      if (!row || !areaSelect) return;
+      const currentAssignment = areaSelect.value;
+      const current = getWorkStationAssignment(currentAssignment);
+      const preferredValue = current?.type === event.target.value ? currentAssignment : "";
+      const areaAssignments = getSopCatalogAreaAssignments(state, event.target.value, preferredValue);
+      areaSelect.replaceChildren(new Option("Selecciona estación", ""));
+      for (const assignment of areaAssignments) {
+        const areaName = assignment.type === "RWK" ? "Desensamble" : assignment.label;
+        areaSelect.add(new Option(areaName, assignment.value));
+      }
+      areaSelect.value = (areaAssignments.find((entry) => entry.value === preferredValue) ?? areaAssignments[0])?.value ?? "";
+    }
+    if (!event.target.matches("[data-sop-catalog-type], [data-sop-catalog-station], [data-sop-catalog-enabled]")) return;
     const row = event.target.closest("[data-sop-catalog-row]");
     const stationSelect = row?.querySelector("[data-sop-catalog-station]");
     const enabledToggle = row?.querySelector("[data-sop-catalog-enabled]");
@@ -888,16 +1020,21 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
         const otherStatus = otherToggle?.nextElementSibling;
         if (otherStatus) {
           otherStatus.querySelector("strong").textContent = "Deshabilitada";
-          otherStatus.querySelector("small").textContent = "No aparece a los operadores";
+          otherStatus.classList.remove("is-enabled");
         }
+        otherRow.classList.remove("is-enabled");
       }
     }
     if (event.target.matches("[data-sop-catalog-station]") && !stationSelect.value) enabledToggle.checked = false;
     enabledToggle.disabled = !stationSelect.value;
     if (status) {
+      status.classList.toggle("is-enabled", enabledToggle.checked);
       status.querySelector("strong").textContent = enabledToggle.checked ? "Habilitada" : "Deshabilitada";
-      status.querySelector("small").textContent = enabledToggle.checked ? "Visible para operadores de su estación" : "No aparece a los operadores";
     }
+    row.classList.toggle("is-enabled", enabledToggle.checked);
+    state.sopCatalogDirty = true;
+    const saveBar = app.querySelector(".sop-catalog-save-bar");
+    if (saveBar) saveBar.hidden = false;
   });
 
   app.addEventListener("submit", async (event) => {
@@ -930,6 +1067,7 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
         await saveStoredSopCatalog(nextCatalog);
         state.sopVersionCatalog = nextCatalog;
         state.sopVersionHistory = await listStoredSopVersions();
+        state.sopCatalogDirty = false;
         const details = allVersions.map((version) => {
           const config = nextCatalog[version.id];
           const station = formatWorkStationAssignment(config?.stationAssignment) || "sin estación";
