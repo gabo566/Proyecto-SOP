@@ -58,7 +58,7 @@ function renderGuidedFinalConfirmation(procedure, state) {
   const cardPartNumber = String(state.form.componentPartNumber ?? "").trim() || "pendiente";
   const cardSerial = String(state.form.componentSerial ?? "").trim() || "pendiente";
   const operation = document.title || procedure.title || "procedimiento SOP";
-  const station = getWorkStationAssignment(state.form.stationAssignment)?.value ?? "Sin estación";
+  const station = formatWorkStationAssignment(state.form.stationAssignment) || "Sin estación";
   const accepted = Boolean(state.form.declaration);
   const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
   const progress = getGuidedSopProgress(run, SOP_SHEETS);

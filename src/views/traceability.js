@@ -20,7 +20,7 @@ function getTraceabilityEvents(records, workItems) {
     employeeNumber: record.employeeNumber,
     shift: getShiftForTime(record.time),
     label: record.recordType ?? "Validación registrada",
-    detail: [record.stationAssignment ? `Estación: ${getWorkStationAssignment(record.stationAssignment)?.value ?? record.stationAssignment}` : "", record.repairType ? `Reparación: ${record.repairType}` : "Validación SOP"].filter(Boolean).join(" · "),
+    detail: [record.stationAssignment ? `Estación: ${formatWorkStationAssignment(record.stationAssignment)}` : "", record.repairType ? `Reparación: ${record.repairType}` : "Validación SOP"].filter(Boolean).join(" · "),
     timeLabel: `${record.displayDate ?? record.date ?? "Fecha no disponible"} · ${record.time ?? "Hora no disponible"}`,
   }));
   const workEvents = workItems.flatMap((item) => (item.history ?? []).map((event, index) => ({
@@ -42,7 +42,7 @@ function getTraceabilityEvents(records, workItems) {
     employeeNumber: item.employeeNumber,
     shift: getShiftForTime(event.time),
     label: `${item.workKind === "rework" ? "Retrabajo" : item.workKind === "guided" ? "Desensamble SOP" : "Trabajo detenido"} · ${event.status}`,
-    detail: [item.form?.stationAssignment ? `Estación: ${getWorkStationAssignment(item.form.stationAssignment)?.value ?? item.form.stationAssignment}` : "", item.repairType ? `Reparación: ${item.repairType}` : "", event.note || item.reason || item.reasonLabel || "Cambio de estado"].filter(Boolean).join(" · "),
+    detail: [item.form?.stationAssignment ? `Estación: ${formatWorkStationAssignment(item.form.stationAssignment)}` : "", item.repairType ? `Reparación: ${item.repairType}` : "", event.note || item.reason || item.reasonLabel || "Cambio de estado"].filter(Boolean).join(" · "),
     timeLabel: `${event.date ?? "Fecha no disponible"} · ${event.time ?? "Hora no disponible"}`,
   })));
   return [...recordEvents, ...workEvents].sort((left, right) => right.at - left.at);

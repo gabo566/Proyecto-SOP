@@ -35,13 +35,18 @@ function renderStationIntake(state) {
       ? `<span class="station-choice-status">${enabledMfgAssignments.length} estación${enabledMfgAssignments.length === 1 ? "" : "es"} habilitada${enabledMfgAssignments.length === 1 ? "" : "s"}</span>`
       : '<span class="station-choice-status station-choice-status--disabled">Sin SOP habilitadas por Administración</span>';
   const rwkAssignment = enabledRwkAssignments.find((item) => item.value === assignment?.value) ?? enabledRwkAssignments[0];
+  const rwkStationControl = rwkSelected
+    ? enabledRwkAssignments.length > 1
+      ? `<span class="station-choice-selector"><span>Estación:</span><select aria-label="Estación de retrabajo" data-station-code data-focus-key="station-code-select">${enabledRwkAssignments.map((item) => `<option value="${escapeHtml(item.value)}" ${item.value === assignment?.value ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}</select></span>`
+      : `<span class="station-choice-selector"><span>Estación:</span><strong>${escapeHtml(assignment?.label ?? rwkAssignment?.label ?? "RWK")}</strong></span>`
+    : "";
   const rwkStatus = rwkSelected
     ? renderStationIntakeSopChoice(state, assignment, true)
     : enabledRwkAssignments.length
       ? `<span class="station-choice-status">${getEnabledSopVersionsForStation(state, rwkAssignment.value).length} SOP habilitada${getEnabledSopVersionsForStation(state, rwkAssignment.value).length === 1 ? "" : "s"}</span>`
       : '<span class="station-choice-status station-choice-status--disabled">Sin SOP habilitadas por Administración</span>';
 
-  return `<main class="station-intake-screen" aria-labelledby="station-intake-title">
+  return `<div class="station-intake-screen" aria-labelledby="station-intake-title">
     <header class="station-intake-topbar">
       <a class="station-intake-brand" href="#top" aria-label="Ingrasys">
         <img src="./public/assets/ingrasys-logo.png" alt="Ingrasys" />
@@ -67,6 +72,7 @@ function renderStationIntake(state) {
           <label class="station-choice station-choice--rwk ${selectedType === "RWK" ? "station-choice--selected" : ""} ${enabledRwkAssignments.length ? "" : "station-choice--disabled"}">
             <input type="radio" name="stationAssignmentType" data-station-type data-focus-key="station-RWK" value="RWK" ${selectedType === "RWK" ? "checked" : ""} ${enabledRwkAssignments.length ? "" : "disabled"} />
             <span class="station-choice-radio" aria-hidden="true"></span><span class="station-code station-code--rwk">RWK</span><span class="station-choice-copy"><strong>Retrabajo</strong><small>Desensamble, retrabajo o reparación del equipo.</small></span>
+            ${rwkStationControl}
             ${rwkSelected || !enabledRwkAssignments.length ? rwkStatus : ""}
           </label>
         </fieldset>
@@ -91,5 +97,5 @@ function renderStationIntake(state) {
       </footer>
     </form>
     <p class="station-intake-footnote">La selección y los identificadores se conservarán en el registro de esta validación.</p>
-  </main>${renderToast()}`;
+  </div>${renderToast()}`;
 }

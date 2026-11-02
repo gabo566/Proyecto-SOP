@@ -54,6 +54,7 @@ const state = {
   sopCatalogLoaded: false,
   sopDraft: null,
   sopDraftError: "",
+  sopDeleteConfirmVersionId: "",
   sopVersionBusy: false,
   navOpen: false,
   loginError: "",
@@ -152,9 +153,15 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     document.querySelector(state.loginError ? "#login-password" : "#login-username")?.focus();
     return;
   }
-  if (!state.operatorFlowReady && !(state.activeSection === "sop-admin" && canManageSopVersions())) {
+  const user = getAuthenticatedLocalUser();
+  const canBrowseAdminSection = user?.role === "admin"
+    && ["production", "traceability", "reports", "users"].includes(state.activeSection);
+  const canManageSops = state.activeSection === "sop-admin" && canManageSopVersions(user);
+  if (!state.operatorFlowReady && !canBrowseAdminSection && !canManageSops) {
     normalizeStationIntakeAssignment(state);
-    app.innerHTML = renderStationIntake(state);
+    app.innerHTML = user?.role === "admin"
+      ? `${renderSidebar(state)}<main class="main-area">${renderStationIntake(state)}</main>`
+      : renderStationIntake(state);
     return;
   }
   ensureGuidedSopRun();
@@ -534,6 +541,7 @@ bindInteractions(app, {
   resumeWorkItem: workflow.resume,
   handoffWorkOperator: workflow.handoffOperator,
   persistWorkState: workflow.persistProgress,
+  parkActiveWorkForSopChange: workflow.parkActiveWorkForSopChange,
   authenticateLocalUser,
   endLocalUserSession: () => {
     if (state.evidenceBusy) {

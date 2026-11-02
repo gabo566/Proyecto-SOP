@@ -5,8 +5,49 @@ const WORK_STATION_ASSIGNMENTS = [
   { value: "RWK:RWK", type: "RWK", typeLabel: "Retrabajo", code: "RWK", label: "RWK" },
 ];
 
+function createCustomWorkStationAssignment(type, label) {
+  const normalizedType = String(type ?? "").trim().toUpperCase();
+  const normalizedLabel = String(label ?? "").trim();
+  if (!["MFG", "RWK"].includes(normalizedType) || !normalizedLabel || normalizedLabel.length > 80) return "";
+  return `CUSTOM:${normalizedType}:${encodeURIComponent(normalizedLabel)}`;
+}
+
 function getWorkStationAssignment(value) {
-  return WORK_STATION_ASSIGNMENTS.find((assignment) => assignment.value === value) ?? null;
+  const preset = WORK_STATION_ASSIGNMENTS.find((assignment) => assignment.value === value);
+  if (preset) return preset;
+  const match = String(value ?? "").match(/^CUSTOM:(MFG|RWK):(.+)$/);
+  if (!match) return null;
+  let label = "";
+  try {
+    label = decodeURIComponent(match[2]).trim();
+  } catch {
+    return null;
+  }
+  if (!label) return null;
+  return {
+    value: String(value),
+    type: match[1],
+    typeLabel: match[1] === "MFG" ? "Manufactura" : "Retrabajo",
+    code: label,
+    label,
+    custom: true,
+  };
+}
+
+function getWorkStationAssignments(state = null) {
+  const assignments = new Map(WORK_STATION_ASSIGNMENTS.map((assignment) => [assignment.value, assignment]));
+  if (!state) return [...assignments.values()];
+  for (const version of getAllSopVersions(state)) {
+    const value = getSopVersionStationAssignment(state, version);
+    const assignment = getWorkStationAssignment(value);
+    if (assignment) assignments.set(assignment.value, assignment);
+  }
+  return [...assignments.values()];
+}
+
+function formatWorkStationAssignment(value) {
+  const assignment = getWorkStationAssignment(value);
+  return assignment ? `${assignment.type} · ${assignment.label}` : String(value ?? "");
 }
 
 function getSopVersionStationAssignment(state, version) {
@@ -42,7 +83,7 @@ function findSopVersionForStation(state, assignmentValue, versionId = state.form
 }
 
 function getEnabledWorkStationAssignments(state, type = "") {
-  return WORK_STATION_ASSIGNMENTS.filter((assignment) => (!type || assignment.type === type)
+  return getWorkStationAssignments(state).filter((assignment) => (!type || assignment.type === type)
     && getEnabledSopVersionsForStation(state, assignment.value).length > 0);
 }
 

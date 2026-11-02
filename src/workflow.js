@@ -54,6 +54,28 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
     return persistWorkItems(state.workItems);
   }
 
+  function parkActiveWorkForSopChange() {
+    const item = state.workItems.find((workItem) => workItem.id === state.activeWorkId);
+    if (!item) return true;
+    if (!persistProgress()) return false;
+
+    const savedItem = structuredClone(item);
+    item.reasonLabel = "Cambio de SOP";
+    item.reason = "Trabajo detenido para iniciar otra SOP; avance conservado.";
+    appendEvent(item, "Detenida", item.reason);
+    if (!persistWorkItems(state.workItems)) {
+      Object.assign(item, savedItem);
+      return false;
+    }
+
+    state.activeWorkId = "";
+    state.sopRun = null;
+    state.completedSteps = [];
+    state.operatorFlowReady = false;
+    state.activeSection = "overview";
+    return true;
+  }
+
   function handoffOperator(username, password) {
     const item = state.workItems.find((workItem) => workItem.id === state.activeWorkId);
     if (!isActiveHandoffWorkItem(item)) return "not-active-work";
@@ -400,6 +422,7 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
 
   return {
     persistProgress,
+    parkActiveWorkForSopChange,
     handoffOperator,
     startGuidedWork,
     openDialog,

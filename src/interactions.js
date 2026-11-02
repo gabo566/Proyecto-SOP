@@ -20,6 +20,7 @@ function bindInteractions(app, handlers) {
     resumeWorkItem,
     handoffWorkOperator,
     persistWorkState,
+    parkActiveWorkForSopChange,
     addEvidence,
     removeEvidence,
     openEvidenceReview,
@@ -56,14 +57,11 @@ function bindInteractions(app, handlers) {
     document.getElementById(item.target)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function blockStationSopChangeDuringActiveWork(nextAssignment, nextVersionId, target) {
-    if (!state.activeWorkId) return false;
-    const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
-    const currentAssignment = activeWork?.form?.stationAssignment ?? state.form.stationAssignment;
-    const currentVersionId = activeWork?.sopVersionId ?? state.sopRun?.versionId;
-    if (nextAssignment === currentAssignment && nextVersionId === currentVersionId) return false;
-    render({ focusKey: target?.dataset.focusKey });
-    showToast("Este trabajo ya comenzó con su estación y SOP/revisión originales. Detén el trabajo antes de cambiar el procedimiento.", "warning");
+  function prepareSopChangeFromIntake(target) {
+    if (!target.closest("#station-intake-form") || !state.activeWorkId) return false;
+    if (parkActiveWorkForSopChange()) return false;
+    render({ focusKey: target.dataset.focusKey });
+    showToast("No se pudo guardar el avance del trabajo anterior. Libera espacio e inténtalo de nuevo.", "warning");
     return true;
   }
 
@@ -175,12 +173,10 @@ function bindInteractions(app, handlers) {
           showToast("Solo el operador actualmente asignado puede volver a la selección de SOP.", "warning");
           break;
         }
-        if (!persistWorkState()) {
+        if (!parkActiveWorkForSopChange()) {
           showToast("No se pudo guardar el avance actual. Inténtalo de nuevo antes de regresar.", "warning");
           break;
         }
-        state.operatorFlowReady = false;
-        state.activeSection = "overview";
         state.formError = "";
         render({ focusKey: `station-${getWorkStationAssignment(state.form.stationAssignment)?.type ?? "MFG"}` });
         break;
@@ -257,9 +253,9 @@ function bindInteractions(app, handlers) {
   app.addEventListener("change", (event) => {
     const { target } = event;
     if (target.matches("[data-station-type]")) {
+      if (prepareSopChangeFromIntake(target)) return;
       const assignment = getEnabledWorkStationAssignments(state, target.value)[0];
       const nextVersion = assignment && getEnabledSopVersionsForStation(state, assignment.value)[0];
-      if (blockStationSopChangeDuringActiveWork(assignment?.value ?? "", nextVersion?.id ?? "", target)) return;
       if (assignment) {
         state.form.stationAssignment = assignment.value;
         state.form.sopVersionId = nextVersion?.id ?? "";
@@ -268,15 +264,15 @@ function bindInteractions(app, handlers) {
       render({ focusKey: target.dataset.focusKey });
       return;
     } else if (target.matches("[data-station-code]")) {
+      if (prepareSopChangeFromIntake(target)) return;
       const nextVersion = getEnabledSopVersionsForStation(state, target.value)[0];
-      if (blockStationSopChangeDuringActiveWork(target.value, nextVersion?.id ?? "", target)) return;
       state.form.stationAssignment = target.value;
       state.form.sopVersionId = nextVersion?.id ?? "";
       state.formError = "";
       render({ focusKey: target.dataset.focusKey });
       return;
     } else if (target.matches("[data-sop-version]")) {
-      if (blockStationSopChangeDuringActiveWork(state.form.stationAssignment, target.value, target)) return;
+      if (prepareSopChangeFromIntake(target)) return;
       state.form.sopVersionId = target.value;
       state.formError = "";
       render({ focusKey: target.dataset.focusKey });
@@ -312,6 +308,7 @@ function bindInteractions(app, handlers) {
       if (submitButton) submitButton.disabled = !target.checked;
       clearFormError();
     } else if (target.dataset.formField) {
+      if (prepareSopChangeFromIntake(target)) return;
       state.form[target.dataset.formField] = target.value;
       if (target.dataset.formField === "nodeNumber") {
         const value = document.querySelector("#guided-confirmation-node");
@@ -368,6 +365,7 @@ function bindInteractions(app, handlers) {
       state.recordsQuery = target.value;
       updateDialogSearch();
     } else if (target.dataset.formField) {
+      if (prepareSopChangeFromIntake(target)) return;
       state.form[target.dataset.formField] = target.value;
       persistWorkState();
       if (state.formError) clearFormError();

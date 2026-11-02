@@ -60,6 +60,31 @@ async function saveSopVersion(version) {
   });
 }
 
+async function deleteStoredSopVersion(versionId) {
+  const database = await openSopVersionDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction([SOP_VERSION_STORE, SOP_VERSION_SETTINGS], "readwrite");
+    transaction.objectStore(SOP_VERSION_STORE).delete(versionId);
+    const settings = transaction.objectStore(SOP_VERSION_SETTINGS);
+    const request = settings.getAll();
+    request.onsuccess = () => {
+      for (const row of request.result) {
+        const isStationAssignment = row.id?.startsWith(SOP_STATION_ASSIGNMENT_KEY_PREFIX);
+        const isCatalogSetting = row.id?.startsWith(SOP_CATALOG_KEY_PREFIX);
+        if (row.id === SOP_VERSION_ACTIVE_KEY && row.versionId === versionId) {
+          settings.put({ id: SOP_VERSION_ACTIVE_KEY, versionId: BUILT_IN_SOP_VERSION_ID });
+        } else if (row.versionId === versionId && (isStationAssignment || isCatalogSetting)) {
+          settings.delete(row.id);
+        }
+      }
+      settings.delete(`${SOP_CATALOG_KEY_PREFIX}${versionId}`);
+    };
+    transaction.oncomplete = () => { database.close(); resolve(); };
+    transaction.onerror = () => { database.close(); reject(transaction.error); };
+    transaction.onabort = () => { database.close(); reject(transaction.error); };
+  });
+}
+
 async function setActiveSopVersionId(versionId) {
   const database = await openSopVersionDatabase();
   return new Promise((resolve, reject) => {
@@ -262,11 +287,11 @@ async function loadSopPdfJs() {
 function normalizeExtractedSopText(value) {
   return String(value ?? "").replace(/\s+/g, " ").replace(/\s+([,.;:!?])/g, "$1")
     .replace(/([¿¡(])\s+/g, "$1").replace(/(\d)\.\s+(?=\d)/g, "$1.")
-    .replace(/\s*-\s*/g, "-").replace(/\bP\s+N\b/gi, "PN").trim();
+    .replace(/\bP\s+N\b/gi, "PN").trim();
 }
 
 function readSopMarker(items, index) {
-  const direct = items[index].str.trim().replace(/\s/g, "").match(/^(\d+(?:\.\d+)*\.?)-(.*)$/);
+  const direct = items[index].str.trim().match(/^(\d+(?:\.\d+)*\.?)\s*-\s*(.*)$/);
   if (direct) return { id: direct[1].replace(/\.$/, ""), endIndex: index, tail: direct[2] };
 
   let combined = "";
@@ -274,10 +299,11 @@ function readSopMarker(items, index) {
   for (let endIndex = index; endIndex < Math.min(items.length, index + 8); endIndex += 1) {
     const item = items[endIndex];
     if (previous && item.x - (previous.x + previous.width) > 22) break;
-    combined += item.str.trim().replace(/\s/g, "");
-    const match = combined.match(/^(\d+(?:\.\d+)*\.?)-(.*)$/);
+    combined += item.str;
+    const match = combined.match(/^\s*(\d+(?:\.\d+)*\.?)\s*-\s*(.*)$/);
     if (match) return { id: match[1].replace(/\.$/, ""), endIndex, tail: match[2] };
-    if (!/^\d+(?:\.\d+)*\.?$/.test(combined) && !/^\d*[.]?$/.test(combined)) break;
+    const compactPrefix = combined.replace(/\s/g, "");
+    if (!/^\d+(?:\.\d+)*\.?$/.test(compactPrefix) && !/^\d*[.]?$/.test(compactPrefix)) break;
     previous = item;
   }
   return null;
@@ -504,13 +530,20 @@ async function extractSopPdfVersion(pdfFile, pdfjsOverride = null) {
 function validateSopDraft(draft) {
   const version = structuredClone(draft);
   const document = version.document;
-  for (const field of ["id", "title", "revision"]) {
-    if (!String(document[field] ?? "").trim()) throw new Error(`Completa el campo ${field === "id" ? "identificador" : field === "title" ? "título" : "revisión"} del documento.`);
+  if (!String(document.id ?? "").trim()) document.id = `SOP-DOC-${crypto.randomUUID()}`;
+  for (const field of ["title", "revision"]) {
+    if (!String(document[field] ?? "").trim()) throw new Error(`Completa el campo ${field === "title" ? "título" : "revisión"} del documento.`);
     document[field] = String(document[field]).trim();
   }
-  if (!WORK_STATION_ASSIGNMENTS.some((assignment) => assignment.value === document.stationAssignment)) {
-    throw new Error("Asigna esta SOP a MFG · TDR, MFG · SYS_ASSY_1, MFG · SYS_ASSY_2 o RWK · Retrabajo antes de guardarla como revisión.");
+  if (document.stationMode === "custom") {
+    document.stationAssignment = createCustomWorkStationAssignment(document.stationType, document.stationName);
   }
+  if (!getWorkStationAssignment(document.stationAssignment)) {
+    throw new Error("Selecciona una estación precargada o escribe el nombre de una estación personalizada.");
+  }
+  delete document.stationMode;
+  delete document.stationType;
+  delete document.stationName;
 
   const sheetNumbers = new Set();
   const procedures = version.procedures.filter((procedure) => procedure.steps.length).map((procedure, procedureIndex) => {
@@ -556,6 +589,15 @@ function formatSopVersionDate(value) {
 
 function renderSopVersionPreview(version, state) {
   const stepCount = version.procedures.reduce((total, procedure) => total + procedure.steps.length, 0);
+  const currentAssignment = getWorkStationAssignment(version.document.stationAssignment);
+  const stationType = version.document.stationType ?? currentAssignment?.type ?? "MFG";
+  const stationMode = version.document.stationMode ?? "existing";
+  const stationName = version.document.stationName ?? (currentAssignment?.custom ? currentAssignment.label : "");
+  const stationOptions = getWorkStationAssignments(state)
+    .filter((assignment) => assignment.type === stationType)
+    .map((assignment) => `<option value="${escapeHtml(assignment.value)}" ${assignment.value === version.document.stationAssignment && stationMode !== "custom" ? "selected" : ""}>${escapeHtml(assignment.label)}${assignment.custom ? " · personalizada" : ""}</option>`)
+    .join("");
+  const customSelected = stationMode === "custom";
   const procedureEditors = version.procedures.map((procedure, procedureIndex) => `<details class="sop-version-procedure" ${procedureIndex === 0 ? "open" : ""}>
     <summary><strong>Hoja ${escapeHtml(procedure.sheet)} · ${escapeHtml(procedure.title)}</strong><span>${procedure.steps.length} pasos</span></summary>
     <label class="sop-version-sheet-title">Nombre de la hoja<input type="text" data-procedure-index="${procedureIndex}" data-procedure-field="title" value="${escapeHtml(procedure.title)}" /></label>
@@ -566,14 +608,22 @@ function renderSopVersionPreview(version, state) {
   </details>`).join("");
   return `<section class="sop-version-preview" aria-labelledby="sop-version-preview-title"><h3 id="sop-version-preview-title">Revisa y corrige la extracción automática</h3>
     <p>Se detectaron ${stepCount} pasos en ${version.procedures.length} hojas. Corrige números o textos, elimina falsos positivos y agrega pasos omitidos antes de guardar la revisión.</p>
-    <div class="sop-version-document-fields"><label>Identificador<input type="text" data-sop-document-field="id" value="${escapeHtml(version.document.id)}" /></label>
-      <label>Nombre de la SOP<input type="text" data-sop-document-field="title" value="${escapeHtml(version.document.title)}" /></label>
+    <div class="sop-version-document-fields"><label>Nombre de la SOP<input type="text" data-sop-document-field="title" value="${escapeHtml(version.document.title)}" /></label>
       <label>Revisión<input type="text" data-sop-document-field="revision" value="${escapeHtml(version.document.revision)}" placeholder="Captura la nueva revisión" /></label>
-      <label>Estación de trabajo<select data-sop-document-field="stationAssignment"><option value="">Selecciona la estación asociada</option>${WORK_STATION_ASSIGNMENTS.map((assignment) => `<option value="${escapeHtml(assignment.value)}" ${version.document.stationAssignment === assignment.value ? "selected" : ""}>${escapeHtml(assignment.type)} · ${escapeHtml(assignment.label)}</option>`).join("")}</select></label></div>
+      <label>Tipo de estación<select data-sop-station-type><option value="MFG" ${stationType === "MFG" ? "selected" : ""}>MFG · Manufactura</option><option value="RWK" ${stationType === "RWK" ? "selected" : ""}>RWK · Retrabajo</option></select></label>
+      <label>Estación de trabajo<select data-sop-station-assignment><option value="">Selecciona una estación</option>${stationOptions}<option value="__custom__" ${customSelected ? "selected" : ""}>Otra estación…</option></select></label>
+      ${customSelected ? `<label>Nombre de la estación<input type="text" data-sop-station-custom value="${escapeHtml(stationName)}" placeholder="Escribe el nombre de la estación" maxlength="80" autocomplete="off" /></label>` : ""}</div>
     <div class="sop-version-procedures">${procedureEditors}</div>
-    <button class="button button--primary" type="button" data-action="publish-sop-version" ${state.sopVersionBusy ? "disabled" : ""}>Guardar nueva revisión</button>
+    <div class="sop-version-preview-actions"><button class="button button--primary" type="button" data-action="publish-sop-version" ${state.sopVersionBusy ? "disabled" : ""}>Guardar nueva revisión</button>
+      <button class="button button--outlined" type="button" data-action="cancel-sop-version-draft" ${state.sopVersionBusy ? "disabled" : ""}>Cancelar revisión</button></div>
     <p class="sop-version-note">Al guardar esta revisión quedará deshabilitada. Podrás asignarla a otra estación o habilitarla en el catálogo cuando esté revisada.</p>
   </section>`;
+}
+
+function getSopVersionDeleteBlockReason(version, state) {
+  return version.id === BUILT_IN_SOP_VERSION_ID
+    ? "La SOP incluida en el sistema no es una revisión cargada para eliminar."
+    : "";
 }
 
 function renderSopCatalog(state) {
@@ -582,12 +632,21 @@ function renderSopCatalog(state) {
     const stationAssignment = getSopVersionStationAssignment(state, version);
     const config = state.sopVersionCatalog?.[version.id] ?? { stationAssignment, enabled: false };
     const metadata = createSopVersionMetadata(version, version.id === BUILT_IN_SOP_VERSION_ID);
-    const stationOptions = WORK_STATION_ASSIGNMENTS.map((assignment) => `<option value="${escapeHtml(assignment.value)}" ${assignment.value === config.stationAssignment ? "selected" : ""}>${escapeHtml(assignment.type)} · ${escapeHtml(assignment.label)}</option>`).join("");
+    const stationOptions = getWorkStationAssignments(state).map((assignment) => `<option value="${escapeHtml(assignment.value)}" ${assignment.value === config.stationAssignment ? "selected" : ""}>${escapeHtml(assignment.type)} · ${escapeHtml(assignment.label)}</option>`).join("");
+    const deleteBlockReason = getSopVersionDeleteBlockReason(version, state);
+    const deleteConfirming = state.sopDeleteConfirmVersionId === version.id;
+    const versionActions = version.id === BUILT_IN_SOP_VERSION_ID
+      ? `<div class="sop-catalog-actions"><div class="sop-catalog-action-buttons"><button class="text-button" type="button" data-action="edit-sop-version" data-version-id="${escapeHtml(version.id)}">Crear nueva revisión</button>
+        <button class="text-button sop-version-delete-button" type="button" disabled title="${escapeHtml(deleteBlockReason)}">Eliminar</button></div><small class="sop-version-delete-blocked">${escapeHtml(deleteBlockReason)}</small></div>`
+      : `<div class="sop-catalog-actions"><div class="sop-catalog-action-buttons"><button class="text-button" type="button" data-action="edit-sop-version" data-version-id="${escapeHtml(version.id)}">Crear nueva revisión</button>
+        <button class="text-button sop-version-delete-button" type="button" data-action="delete-sop-version" data-version-id="${escapeHtml(version.id)}" ${deleteBlockReason || state.sopVersionBusy ? "disabled" : ""} title="${escapeHtml(deleteBlockReason || "Eliminar esta revisión guardada")}">Eliminar</button></div>
+        ${deleteBlockReason ? `<small class="sop-version-delete-blocked">${escapeHtml(deleteBlockReason)}</small>` : ""}
+        ${deleteConfirming ? `<div class="sop-version-delete-confirmation" role="group" aria-label="Confirmar eliminación de ${escapeHtml(metadata.title)} Rev. ${escapeHtml(metadata.revision)}"><span>Se eliminarán el PDF y los pasos. Los registros quedan; los trabajos detenidos de esta revisión no podrán reanudarse.</span><button class="button button--danger" type="button" data-action="confirm-delete-sop-version" data-version-id="${escapeHtml(version.id)}" ${state.sopVersionBusy ? "disabled" : ""}>Confirmar eliminación</button><button class="text-button" type="button" data-action="cancel-delete-sop-version" data-version-id="${escapeHtml(version.id)}" ${state.sopVersionBusy ? "disabled" : ""}>Cancelar</button></div>` : ""}</div>`;
     return `<article class="sop-catalog-row" data-sop-catalog-row="${escapeHtml(version.id)}" data-sop-catalog-document-id="${escapeHtml(version.document.id)}">
       <div class="sop-catalog-copy"><strong>${escapeHtml(metadata.title)} · Rev. ${escapeHtml(metadata.revision)}</strong><small>${escapeHtml(metadata.documentId)} · ${metadata.sheetCount} hojas · ${metadata.procedureCount} procedimientos · ${metadata.stepCount} pasos · ${escapeHtml(formatSopVersionDate(metadata.createdAt))} · ${escapeHtml(metadata.createdBy)}${metadata.pdfName ? ` · PDF ${escapeHtml(metadata.pdfName)}` : ""}</small></div>
       <label class="sop-catalog-station"><span>Estación de esta SOP</span><select data-sop-catalog-station><option value="">Selecciona una estación</option>${stationOptions}</select></label>
       <label class="sop-catalog-enabled"><input type="checkbox" data-sop-catalog-enabled ${config.enabled ? "checked" : ""} ${config.stationAssignment ? "" : "disabled"} /><span><strong>${config.enabled ? "Habilitada" : "Deshabilitada"}</strong><small>${config.enabled ? "Visible para operadores de su estación" : "No aparece a los operadores"}</small></span></label>
-      <button class="text-button" type="button" data-action="edit-sop-version" data-version-id="${escapeHtml(version.id)}">Crear nueva revisión</button>
+      ${versionActions}
     </article>`;
   }).join("");
 
@@ -626,6 +685,10 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
       state.sopDraft.document[documentField] = event.target.value;
       return;
     }
+    if (event.target.matches("[data-sop-station-custom]")) {
+      state.sopDraft.document.stationName = event.target.value;
+      return;
+    }
     const procedureIndex = Number(event.target.dataset.procedureIndex);
     if (!Number.isInteger(procedureIndex)) return;
     const procedure = state.sopDraft.procedures[procedureIndex];
@@ -643,7 +706,72 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
   app.addEventListener("click", async (event) => {
     const action = event.target.closest("[data-action]");
     if (!action || !app.contains(action)) return;
-    if (action.dataset.action === "add-sop-step" || action.dataset.action === "delete-sop-step") {
+    if (action.dataset.action === "cancel-sop-version-draft") {
+      if (!canManageSopVersions() || !state.sopDraft || state.sopVersionBusy) return;
+      state.sopDraft = null;
+      state.sopDraftError = "";
+      state.sopDraftNotice = "";
+      showToast("Revisión cancelada; no se guardaron sus cambios.");
+      render();
+    } else if (action.dataset.action === "delete-sop-version") {
+      if (!canManageSopVersions() || state.sopVersionBusy) return;
+      const version = getAllSopVersions(state).find((entry) => entry.id === action.dataset.versionId);
+      if (!version) {
+        showToast("No se encontró la revisión que quieres eliminar.", "warning");
+        return;
+      }
+      const blockReason = getSopVersionDeleteBlockReason(version, state);
+      if (blockReason) {
+        showToast(blockReason, "warning");
+        return;
+      }
+      state.sopDeleteConfirmVersionId = version.id;
+      render();
+    } else if (action.dataset.action === "cancel-delete-sop-version") {
+      if (state.sopVersionBusy) return;
+      state.sopDeleteConfirmVersionId = "";
+      render();
+    } else if (action.dataset.action === "confirm-delete-sop-version") {
+      if (!canManageSopVersions() || state.sopVersionBusy) return;
+      const version = state.sopVersionHistory.find((entry) => entry.id === action.dataset.versionId);
+      if (!version) {
+        state.sopDeleteConfirmVersionId = "";
+        showToast("No se encontró la revisión que quieres eliminar.", "warning");
+        render();
+        return;
+      }
+      const blockReason = getSopVersionDeleteBlockReason(version, state);
+      if (blockReason) {
+        state.sopDeleteConfirmVersionId = "";
+        showToast(blockReason, "warning");
+        render();
+        return;
+      }
+      state.sopVersionBusy = true;
+      const deletingActiveVersion = state.sopVersionMeta?.id === version.id;
+      render();
+      try {
+        await deleteStoredSopVersion(version.id);
+        const nextCatalog = { ...state.sopVersionCatalog };
+        delete nextCatalog[version.id];
+        state.sopVersionCatalog = nextCatalog;
+        state.sopVersionHistory = await listStoredSopVersions();
+        if (deletingActiveVersion) {
+          applyBuiltInSopVersion(state);
+          state.operatorFlowReady = false;
+          state.activeWorkId = "";
+        }
+        state.sopDeleteConfirmVersionId = "";
+        state.sopVersionBusy = false;
+        recordLocalAuditEvent("sop_version_deleted", { details: `Rev. ${version.document.revision} · ${version.document.id}` });
+        showToast(`SOP Rev. ${version.document.revision} eliminada del catálogo local.`);
+        render();
+      } catch (error) {
+        state.sopVersionBusy = false;
+        showToast(error?.message || "No se pudo eliminar la revisión guardada.", "warning");
+        render();
+      }
+    } else if (action.dataset.action === "add-sop-step" || action.dataset.action === "delete-sop-step") {
       if (!canManageSopVersions() || !state.sopDraft) return;
       const procedure = state.sopDraft.procedures[Number(action.dataset.procedureIndex)];
       if (!procedure) return;
@@ -652,7 +780,7 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
       else procedure.steps.splice(Number(action.dataset.stepIndex), 1);
       render();
     } else if (action.dataset.action === "edit-sop-version") {
-      if (!canManageSopVersions()) return;
+      if (!canManageSopVersions() || state.sopVersionBusy) return;
       if (state.sopDraft) {
         showToast("Guarda o descarta la edición actual antes de abrir otra revisión.", "warning");
         return;
@@ -668,6 +796,10 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
       state.sopDraft = structuredClone(source);
       state.sopDraft.id = `sop-version-${crypto.randomUUID()}`;
       state.sopDraft.document.stationAssignment = getSopVersionStationAssignment(state, source);
+      const sourceStation = getWorkStationAssignment(state.sopDraft.document.stationAssignment);
+      state.sopDraft.document.stationType = sourceStation?.type ?? "MFG";
+      state.sopDraft.document.stationMode = "existing";
+      state.sopDraft.document.stationName = "";
       state.sopDraft.document = { ...state.sopDraft.document, revision: "" };
       state.sopDraft.createdAt = new Date().toISOString();
       state.sopDraft.createdBy = getActiveLocalUser().name;
@@ -712,6 +844,36 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
   });
 
   app.addEventListener("change", (event) => {
+    if (event.target.matches("[data-sop-station-type]")) {
+      if (!canManageSopVersions() || !state.sopDraft) return;
+      const type = event.target.value;
+      const assignment = getWorkStationAssignments(state).find((entry) => entry.type === type);
+      state.sopDraft.document.stationType = type;
+      state.sopDraft.document.stationMode = "existing";
+      state.sopDraft.document.stationName = "";
+      state.sopDraft.document.stationAssignment = assignment?.value ?? "";
+      render();
+      return;
+    }
+    if (event.target.matches("[data-sop-station-assignment]")) {
+      if (!canManageSopVersions() || !state.sopDraft) return;
+      const value = event.target.value;
+      const document = state.sopDraft.document;
+      if (value === "__custom__") {
+        document.stationMode = "custom";
+        document.stationType ||= getWorkStationAssignment(document.stationAssignment)?.type ?? "MFG";
+        document.stationAssignment = "";
+        document.stationName = "";
+      } else {
+        const assignment = getWorkStationAssignment(value);
+        document.stationMode = "existing";
+        document.stationAssignment = assignment?.value ?? "";
+        document.stationType = assignment?.type ?? document.stationType ?? "MFG";
+        document.stationName = "";
+      }
+      render();
+      return;
+    }
     if (!event.target.matches("[data-sop-catalog-station], [data-sop-catalog-enabled]")) return;
     const row = event.target.closest("[data-sop-catalog-row]");
     const stationSelect = row?.querySelector("[data-sop-catalog-station]");
@@ -770,7 +932,7 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
         state.sopVersionHistory = await listStoredSopVersions();
         const details = allVersions.map((version) => {
           const config = nextCatalog[version.id];
-          const station = getWorkStationAssignment(config?.stationAssignment)?.value ?? "sin estación";
+          const station = formatWorkStationAssignment(config?.stationAssignment) || "sin estación";
           return `${version.document.id} Rev. ${version.document.revision}: ${config?.enabled ? `habilitada en ${station}` : `deshabilitada · ${station}`}`;
         }).join(" · ");
         recordLocalAuditEvent("sop_catalog_updated", { details });
