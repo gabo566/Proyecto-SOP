@@ -1349,7 +1349,7 @@ td small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px;
 .sop-catalog-table { overflow: hidden; border: 1px solid #dce4ec; border-radius: 10px; background: #fff; }
 .sop-catalog-table-head, .sop-catalog-row { display: grid; grid-template-columns: minmax(250px,1.75fr) minmax(100px,.7fr) minmax(110px,.8fr) minmax(78px,.55fr) minmax(100px,.7fr) minmax(235px,1.6fr); align-items: center; gap: 10px; }
 .sop-catalog-table-head { min-height: 38px; padding: 0 14px; color: #344a63; background: #edf2f7; font-size: 10px; font-weight: 700; }
-.sop-catalog-list { max-height: min(62vh, 640px); overflow: auto; }
+.sop-catalog-list { max-height: min(62vh, 640px); overflow: auto; scrollbar-gutter: stable; }
 .sop-catalog-row { min-height: 76px; padding: 9px 14px; border-bottom: 1px solid #e2e8ef; background: #fff; transition: background-color .16s ease; }
 .sop-catalog-row:last-child { border-bottom: 0; }
 .sop-catalog-row:hover { background: #f8fafd; }

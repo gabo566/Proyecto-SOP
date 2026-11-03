@@ -377,7 +377,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   grid-template-columns: minmax(270px,1.8fr) minmax(100px,.7fr) minmax(120px,.85fr) minmax(76px,.55fr) minmax(100px,.7fr) minmax(235px,1.5fr);
   gap: 12px;
 }
-.sop-catalog-table-head { min-height: 42px; padding: 0 16px; color: #435b72; background: #edf3f8; font-size: 10px; }
+.sop-catalog-table-head { min-height: 42px; padding: 0 24px 0 14px; color: #435b72; background: #edf3f8; font-size: 10px; }
 .sop-catalog-table-head [role="columnheader"] { min-width: 0; display: flex; align-items: center; justify-content: center; text-align: center; }
 .sop-catalog-table-head [role="columnheader"]:first-child { justify-content: flex-start; padding-left: 54px; text-align: left; }
 .sop-catalog-row { min-height: 66px; padding: 10px 14px; border-bottom-color: #e6ecf2; transition: background-color 140ms ease; }
@@ -389,7 +389,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .sop-catalog-revision { padding: 3px 8px; color: #355570; background: #e8eff5; font-size: 9px; }
 .sop-catalog-info-trigger { width: 22px; height: 22px; flex-basis: 22px; border-radius: 50%; }
 .sop-catalog-area, .sop-catalog-station { gap: 5px; color: #50657a; font-size: 10px; }
-.sop-catalog-area select, .sop-catalog-station select { min-height: 38px; padding: 0 10px; border-color: #c6d3df; border-radius: 10px; font-size: 11px; }
+.sop-catalog-area select, .sop-catalog-station select { min-height: 38px; padding: 0 10px; border-color: #c6d3df; border-radius: 10px; font-size: 11px; text-align: center; text-align-last: center; }
 .sop-catalog-enabled { justify-content: center; gap: 8px; color: #4f6378; font-size: 10px; }
 .sop-catalog-enabled strong { font-size: 11px; }
 .sop-catalog-status-cell { min-width: 0; display: flex; align-items: center; justify-content: center; color: #586a7e; text-align: center; }
