@@ -361,10 +361,10 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .sop-version-access-badge { display: inline-flex; align-items: center; gap: 5px; margin: 0 0 5px; padding: 4px 9px; border: 1px solid #d8e6f2; border-radius: 999px; color: #315773; background: #edf5fb; font-size: 9px; letter-spacing: .025em; }
 .sop-version-access-badge .material-symbols-rounded { font-size: 14px; font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 20; }
 .sop-version-manager-header .sop-version-upload-form { grid-column: 2; grid-row: 1; justify-self: end; align-self: center; width: min(330px,32vw); display: grid; gap: 0; padding: 11px; border: 1px solid #e0e8f0; border-radius: 16px; background: #fff; box-shadow: 0 2px 8px rgb(34 61 83 / 5%); }
-.sop-version-manager-header .sop-version-actions { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 9px; }
-.sop-version-manager-header .sop-version-actions .button { min-width: 142px; min-height: 48px; border: 0; border-radius: 14px; font-size: 12px; }
+.sop-version-manager-header .sop-version-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: center; gap: 7px; }
+.sop-version-manager-header .sop-version-actions .button { width: 100%; min-width: 0; min-height: 44px; padding-inline: 6px; border: 0; border-radius: 14px; font-size: 10px; gap: 5px; white-space: nowrap; }
 .sop-version-manager-header .sop-version-actions .button .material-symbols-rounded { font-size: 19px; font-variation-settings: "FILL" 1, "wght" 520, "GRAD" 0, "opsz" 24; }
-.sop-version-manager-header .sop-version-actions > small { min-width: 0; max-width: none; color: #566e83; font-size: 10px; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
+.sop-version-manager-header .sop-version-actions > small { grid-column: 1 / -1; min-width: 0; max-width: none; color: #566e83; font-size: 10px; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
 .sop-version-manager-header .form-error { grid-column: 1 / -1; }
 .sop-version-manager-header .sop-version-upload-form .form-error { color: #9f252a; font-size: 11px; line-height: 1.45; }
 .sop-version-manager-header .sop-version-upload-form { position: relative; }
@@ -464,6 +464,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   .sop-version-manager-header { padding: 15px; }
   .sop-version-manager-header .heading-icon { width: 46px; height: 46px; flex-basis: 46px; }
   .sop-version-manager-header .section-title h2 { font-size: 20px; }
-  .sop-version-manager-header .sop-version-actions { grid-template-columns: 1fr; }
-  .sop-version-manager-header .sop-version-actions .button { width: 100%; }
+  .sop-version-manager-header .sop-version-actions { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .sop-version-manager-header .sop-version-actions .button { min-height: 42px; padding-inline: 4px; gap: 4px; font-size: 9px; }
+  .sop-version-manager-header .sop-version-actions .button .material-symbols-rounded { font-size: 16px; }
 }

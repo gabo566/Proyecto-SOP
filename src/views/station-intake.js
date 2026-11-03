@@ -86,8 +86,9 @@ function renderStationIntake(state) {
           <label>Serie de la tarjeta <em aria-hidden="true">*</em><input data-form-field="componentSerial" data-focus-key="intake-card-serial" value="${escapeHtml(state.form.componentSerial ?? "")}" placeholder="Ej. TG12345678" required maxlength="100" autocomplete="off" /></label>
         </div>
       </section>
-      <section class="station-work-summary" aria-label="Resumen de estación y SOP">
+      <section class="station-work-summary" aria-label="Resumen de estación, operador y SOP">
         <div class="station-summary-item station-summary-location"><span class="material-symbols-rounded" aria-hidden="true">factory</span><span><small>Estación seleccionada</small><strong>${escapeHtml(assignment?.type ?? "—")} · ${escapeHtml(assignment?.label ?? "—")}</strong></span></div>
+        <div class="station-summary-item station-summary-operator"><span class="material-symbols-rounded" aria-hidden="true">account_circle</span><span><small>Operador que realiza la acción</small><strong>${escapeHtml(user.name)}</strong><small>No. de empleado ${escapeHtml(user.employeeNumber)} · ${escapeHtml(user.position || "Técnico de FA")}</small></span></div>
         <div class="station-summary-item station-summary-sop"><span class="material-symbols-rounded" aria-hidden="true">description</span><span><small>SOP seleccionada · ${escapeHtml(assignment?.type ?? "")} · ${escapeHtml(assignment?.label ?? "")}</small><strong>${escapeHtml(activeVersion?.document?.title ?? "No hay una SOP habilitada")}</strong><small>${activeVersion ? `${escapeHtml(activeVersion.document.id)} · Rev. ${escapeHtml(activeVersion.document.revision)}` : "Administración debe asignar y habilitar una SOP."}</small></span></div>
       </section>
       <footer class="station-intake-footer">${isStationIntakeComplete(state.form) ? `<p class="station-intake-status ${activeVersion ? "station-intake-status--ready" : ""}" id="station-intake-status" role="status" aria-live="polite">${escapeHtml(status)}</p>` : ""}
