@@ -846,7 +846,8 @@ function renderSopCatalog(state) {
       <div class="sop-catalog-sop-cell" role="cell"><span class="sop-catalog-file-icon material-symbols-rounded" aria-hidden="true">description</span><div class="sop-catalog-copy"><strong class="sop-catalog-title">${escapeHtml(metadata.title)}</strong><div class="sop-catalog-revision-line"><span class="sop-catalog-revision">Rev. ${escapeHtml(metadata.revision)}</span><button class="sop-catalog-info-trigger material-symbols-rounded" type="button" popovertarget="${infoPopoverId}" aria-label="Ver información de ${escapeHtml(metadata.title)}" title="Información de la SOP">help</button></div><div id="${infoPopoverId}" class="sop-catalog-info-panel" popover="auto"><div class="sop-catalog-info-heading"><strong>Información de la SOP</strong><button class="material-symbols-rounded" type="button" popovertarget="${infoPopoverId}" popovertargetaction="hide" aria-label="Cerrar información">close</button></div><dl><div><dt>Documento</dt><dd>${escapeHtml(metadata.documentId)}</dd></div><div><dt>Hojas</dt><dd>${metadata.sheetCount}</dd></div><div><dt>Procedimientos</dt><dd>${metadata.procedureCount}</dd></div><div><dt>Pasos</dt><dd>${metadata.stepCount}</dd></div><div><dt>Fecha de carga</dt><dd>${escapeHtml(formatSopVersionDate(metadata.createdAt))}</dd></div><div><dt>Responsable</dt><dd>${escapeHtml(metadata.createdBy)}</dd></div><div class="sop-catalog-info-file"><dt>Archivo PDF</dt><dd>${escapeHtml(metadata.pdfName || "Sin nombre de archivo")}</dd></div></dl></div></div></div>
       <label class="sop-catalog-area" role="cell"><small class="sop-catalog-mobile-label">Área</small><select aria-label="Área de ${escapeHtml(metadata.title)}" data-sop-catalog-type>${stationOptions}</select></label>
       <label class="sop-catalog-station" role="cell"><span class="sop-catalog-mobile-label">Estación</span><select aria-label="Estación de ${escapeHtml(metadata.title)}" data-sop-catalog-station><option value="">Selecciona estación</option>${areaOptions}</select></label>
-      <label class="sop-catalog-enabled" role="cell"><input type="checkbox" data-sop-catalog-enabled ${config.enabled ? "checked" : ""} ${config.stationAssignment ? "" : "disabled"} /><span data-sop-catalog-status class="${config.enabled ? "is-enabled" : ""}"><strong>${config.enabled ? "Habilitada" : "Deshabilitada"}</strong></span></label>
+      <label class="sop-catalog-enabled" role="cell"><input type="checkbox" data-sop-catalog-enabled aria-label="Disponibilidad de ${escapeHtml(metadata.title)} · Rev. ${escapeHtml(metadata.revision)}" ${config.enabled ? "checked" : ""} ${config.stationAssignment ? "" : "disabled"} /></label>
+      <div class="sop-catalog-status-cell ${config.enabled ? "is-enabled" : ""}" role="cell" data-sop-catalog-status><strong>${config.enabled ? "Habilitada" : "Deshabilitada"}</strong></div>
       <div role="cell">${versionActions}</div>
     </article>`;
   }).join("");
@@ -854,7 +855,7 @@ function renderSopCatalog(state) {
   return `<section class="sop-catalog-manager" aria-labelledby="sop-catalog-title">
     <div class="sop-catalog-heading"><div><p class="eyebrow">CATÁLOGO PARA OPERADORES</p><h3 id="sop-catalog-title">Estación y disponibilidad de cada SOP</h3></div><span class="material-symbols-rounded" aria-hidden="true">tune</span></div>
     <p>Cada archivo tiene una estación asignada. Habilita únicamente las SOP que deban aparecer al operador; puedes cambiar la estación o deshabilitar una revisión cuando lo necesites.</p>
-    <form id="sop-catalog-form"><div class="sop-catalog-table" role="table" aria-label="SOP registradas por área, estación y status"><div class="sop-catalog-table-head" role="row"><span role="columnheader">SOP / Revisión</span><span role="columnheader">Área</span><span role="columnheader">Estación</span><span role="columnheader">Status</span><span role="columnheader">Acciones</span></div><div class="sop-catalog-list" role="rowgroup">${rows || '<p class="sop-catalog-empty">Todavía no hay SOP guardadas.</p>'}</div></div><div class="sop-catalog-save-bar" ${state.sopCatalogDirty ? "" : "hidden"}><button class="button button--primary" type="submit"><span class="material-symbols-rounded" aria-hidden="true">save</span>Guardar estaciones y disponibilidad</button></div></form>
+    <form id="sop-catalog-form"><div class="sop-catalog-table" role="table" aria-label="SOP registradas por área, estación, disponibilidad y status"><div class="sop-catalog-table-head" role="row"><span role="columnheader">SOP / Revisión</span><span role="columnheader">Área</span><span role="columnheader">Estación</span><span role="columnheader">Disponibilidad</span><span role="columnheader">Status</span><span role="columnheader">Acciones</span></div><div class="sop-catalog-list" role="rowgroup">${rows || '<p class="sop-catalog-empty">Todavía no hay SOP guardadas.</p>'}</div></div><div class="sop-catalog-save-bar" ${state.sopCatalogDirty ? "" : "hidden"}><button class="button button--primary" type="submit"><span class="material-symbols-rounded" aria-hidden="true">save</span>Guardar estaciones y disponibilidad</button></div></form>
   </section>`;
 }
 
@@ -1273,14 +1274,14 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
     const row = event.target.closest("[data-sop-catalog-row]");
     const stationSelect = row?.querySelector("[data-sop-catalog-station]");
     const enabledToggle = row?.querySelector("[data-sop-catalog-enabled]");
-    const status = enabledToggle?.nextElementSibling;
+    const status = row?.querySelector("[data-sop-catalog-status]");
     if (!row || !stationSelect || !enabledToggle) return;
     if (event.target.matches("[data-sop-catalog-enabled]") && enabledToggle.checked) {
       for (const otherRow of app.querySelectorAll(`[data-sop-catalog-document-id="${CSS.escape(row.dataset.sopCatalogDocumentId)}"]`)) {
         if (otherRow === row) continue;
         const otherToggle = otherRow.querySelector("[data-sop-catalog-enabled]");
         if (otherToggle) otherToggle.checked = false;
-        const otherStatus = otherToggle?.nextElementSibling;
+        const otherStatus = otherRow.querySelector("[data-sop-catalog-status]");
         if (otherStatus) {
           otherStatus.querySelector("strong").textContent = "Deshabilitada";
           otherStatus.classList.remove("is-enabled");
