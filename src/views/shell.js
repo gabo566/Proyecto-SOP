@@ -93,7 +93,7 @@ function renderSopSelector(selectedId, pageZoom = 110, state = {}) {
     <div class="sop-page-zoom-controls" role="group" aria-label="Controles para ampliar o reducir la hoja SOP">
       <button class="icon-button" type="button" data-action="sop-page-zoom-out" data-focus-key="sop-page-zoom-out" aria-label="Reducir hoja SOP" title="Reducir hoja SOP" ${pageZoom <= 50 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">remove</span></button>
       <output id="sop-page-zoom-level" aria-live="polite">${pageZoom}%</output>
-      <button class="icon-button" type="button" data-action="sop-page-zoom-in" data-focus-key="sop-page-zoom-in" aria-label="Ampliar hoja SOP" title="Ampliar hoja SOP" ${pageZoom >= 300 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">add</span></button>
+      <button class="icon-button" type="button" data-action="sop-page-zoom-in" data-focus-key="sop-page-zoom-in" aria-label="Ampliar hoja SOP" title="Ampliar hoja SOP" ${pageZoom >= 500 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">add</span></button>
       <button class="text-button" type="button" data-action="sop-page-zoom-reset" data-focus-key="sop-page-zoom-reset" aria-label="Ajustar hoja al panel">Ajustar</button>
     </div>
     <div class="sop-source-actions">${sourceUrl ? `<a class="text-button source-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer"><span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>${state.sopPdfName ? "Ver PDF local" : "Ver PDF"}</a>` : ""}

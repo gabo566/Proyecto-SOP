@@ -39,6 +39,7 @@ function bindInteractions(app, handlers) {
     toggleLocalUser,
   } = handlers;
   let stepImageViewer = { zoom: 100 };
+  let sopAreaSelection = null;
 
   function handleNavigation(action) {
     const item = navItems.find((navItem) => navItem.id === action.dataset.navId);
@@ -128,7 +129,7 @@ function bindInteractions(app, handlers) {
   }
 
   function setSopPageZoom(zoom, anchor = null) {
-    state.sopPageZoom = Math.max(50, Math.min(300, zoom));
+    state.sopPageZoom = Math.max(50, Math.min(500, zoom));
     const viewport = document.querySelector("#sop-page-preview");
     if (!viewport) {
       render();
@@ -139,7 +140,7 @@ function bindInteractions(app, handlers) {
     const zoomIn = document.querySelector('[data-action="sop-page-zoom-in"]');
     const zoomOut = document.querySelector('[data-action="sop-page-zoom-out"]');
     if (level) level.textContent = `${state.sopPageZoom}%`;
-    if (zoomIn) zoomIn.disabled = state.sopPageZoom >= 300;
+    if (zoomIn) zoomIn.disabled = state.sopPageZoom >= 500;
     if (zoomOut) zoomOut.disabled = state.sopPageZoom <= 50;
     renderSopPagePreview(anchor);
   }
@@ -151,31 +152,114 @@ function bindInteractions(app, handlers) {
     const hint = document.querySelector("#sop-page-focus-zoom-hint");
     button?.setAttribute("aria-pressed", String(state.sopFocusedZoom));
     if (viewport) viewport.dataset.focusZoom = String(state.sopFocusedZoom);
-    if (hint) hint.hidden = !state.sopFocusedZoom;
+    if (hint) {
+      hint.textContent = "Arrastra sobre la hoja para seleccionar el recuadro; al soltar se ampliará esa zona.";
+      hint.hidden = !state.sopFocusedZoom;
+    }
+    const selectionOverlay = viewport?.querySelector("[data-sop-zoom-selection-overlay]");
+    if (selectionOverlay) selectionOverlay.hidden = true;
   }
 
-  function handleFocusedSopWheel(event) {
+  function getSopSelectionPoint(event, selection) {
+    return {
+      x: Math.max(0, Math.min(1, (event.clientX - selection.canvasBounds.left) / Math.max(1, selection.canvasBounds.width))),
+      y: Math.max(0, Math.min(1, (event.clientY - selection.canvasBounds.top) / Math.max(1, selection.canvasBounds.height))),
+    };
+  }
+
+  function startSopAreaSelection(event) {
     const viewport = event.target.closest?.("#sop-page-preview");
     const canvas = viewport?.querySelector("canvas");
-    if (!state.sopFocusedZoom || !viewport || !canvas || canvas.hidden || event.target !== canvas) return;
-    const canvasBounds = canvas.getBoundingClientRect();
-    if (event.clientX < canvasBounds.left || event.clientX > canvasBounds.right
-      || event.clientY < canvasBounds.top || event.clientY > canvasBounds.bottom) return;
-    const nextZoom = Math.max(50, Math.min(300, (Number(state.sopPageZoom) || 110) + (event.deltaY < 0 ? 10 : -10)));
-    if (nextZoom === Number(state.sopPageZoom)) return;
-    const viewportBounds = viewport.getBoundingClientRect();
+    if (!state.sopFocusedZoom || !viewport || !canvas || canvas.hidden || event.target !== canvas || event.button !== 0) return;
+    const selectionOverlay = viewport.querySelector("[data-sop-zoom-selection-overlay]");
+    const selectionBox = selectionOverlay?.querySelector("[data-sop-zoom-selection-box]");
+    if (!selectionOverlay || !selectionBox) return;
+    const selection = { viewport, canvas, canvasBounds: canvas.getBoundingClientRect(), selectionOverlay, selectionBox, pointerId: event.pointerId };
+    const point = getSopSelectionPoint(event, selection);
+    selection.start = point;
+    selection.end = point;
+    sopAreaSelection = selection;
+    viewport.dataset.selectingArea = "true";
+    selectionOverlay.hidden = false;
+    updateSopAreaSelection(event);
+    const hint = document.querySelector("#sop-page-focus-zoom-hint");
+    if (hint) hint.hidden = true;
+    try { canvas.setPointerCapture(event.pointerId); } catch { /* Pointer capture may be unavailable in older embedded browsers. */ }
     event.preventDefault();
+  }
+
+  function updateSopAreaSelection(event) {
+    const selection = sopAreaSelection;
+    if (!selection || event.pointerId !== selection.pointerId) return;
+    const end = getSopSelectionPoint(event, selection);
+    selection.end = end;
+    const x = Math.min(selection.start.x, end.x) * 1000;
+    const y = Math.min(selection.start.y, end.y) * 1000;
+    selection.selectionBox.setAttribute("x", String(x));
+    selection.selectionBox.setAttribute("y", String(y));
+    selection.selectionBox.setAttribute("width", String(Math.abs(end.x - selection.start.x) * 1000));
+    selection.selectionBox.setAttribute("height", String(Math.abs(end.y - selection.start.y) * 1000));
+  }
+
+  function finishSopAreaSelection(event) {
+    const selection = sopAreaSelection;
+    if (!selection || event.pointerId !== selection.pointerId) return;
+    updateSopAreaSelection(event);
+    sopAreaSelection = null;
+    selection.selectionOverlay.hidden = true;
+    selection.viewport.dataset.selectingArea = "false";
+    try {
+      if (selection.canvas.hasPointerCapture(event.pointerId)) selection.canvas.releasePointerCapture(event.pointerId);
+    } catch { /* Pointer capture may already have been released by the browser. */ }
+
+    const width = Math.abs(selection.end.x - selection.start.x) * selection.canvasBounds.width;
+    const height = Math.abs(selection.end.y - selection.start.y) * selection.canvasBounds.height;
+    const hint = document.querySelector("#sop-page-focus-zoom-hint");
+    if (width < 18 || height < 18) {
+      if (hint) {
+        hint.textContent = "Arrastra un recuadro más amplio sobre la zona que quieres revisar.";
+        hint.hidden = false;
+      }
+      return;
+    }
+
+    const availableWidth = Math.max(1, selection.viewport.clientWidth - 32);
+    const availableHeight = Math.max(1, selection.viewport.clientHeight - 32);
+    const fitFactor = Math.min(availableWidth / width, availableHeight / height);
+    const currentZoom = Number(state.sopPageZoom) || 110;
+    const factor = Math.max(1.1, fitFactor);
+    const nextZoom = Math.min(500, Math.max(currentZoom + 10, Math.round(currentZoom * factor / 10) * 10));
     const anchor = {
-      pointX: Math.max(0, Math.min(1, (event.clientX - canvasBounds.left) / Math.max(1, canvasBounds.width))),
-      pointY: Math.max(0, Math.min(1, (event.clientY - canvasBounds.top) / Math.max(1, canvasBounds.height))),
-      pointerX: event.clientX - viewportBounds.left - viewport.clientLeft,
-      pointerY: event.clientY - viewportBounds.top - viewport.clientTop,
+      pointX: (selection.start.x + selection.end.x) / 2,
+      pointY: (selection.start.y + selection.end.y) / 2,
+      pointerX: selection.viewport.clientWidth / 2,
+      pointerY: selection.viewport.clientHeight / 2,
     };
+    toggleSopFocusZoom();
     setSopPageZoom(nextZoom, anchor);
   }
 
+  function cancelSopAreaSelection(event) {
+    const selection = sopAreaSelection;
+    if (!selection || event.pointerId !== selection.pointerId) return;
+    sopAreaSelection = null;
+    selection.selectionOverlay.hidden = true;
+    selection.viewport.dataset.selectingArea = "false";
+    try {
+      if (selection.canvas.hasPointerCapture(event.pointerId)) selection.canvas.releasePointerCapture(event.pointerId);
+    } catch { /* Pointer capture may already have been released by the browser. */ }
+    const hint = document.querySelector("#sop-page-focus-zoom-hint");
+    if (hint) {
+      hint.textContent = "Arrastra sobre la hoja para seleccionar el recuadro; al soltar se ampliará esa zona.";
+      hint.hidden = !state.sopFocusedZoom;
+    }
+  }
+
   window.addEventListener("resize", updateStepImageZoom, { passive: true });
-  window.addEventListener("wheel", handleFocusedSopWheel, { passive: false });
+  window.addEventListener("pointerdown", startSopAreaSelection);
+  window.addEventListener("pointermove", updateSopAreaSelection);
+  window.addEventListener("pointerup", finishSopAreaSelection);
+  window.addEventListener("pointercancel", cancelSopAreaSelection);
 
   app.addEventListener("click", (event) => {
     if (event.target instanceof HTMLDialogElement && event.target.open) {
