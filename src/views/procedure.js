@@ -52,12 +52,14 @@ function renderProcedurePanel(procedure, state) {
   const canHandoffOperator = state.sopStorageReady && Boolean(run) && state.operatorFlowReady && hasHandoffTarget && canOperate;
   const pageNumber = procedure.pdfPage ?? procedure.sheet;
   const totalSheets = Number(SOP_DOCUMENT.totalSheets) || 46;
+  const restricted = Boolean(run?.disassembly?.sheets?.length);
+  const sheetOfLabel = restricted ? `${(run.currentIndex ?? 0) + 1} de ${run.procedureIds.length} elegidas` : `de ${escapeHtml(totalSheets)}`;
   const pageZoom = Math.max(50, Math.min(500, Number(state.sopPageZoom) || 110));
   const pdfSource = state.sopPdfUrl || SOP_DOCUMENT.pdfPath || "";
   const isComplete = isGuidedSopProcedureComplete(run, procedure);
   const isFirstPage = (run?.currentIndex ?? 0) === 0;
   const isLastPage = (run?.currentIndex ?? 0) >= (run?.procedureIds.length ?? 1) - 1;
-  const sourceUrl = pdfSource ? `${pdfSource}#page=${pageNumber}` : "";
+  const sourceUrl = pdfSource && !restricted ? `${pdfSource}#page=${pageNumber}` : "";
   const currentOperator = getGuidedSopCurrentOperator(run);
   const ownerMessage = !canOperate
     ? `<aside class="sop-owner-lock" role="status"><span class="material-symbols-rounded" aria-hidden="true">lock</span>Este recorrido está asignado a ${escapeHtml(currentOperator?.name ?? "otro operador")} (${escapeHtml(currentOperator?.employeeNumber ?? "sin número")}). Inicia sesión con esa cuenta para continuar.</aside>`
@@ -76,7 +78,7 @@ function renderProcedurePanel(procedure, state) {
     <div class="guided-page-layout sop-page-checklist-layout" data-page-zoom="${pageZoom}">
       <section class="guided-sop-page" aria-label="Hoja completa ${escapeHtml(procedure.sheet)} de la SOP">
         <div class="guided-page-toolbar">
-          <div class="guided-page-heading"><span class="material-symbols-rounded" aria-hidden="true">description</span><strong>Hoja ${escapeHtml(procedure.sheet)} <small>de ${escapeHtml(totalSheets)}</small></strong></div>
+          <div class="guided-page-heading"><span class="material-symbols-rounded" aria-hidden="true">description</span><strong>Hoja ${escapeHtml(procedure.sheet)} <small>${sheetOfLabel}</small></strong></div>
           <div class="sop-page-zoom-controls" role="group" aria-label="Tamaño de la hoja SOP">
             <button class="icon-button" type="button" data-action="sop-page-zoom-out" aria-label="Reducir hoja SOP" ${pageZoom <= 50 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">remove</span></button>
             <output id="sop-page-zoom-level" aria-live="polite">${pageZoom}%</output>
@@ -86,7 +88,7 @@ function renderProcedurePanel(procedure, state) {
           </div>
           ${sourceUrl ? `<a class="guided-page-open-pdf" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer" aria-label="Abrir PDF en página ${escapeHtml(pageNumber)}"><span class="material-symbols-rounded" aria-hidden="true">open_in_new</span></a>` : ""}
         </div>
-        <div class="guided-pdf-viewport" id="sop-page-preview" data-pdf-source="${escapeHtml(pdfSource)}" data-pdf-page="${escapeHtml(pageNumber)}" data-zoom="${pageZoom}" data-focus-zoom="${Boolean(state.sopFocusedZoom)}" role="group" aria-label="Vista completa del PDF, página ${escapeHtml(pageNumber)}">
+        <div class="guided-pdf-viewport" id="sop-page-preview" data-pdf-source="${escapeHtml(pdfSource)}" data-pdf-page="${escapeHtml(pageNumber)}" data-restricted="${restricted}" data-zoom="${pageZoom}" data-focus-zoom="${Boolean(state.sopFocusedZoom)}" role="group" aria-label="Vista completa del PDF, página ${escapeHtml(pageNumber)}">
           <div class="guided-pdf-canvas-wrap"><canvas aria-label="Página ${escapeHtml(pageNumber)} completa de ${escapeHtml(SOP_DOCUMENT.title)}"></canvas>${renderSopAnnotationOverlay(procedure.annotations ?? [])}<svg class="guided-zoom-selection-overlay" data-sop-zoom-selection-overlay viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true" hidden><rect data-sop-zoom-selection-box x="0" y="0" width="0" height="0" /></svg></div>
           <iframe title="Hoja ${escapeHtml(procedure.sheet)} completa de la SOP" hidden></iframe>
           <span class="guided-focus-zoom-hint" id="sop-page-focus-zoom-hint" role="status" ${state.sopFocusedZoom ? "" : "hidden"}>Arrastra sobre la hoja para seleccionar el recuadro; al soltar se ampliará esa zona.</span>
@@ -95,7 +97,7 @@ function renderProcedurePanel(procedure, state) {
         <footer class="guided-page-footer"><span>${escapeHtml(SOP_DOCUMENT.id)} · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}</span><span>${escapeHtml(procedure.category)} · ${procedure.steps.length} pasos</span></footer>
       </section>
       <section class="guided-checklist-panel" aria-label="Validación de hoja ${escapeHtml(procedure.sheet)}">
-        <header class="guided-checklist-titlebar"><div><p class="eyebrow">Validación de hoja</p><h2>Hoja ${escapeHtml(procedure.sheet)} <small>de ${escapeHtml(totalSheets)}</small></h2></div><span class="guided-checklist-heading-count">${checkedCount} de ${procedure.steps.length} pasos</span></header>
+        <header class="guided-checklist-titlebar"><div><p class="eyebrow">Validación de hoja</p><h2>Hoja ${escapeHtml(procedure.sheet)} <small>${sheetOfLabel}</small></h2></div><span class="guided-checklist-heading-count">${checkedCount} de ${procedure.steps.length} pasos</span></header>
         <p class="guided-checklist-intro">Marca cada paso conforme lo completes en la estación.</p>
         <div class="sop-run-progress" role="group" aria-label="Progreso de esta hoja"><div class="sop-run-progress-track"><span style="width:${sheetPercent}%"></span></div><strong>${checkedCount} de ${procedure.steps.length} pasos · ${sheetPercent}%</strong></div>
         <div class="guided-checklist-list sop-sheet-step-list" role="group" aria-label="Pasos de la hoja ${escapeHtml(procedure.sheet)}">${renderGuidedValidationSteps(procedure, state, !canOperate, false)}</div>

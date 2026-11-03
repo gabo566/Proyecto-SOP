@@ -109,6 +109,11 @@ async function renderSopPagePreview(zoomAnchor = null) {
     status.hidden = true;
   } catch (error) {
     if (sequence !== sopPageRenderSequence) return;
+    if (viewport.dataset.restricted === "true") {
+      status.textContent = error?.message || "No se pudo cargar la hoja de la SOP.";
+      status.hidden = false;
+      return;
+    }
     status.textContent = "Abriendo la hoja completa con el visor PDF del navegador…";
     const zoomScale = zoom / 100;
     iframe.style.width = `${100 / zoomScale}%`;

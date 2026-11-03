@@ -451,6 +451,14 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Límites:** la asignación es por palabras clave **[Inferido]**; hojas con texto distinto reciben el icono de la primera regla que coincida, o una llave genérica.
 - **Pruebas:** 9 pasan; revisado en el navegador (42 hojas con icono). **Revertir:** `git revert` de este cambio; sin comprometer en `main` hasta confirmarlo.
 
+### C-049 (2026-11-03) — Con hojas elegidas, la SOP no muestra otras hojas
+
+- **Solicitud:** al elegir una o varias hojas del desensamble, la imagen de la SOP debe mostrar solo esas hojas.
+- **Revisión:** el visor (`src/sop-page-viewer.js`) ya dibujaba solo la página de la hoja actual y la navegación ya recorría solo `run.procedureIds`. Quedaban dos accesos al PDF completo y las etiquetas «de 46».
+- **Cambios:** `src/views/procedure.js`: con un recorrido restringido (`run.disassembly.sheets`) se oculta el enlace «Abrir PDF en página», las etiquetas pasan a «Hoja 35 · 1 de 2 elegidas» y el visor recibe `data-restricted="true"`; `src/sop-page-viewer.js`: en ese caso, si falla pdf.js, no se usa el visor PDF del navegador como alternativa (permitiría desplazarse a otras hojas) y se muestra el error. `index.html` (`?v=md3-c049`).
+- **Pruebas:** 9 pasan; en el navegador, elegidas las hojas 35 y 36: solo se dibuja la página 35, sin enlace al PDF, siguiente botón «Continuar a hoja 36».
+- **Límite:** quien abra directamente el archivo `public/documents/SOP-NVD-GB200-141.pdf` por su URL lo ve completo; es un prototipo estático sin control de acceso. **Revertir:** `git revert`; sin comprometer en `main` hasta confirmarlo.
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.
