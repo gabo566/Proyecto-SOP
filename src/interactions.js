@@ -301,8 +301,17 @@ function bindInteractions(app, handlers) {
         input.focus();
         break;
       }
-      case "pick-disassembly": {
-        state.form.disassemblyType = action.dataset.disassemblyId;
+      case "toggle-disassembly-sheet": {
+        const current = Array.isArray(state.form.disassemblySheets) ? state.form.disassemblySheets : [];
+        const id = action.dataset.sheetId;
+        state.form.disassemblySheets = current.includes(id) ? current.filter((value) => value !== id) : [...current, id];
+        state.formError = "";
+        render({ focusKey: action.dataset.focusKey });
+        break;
+      }
+      case "select-all-disassembly-sheets":
+      case "clear-disassembly-sheets": {
+        state.form.disassemblySheets = action.dataset.action === "clear-disassembly-sheets" ? [] : getStationDisassemblyChoice(state).options.map((option) => option.id);
         state.formError = "";
         render({ focusKey: action.dataset.focusKey });
         break;
@@ -312,7 +321,7 @@ function bindInteractions(app, handlers) {
         const nextVersion = getEnabledSopVersionsForStation(state, action.dataset.stationValue)[0];
         state.form.stationAssignment = action.dataset.stationValue;
         state.form.sopVersionId = nextVersion?.id ?? "";
-        state.form.disassemblyType = "";
+        state.form.disassemblySheets = [];
         state.formError = "";
         render({ focusKey: action.dataset.focusKey });
         break;
@@ -430,7 +439,7 @@ function bindInteractions(app, handlers) {
       if (assignment) {
         state.form.stationAssignment = assignment.value;
         state.form.sopVersionId = nextVersion?.id ?? "";
-        state.form.disassemblyType = "";
+        state.form.disassemblySheets = [];
       }
       state.formError = "";
       render({ focusKey: target.dataset.focusKey });
@@ -440,14 +449,14 @@ function bindInteractions(app, handlers) {
       const nextVersion = getEnabledSopVersionsForStation(state, target.value)[0];
       state.form.stationAssignment = target.value;
       state.form.sopVersionId = nextVersion?.id ?? "";
-      state.form.disassemblyType = "";
+      state.form.disassemblySheets = [];
       state.formError = "";
       render({ focusKey: target.dataset.focusKey });
       return;
     } else if (target.matches("[data-sop-version]")) {
       if (prepareSopChangeFromIntake(target)) return;
       state.form.sopVersionId = target.value;
-      state.form.disassemblyType = "";
+      state.form.disassemblySheets = [];
       state.formError = "";
       render({ focusKey: target.dataset.focusKey });
     } else if (target.matches("#procedure-select")) {
@@ -523,6 +532,12 @@ function bindInteractions(app, handlers) {
   });
 
   app.addEventListener("input", (event) => {
+    if (event.target.matches("[data-disassembly-filter]")) {
+      state.disassemblyFilter = event.target.value;
+      const query = normalizeDisassemblySearch(event.target.value).trim();
+      document.querySelectorAll(".station-disassembly-sheet").forEach((tile) => { tile.hidden = Boolean(query) && !tile.dataset.search.includes(query); });
+      return;
+    }
     const { target } = event;
     if (target.matches('#local-user-form input[name="userPassword"], #local-user-form input[name="userPasswordConfirm"]')) {
       const form = target.form;

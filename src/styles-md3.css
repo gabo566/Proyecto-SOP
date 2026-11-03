@@ -1991,3 +1991,27 @@ details.sop-version-procedure.is-sheet-saved > summary > span { color: #146c3a; 
 .station-disassembly-option--on { background: #172635; border-color: #172635; color: #fff; }
 .station-disassembly-option--on .material-symbols-rounded, .station-disassembly-option--on small { color: #fff; }
 .station-disassembly-option:focus-visible { outline: 3px solid #e8730f; outline-offset: 2px; }
+
+/* C-047: selección de hojas del desensamble (una o varias). */
+.station-disassembly-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.station-disassembly-search { flex: 1 1 220px; display: flex; align-items: center; gap: 6px; min-height: 42px; padding: 0 12px; border: 2px solid #cdbab7; border-radius: 999px; background: #fff; }
+.station-disassembly-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 15px; color: #172635; }
+.station-disassembly-search:focus-within { border-color: #c2352b; box-shadow: 0 0 0 3px #ffd9d6; }
+.station-disassembly-tool { display: inline-flex; align-items: center; gap: 6px; min-height: 42px; padding: 0 16px; border: 2px solid #172635; border-radius: 999px; background: #fff; color: #172635; font: inherit; font-weight: 800; cursor: pointer; }
+.station-disassembly-tool:disabled { opacity: .4; cursor: not-allowed; }
+.station-disassembly-count { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; padding: 8px 14px; border-radius: 999px; background: #f4eeec; font-weight: 800; color: #5b4f4d; }
+.station-disassembly-count--on { background: #d6f2e0; color: #0d4d28; }
+.station-disassembly .station-disassembly-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); max-height: 440px; overflow: auto; padding: 4px; }
+.station-disassembly-sheet { display: grid; gap: 6px; align-content: start; padding: 12px 14px; border: 3px solid #d9c7c4; border-radius: 16px; background: #fff; color: #172635; font: inherit; text-align: left; cursor: pointer; transition: transform .12s, border-color .15s, background .15s; }
+.station-disassembly-sheet[hidden] { display: none; }
+.station-disassembly-sheet:hover { border-color: #c2352b; transform: translateY(-1px); }
+.station-disassembly-sheet-head { display: flex; align-items: center; gap: 8px; }
+.station-disassembly-sheet-head .material-symbols-rounded { font-size: 26px; color: #c2352b; }
+.station-disassembly-sheet-head strong { font-size: 17px; }
+.station-disassembly-sheet-head small { margin-left: auto; padding: 2px 10px; border-radius: 999px; background: #f4eeec; font-weight: 700; color: #5b4f4d; }
+.station-disassembly-sheet-text { font-size: 14px; line-height: 1.35; color: #3a2f2e; }
+.station-disassembly-sheet--on { background: #172635; border-color: #172635; color: #fff; }
+.station-disassembly-sheet--on .station-disassembly-sheet-head .material-symbols-rounded { color: #8fe3b0; }
+.station-disassembly-sheet--on .station-disassembly-sheet-head small { background: rgb(255 255 255 / 18%); color: #fff; }
+.station-disassembly-sheet--on .station-disassembly-sheet-text { color: #fff; }
+.station-disassembly-sheet:focus-visible { outline: 3px solid #e8730f; outline-offset: 2px; }

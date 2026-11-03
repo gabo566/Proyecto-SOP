@@ -36,7 +36,7 @@ function renderStationSopContext(state, procedure) {
     <div class="station-context-tile station-context-tile--card"><span class="material-symbols-rounded" aria-hidden="true">memory</span><span><small>Tarjeta</small><strong>PN ${escapeHtml(state.form.componentPartNumber || "—")}</strong><small>Serie ${escapeHtml(state.form.componentSerial || "—")}</small></span></div>
     <div class="station-context-tile station-context-tile--operator"><span class="material-symbols-rounded" aria-hidden="true">person</span><span><small>Operador responsable</small><strong>${escapeHtml(user.name)}</strong><small>No. empleado ${escapeHtml(user.employeeNumber)}</small></span></div>
     <div class="station-context-tile station-context-tile--sop"><span class="material-symbols-rounded" aria-hidden="true">description</span><span><small>SOP utilizada</small><strong>${escapeHtml(document.title)}</strong><small>${escapeHtml(document.id)} · Rev. ${escapeHtml(document.revision)} · Hoja ${escapeHtml(procedure.sheet)}</small></span></div>
-    ${state.sopRun?.disassembly ? `<div class="station-context-tile station-context-tile--type"><span class="material-symbols-rounded" aria-hidden="true">build_circle</span><span><small>Tipo de desensamble</small><strong>${escapeHtml(state.sopRun.disassembly.label)}</strong></span></div>` : ""}
+    ${state.sopRun?.disassembly ? `<div class="station-context-tile station-context-tile--type"><span class="material-symbols-rounded" aria-hidden="true">build_circle</span><span><small>Hojas del desensamble</small><strong>${escapeHtml(state.sopRun.disassembly.label)}</strong></span></div>` : ""}
   </section>`;
 }
 

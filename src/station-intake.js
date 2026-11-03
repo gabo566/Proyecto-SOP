@@ -10,7 +10,7 @@ async function prepareStationSop(state) {
   const assignment = getWorkStationAssignment(state.form.stationAssignment);
   if (!assignment) return { ok: false, message: "Selecciona una estación de trabajo." };
   const disassemblyChoice = getStationDisassemblyChoice(state);
-  if (disassemblyChoice.options.length && !disassemblyChoice.selected) return { ok: false, message: "Selecciona el tipo de desensamble que vas a realizar." };
+  if (disassemblyChoice.options.length && !disassemblyChoice.selected.length) return { ok: false, message: "Selecciona al menos una hoja del desensamble." };
   if (!isStationIntakeComplete(state.form)) return { ok: false, message: "Completa el PN y serie del nodo y de la tarjeta." };
   const version = findSopVersionForStation(state, assignment.value, state.form.sopVersionId);
   if (!version) {

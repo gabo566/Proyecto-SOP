@@ -105,36 +105,76 @@ function normalizeStationIntakeAssignment(state) {
   if (!versions.some((version) => version.id === state.form?.sopVersionId)) {
     state.form.sopVersionId = versions[0]?.id ?? "";
   }
-  if (state.form?.disassemblyType && !getStationDisassemblyChoice(state).selected) state.form.disassemblyType = "";
+  if (state.form?.disassemblySheets?.length && !getStationDisassemblyChoice(state).options.length) state.form.disassemblySheets = [];
   return state.form?.stationAssignment ?? "";
 }
 
-const DISASSEMBLY_FULL_ID = "__full__";
+const DISASSEMBLY_SHEET_NOTES = {
+  5: "Apertura de unidad y retirado de handles",
+  6: "Retirado de Brackets central, trasero y desconexión de cable busbar",
+  7: "Desconexión de cable busbar y desmontado de ventiladores",
+  8: "Desmontaje de la Tarjeta BMC y desconexión de cables MCIO 1 y 2 de la tarjeta Interpose y de HMC",
+  9: "Desconexión de Mangueras de Agua Caliente y fría, además del desmontaje de Manifold derecho e izquierdo",
+  10: "Desconexión de Cables “2PManagement” (B2B) y “CLink MCIO” de la Bahía Izquierda y Derecha",
+  11: "Desconexión de cable PCIE riser R y 1G NIC MCIO",
+  12: "Desconexión de cable PCIE riser L y Cable Front Panel IO",
+  13: "Desmontado de tarjeta M2, Tarjeta TPM, y Tarjeta HMC",
+  14: "Desatornillado del cover de la Cx7 con ayuda del Fixture",
+  15: "Desmontaje del cover CX7 y retirado de cables Ultrapass con fixture",
+  16: "Desconexión de cables BF3 NCSI, PDB Sideband, OSFP Sideband L y OSFP sideband R",
+  17: "Desconexión de cable Front Panel IO y 12VSTBY (J3 en PDB)",
+  18: "Desconexión de cables Multi-End Power L (J4 en PDB), PDB sideband y Multi-End Power Cable, Middle (J5 en PDB)",
+  19: "Desconexión de cable Multi-End Power R (J6 en PDB) y cables E1.S en las bahías Derecha, central e Izquierda",
+  20: "Desconexión de sensores de humedad",
+  21: "Desmontado de Inner de plástico y de ambos Inner busbar",
+  22: "Desmontado de Inner con el fixture",
+  23: "Instalación de bracket de cold plate y retirado de bianca de chasis",
+};
+
+function normalizeDisassemblySearch(value) {
+  return String(value ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
 
 function getDisassemblyOptions(version) {
   const procedures = (version?.procedures ?? []).filter((procedure) => Array.isArray(procedure.steps) && procedure.steps.length);
-  const categories = [...new Set(procedures.map((procedure) => String(procedure.category ?? "").trim()).filter(Boolean))];
-  if (categories.length < 2) return [];
-  const summarize = (list) => ({ procedureIds: list.map((procedure) => procedure.id), sheets: list.length, steps: list.reduce((total, procedure) => total + procedure.steps.length, 0) });
-  return [
-    { id: DISASSEMBLY_FULL_ID, label: "Desensamble completo del nodo", ...summarize(procedures) },
-    ...categories.map((category) => ({ id: `cat:${category}`, label: category, ...summarize(procedures.filter((procedure) => procedure.category === category)) })),
-  ];
+  if (procedures.length < 2) return [];
+  const useNotes = String(version?.document?.id ?? "") === String(typeof BUILT_IN_SOP_VERSION === "undefined" ? "" : BUILT_IN_SOP_VERSION.document?.id ?? "");
+  return procedures.map((procedure) => ({
+    id: procedure.id,
+    sheet: procedure.sheet,
+    label: `Hoja ${procedure.sheet}`,
+    description: (useNotes && DISASSEMBLY_SHEET_NOTES[procedure.sheet]) || procedure.title || "",
+    steps: procedure.steps.length,
+  }));
 }
 
 function getStationDisassemblyChoice(state) {
   const assignment = getWorkStationAssignment(state.form?.stationAssignment);
-  if (assignment?.type !== "RWK") return { options: [], selected: null };
+  if (assignment?.type !== "RWK") return { options: [], selected: [] };
   const version = findSopVersionForStation(state, assignment.value, state.form?.sopVersionId);
   const options = getDisassemblyOptions(version);
-  return { options, selected: options.find((option) => option.id === state.form?.disassemblyType) ?? null };
+  const ids = Array.isArray(state.form?.disassemblySheets) ? state.form.disassemblySheets : [];
+  return { options, selected: options.filter((option) => ids.includes(option.id)) };
+}
+
+function describeDisassemblySelection(choice) {
+  if (!choice.selected.length) return "";
+  if (choice.selected.length === choice.options.length) return "Desensamble completo del nodo";
+  const sheets = choice.selected.map((option) => Number(option.sheet)).sort((a, b) => a - b);
+  const ranges = [];
+  for (const sheet of sheets) {
+    const last = ranges.at(-1);
+    if (last && sheet === last.to + 1) last.to = sheet;
+    else ranges.push({ from: sheet, to: sheet });
+  }
+  return `${sheets.length === 1 ? "Hoja" : "Hojas"} ${ranges.map((range) => range.from === range.to ? range.from : `${range.from}\u2013${range.to}`).join(", ")}`;
 }
 
 function isStationIntakeReady(state) {
   const choice = getStationDisassemblyChoice(state);
   return isStationIntakeComplete(state.form)
     && Boolean(findSopVersionForStation(state, state.form.stationAssignment, state.form.sopVersionId))
-    && (!choice.options.length || Boolean(choice.selected));
+    && (!choice.options.length || choice.selected.length > 0);
 }
 
 function isStationIntakeComplete(form = {}) {
@@ -146,11 +186,11 @@ function isStationIntakeComplete(form = {}) {
 
 function getStationIntakeStatus(state) {
   const disassemblyChoice = getStationDisassemblyChoice(state);
-  const needsDisassembly = disassemblyChoice.options.length > 0 && !disassemblyChoice.selected;
+  const needsDisassembly = disassemblyChoice.options.length > 0 && disassemblyChoice.selected.length === 0;
   if (needsDisassembly || !isStationIntakeComplete(state.form)) {
     const form = state.form ?? {};
     const missing = [
-      ...(needsDisassembly ? [["Tipo de desensamble", ""]] : []),
+      ...(needsDisassembly ? [["Hojas del desensamble", ""]] : []),
       ["PN del nodo", form.nodePartNumber],
       ["Serie del nodo", form.serial],
       ["PN de la tarjeta", form.componentPartNumber],

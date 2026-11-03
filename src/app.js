@@ -110,9 +110,10 @@ function ensureGuidedSopRun() {
     const user = getActiveLocalUser();
     const existingForm = { ...state.form };
     const disassemblyChoice = getStationDisassemblyChoice(state);
-    const scopedProcedures = disassemblyChoice.selected ? PROCEDURES.filter((item) => disassemblyChoice.selected.procedureIds.includes(item.id)) : PROCEDURES;
+    const selectedSheetIds = disassemblyChoice.selected.map((option) => option.id);
+    const scopedProcedures = selectedSheetIds.length ? PROCEDURES.filter((item) => selectedSheetIds.includes(item.id)) : PROCEDURES;
     state.sopRun = createGuidedSopRun(scopedProcedures, SOP_DOCUMENT, state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID, user);
-    if (disassemblyChoice.selected) state.sopRun.disassembly = { id: disassemblyChoice.selected.id, label: disassemblyChoice.selected.label };
+    if (selectedSheetIds.length) state.sopRun.disassembly = { sheets: selectedSheetIds, label: describeDisassemblySelection(disassemblyChoice) };
     state.selectedId = state.sopRun.procedureIds[0];
     state.completedSteps = getGuidedSopCheckedSteps(state.sopRun, state.selectedId);
     if (!state.activeWorkId) {

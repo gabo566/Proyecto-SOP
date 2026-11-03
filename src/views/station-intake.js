@@ -21,16 +21,23 @@ function renderStationPills(assignments, current, label) {
   }).join("")}</span>`;
 }
 
-const DISASSEMBLY_ICONS = {"Chasis": "inventory_2", "Busbar": "bolt", "BMC": "memory", "Cold Plate / Manifold": "water_drop", "Bianca": "developer_board", "Cableado / energía": "cable", "Inspección": "search", "PDB / BMC": "electrical_services", "E1.S": "storage", "Bahías / PCIe": "dns"};
-
-function renderDisassemblyChoice(choice) {
+function renderDisassemblyChoice(choice, filter = "") {
   if (!choice.options.length) return "";
-  return `<fieldset class="station-disassembly" aria-labelledby="station-disassembly-title"><legend id="station-disassembly-title"><span class="material-symbols-rounded" aria-hidden="true">build_circle</span>¿Qué tipo de desensamble vas a realizar?</legend>
-    <p>Elige una opción. Solo verás las hojas de esa parte del nodo.</p>
+  const selectedIds = new Set(choice.selected.map((option) => option.id));
+  const query = normalizeDisassemblySearch(filter).trim();
+  const totalSteps = choice.selected.reduce((total, option) => total + option.steps, 0);
+  return `<fieldset class="station-disassembly" aria-labelledby="station-disassembly-title"><legend id="station-disassembly-title"><span class="material-symbols-rounded" aria-hidden="true">build_circle</span>¿Qué hojas del desensamble vas a realizar?</legend>
+    <p>Elige una o varias hojas. Solo verás en la SOP las hojas que selecciones.</p>
+    <div class="station-disassembly-bar">
+      <label class="station-disassembly-search"><span class="material-symbols-rounded" aria-hidden="true">search</span><input type="search" data-disassembly-filter value="${escapeHtml(filter)}" placeholder="Buscar: BF3, busbar, hoja 35…" autocomplete="off" aria-label="Buscar hoja" /></label>
+      <button type="button" class="station-disassembly-tool" data-action="select-all-disassembly-sheets" data-focus-key="disassembly-all"><span class="material-symbols-rounded" aria-hidden="true">select_all</span>Todas (${choice.options.length})</button>
+      <button type="button" class="station-disassembly-tool" data-action="clear-disassembly-sheets" data-focus-key="disassembly-none" ${choice.selected.length ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">deselect</span>Quitar</button>
+      <span class="station-disassembly-count ${choice.selected.length ? "station-disassembly-count--on" : ""}" role="status"><span class="material-symbols-rounded" aria-hidden="true">${choice.selected.length ? "task_alt" : "info"}</span>${choice.selected.length ? `${choice.selected.length} ${choice.selected.length === 1 ? "hoja" : "hojas"} · ${totalSteps} pasos` : "Ninguna hoja elegida"}</span>
+    </div>
     <div class="station-disassembly-grid">${choice.options.map((option, index) => {
-      const selected = option.id === choice.selected?.id;
-      const icon = option.id === DISASSEMBLY_FULL_ID ? "account_tree" : DISASSEMBLY_ICONS[option.label] ?? "settings";
-      return `<button type="button" class="station-disassembly-option ${selected ? "station-disassembly-option--on" : ""} ${option.id === DISASSEMBLY_FULL_ID ? "station-disassembly-option--full" : ""}" data-action="pick-disassembly" data-disassembly-id="${escapeHtml(option.id)}" data-focus-key="disassembly-${index}" aria-pressed="${selected}"><span class="material-symbols-rounded" aria-hidden="true">${selected ? "check_circle" : icon}</span><strong>${escapeHtml(option.label)}</strong><small>${option.sheets} ${option.sheets === 1 ? "hoja" : "hojas"} · ${option.steps} pasos</small></button>`;
+      const selected = selectedIds.has(option.id);
+      const search = normalizeDisassemblySearch(`${option.label} ${option.description}`);
+      return `<button type="button" class="station-disassembly-sheet ${selected ? "station-disassembly-sheet--on" : ""}" data-action="toggle-disassembly-sheet" data-sheet-id="${escapeHtml(option.id)}" data-focus-key="disassembly-${index}" data-search="${escapeHtml(search)}" aria-pressed="${selected}" ${query && !search.includes(query) ? "hidden" : ""}><span class="station-disassembly-sheet-head"><span class="material-symbols-rounded" aria-hidden="true">${selected ? "check_box" : "check_box_outline_blank"}</span><strong>${escapeHtml(option.label)}</strong><small>${option.steps} ${option.steps === 1 ? "paso" : "pasos"}</small></span><span class="station-disassembly-sheet-text">${escapeHtml(option.description)}</span></button>`;
     }).join("")}</div></fieldset>`;
 }
 
@@ -92,7 +99,7 @@ function renderStationIntake(state) {
             ${rwkSelected || !enabledRwkAssignments.length ? rwkStatus : stationHint}
           </label>
         </fieldset>
-        ${renderDisassemblyChoice(disassemblyChoice)}
+        ${renderDisassemblyChoice(disassemblyChoice, state.disassemblyFilter ?? "")}
       </section>
       <section class="station-asset-section" aria-labelledby="station-asset-title">
         <div class="station-section-title"><span class="station-section-num" aria-hidden="true">2</span><div><h2 id="station-asset-title">Captura los datos del equipo</h2><p>Copia el PN y la serie tal como aparecen en la etiqueta. Los cuatro son obligatorios.</p></div></div>

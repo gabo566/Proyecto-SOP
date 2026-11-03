@@ -435,6 +435,15 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Pruebas:** 9 pasan; en el navegador, RWK muestra 11 opciones (completo: 42 hojas con pasos y 132 pasos); «Bianca» crea un recorrido de 10 hojas (10–…); «Abrir la SOP» queda bloqueado hasta elegir el tipo.
 - **Revertir:** quitar los cambios de los archivos listados; sin comprometer en `main` hasta que se confirme.
 
+### C-047 (2026-11-03) — Selección de hojas del desensamble (una o varias)
+
+- **Solicitud:** cada hoja de la SOP de desensamble es un proceso distinto (de chasis a Bianca); el operador debe poder elegir las hojas que va a realizar y ver solo esas.
+- **Cambio sobre C-046:** se sustituyen las categorías por una tarjeta por hoja con selección múltiple. Descripciones de las hojas 5–23 tomadas del listado que entregó el usuario (`DISASSEMBLY_SHEET_NOTES` en `src/data/workStations.js`); para las demás hojas se usa el título de la hoja en la SOP **[Pendiente de confirmar]** (falta el listado de las hojas 24–46).
+- **Archivos tocados:** `src/data/workStations.js` (`getDisassemblyOptions` por hoja, `describeDisassemblySelection`, `normalizeDisassemblySearch`), `src/views/completion-dialog.js` (`disassemblySheets` en el formulario), `src/interactions.js` (acciones `toggle-disassembly-sheet`, `select-all-disassembly-sheets`, `clear-disassembly-sheets` y filtro de búsqueda), `src/views/station-intake.js` (rejilla de hojas con buscador, «Todas», «Quitar» y contador), `src/station-intake.js`, `src/app.js` (recorrido con las hojas elegidas, en orden), `src/reporting.js`, `src/views/procedure.js` (ficha «Hojas del desensamble»), `src/styles-md3.css` (bloque «C-047»), `index.html` (`?v=md3-c047`).
+- **Comportamiento:** hay que elegir al menos una hoja para abrir la SOP; el buscador filtra por número o texto (p. ej. «bf3») y la selección se conserva; el recorrido guiado incluye solo las hojas elegidas.
+- **Pruebas:** 9 pasan; en el navegador aparecen 42 hojas, «bf3» deja 8, elegir las hojas 35 y 36 crea un recorrido de esas 2 hojas (6 pasos) con la ficha «Hojas 35–36».
+- **Revertir:** volver a C-046 (`git revert` de este cambio); sin comprometer en `main` hasta confirmarlo.
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.
