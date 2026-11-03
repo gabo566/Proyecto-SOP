@@ -135,6 +135,31 @@ function normalizeDisassemblySearch(value) {
   return String(value ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
+const DISASSEMBLY_ICON_RULES = [
+  [/manguera|manifold|agua|cold ?plate|enfri/, "water_drop", "blue"],
+  [/ventilador|fan/, "mode_fan", "teal"],
+  [/inner|plastico|fixture/, "construction", "orange"],
+  [/busbar|bracket/, "bolt", "orange"],
+  [/humedad|sensor/, "sensors", "teal"],
+  [/bateria/, "battery_full", "green"],
+  [/pdb|power|alimentacion|12vstby|energia/, "electrical_services", "orange"],
+  [/bmc|hmc|tpm|m2|m\.2|interpose/, "memory", "blue"],
+  [/cable|mcio|clink|management|sideband|ultrapass|front panel/, "cable", "green"],
+  [/e1\.s|ssd|bahia|almacen/, "storage", "purple"],
+  [/bf3|osfp|nic|ipex/, "router", "purple"],
+  [/pcie|riser/, "dns", "blue"],
+  [/cx7|bianca|cover/, "developer_board", "red"],
+  [/limpieza|limpiar/, "cleaning_services", "teal"],
+  [/inspeccion|revisar|verific/, "search", "purple"],
+  [/apertura|handle|chasis|charola|bezel|panel|unidad|proteccion/, "inventory_2", "red"],
+];
+
+function getDisassemblyIcon(text) {
+  const normalized = normalizeDisassemblySearch(text);
+  const rule = DISASSEMBLY_ICON_RULES.find(([pattern]) => pattern.test(normalized));
+  return rule ? { icon: rule[1], tone: rule[2] } : { icon: "build", tone: "red" };
+}
+
 function getDisassemblyOptions(version) {
   const procedures = (version?.procedures ?? []).filter((procedure) => Array.isArray(procedure.steps) && procedure.steps.length);
   if (procedures.length < 2) return [];
@@ -145,6 +170,7 @@ function getDisassemblyOptions(version) {
     label: `Hoja ${procedure.sheet}`,
     description: (useNotes && DISASSEMBLY_SHEET_NOTES[procedure.sheet]) || procedure.title || "",
     steps: procedure.steps.length,
+    ...getDisassemblyIcon((useNotes && DISASSEMBLY_SHEET_NOTES[procedure.sheet]) || procedure.title || ""),
   }));
 }
 

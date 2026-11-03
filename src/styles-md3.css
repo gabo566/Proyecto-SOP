@@ -2015,3 +2015,20 @@ details.sop-version-procedure.is-sheet-saved > summary > span { color: #146c3a; 
 .station-disassembly-sheet--on .station-disassembly-sheet-head small { background: rgb(255 255 255 / 18%); color: #fff; }
 .station-disassembly-sheet--on .station-disassembly-sheet-text { color: #fff; }
 .station-disassembly-sheet:focus-visible { outline: 3px solid #e8730f; outline-offset: 2px; }
+
+/* C-048: iconos llamativos por hoja del desensamble. */
+.station-disassembly .station-disassembly-sheet { grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px; }
+.station-disassembly-icon { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; color: #fff; box-shadow: 0 3px 8px rgb(0 0 0 / 25%); }
+.station-disassembly-icon .material-symbols-rounded { font-size: 30px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24; }
+.station-disassembly-icon--red { background: linear-gradient(135deg, #d6453a, #a92328); }
+.station-disassembly-icon--orange { background: linear-gradient(135deg, #f59b3a, #d9650a); }
+.station-disassembly-icon--blue { background: linear-gradient(135deg, #3f86e0, #1f4f9c); }
+.station-disassembly-icon--green { background: linear-gradient(135deg, #2fa866, #146c3a); }
+.station-disassembly-icon--purple { background: linear-gradient(135deg, #8d62d6, #5a35a3); }
+.station-disassembly-icon--teal { background: linear-gradient(135deg, #25b3b0, #0f7a78); }
+.station-disassembly-body { display: grid; gap: 4px; min-width: 0; }
+.station-disassembly-sheet-head { display: flex; align-items: center; gap: 8px; }
+.station-disassembly-sheet-head strong { font-size: 18px; }
+.station-disassembly-check .material-symbols-rounded { font-size: 28px; color: #b9a7a4; }
+.station-disassembly-sheet--on .station-disassembly-check .material-symbols-rounded { color: #8fe3b0; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24; }
+.station-disassembly-sheet--on { box-shadow: 0 4px 14px rgb(23 38 53 / 35%); }

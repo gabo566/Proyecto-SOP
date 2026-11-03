@@ -444,6 +444,13 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Pruebas:** 9 pasan; en el navegador aparecen 42 hojas, «bf3» deja 8, elegir las hojas 35 y 36 crea un recorrido de esas 2 hojas (6 pasos) con la ficha «Hojas 35–36».
 - **Revertir:** volver a C-046 (`git revert` de este cambio); sin comprometer en `main` hasta confirmarlo.
 
+### C-048 (2026-11-03) — Iconos llamativos por hoja del desensamble
+
+- **Solicitud:** devolver los iconos llamativos de la versión por categorías a las tarjetas por hoja.
+- **Cambios:** `src/data/workStations.js` (`DISASSEMBLY_ICON_RULES` y `getDisassemblyIcon`: icono y color según el texto de la hoja, p. ej. agua → gota azul, busbar → rayo naranja, ventiladores → ventilador turquesa, cables → cable verde, BMC/HMC → chip azul, BF3/OSFP → router morado), `src/views/station-intake.js` (insignia de color de 52 px y marca de selección a la derecha), `src/styles-md3.css` (bloque «C-048»), `index.html` (`?v=md3-c048c`).
+- **Límites:** la asignación es por palabras clave **[Inferido]**; hojas con texto distinto reciben el icono de la primera regla que coincida, o una llave genérica.
+- **Pruebas:** 9 pasan; revisado en el navegador (42 hojas con icono). **Revertir:** `git revert` de este cambio; sin comprometer en `main` hasta confirmarlo.
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.
