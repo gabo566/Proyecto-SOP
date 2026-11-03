@@ -50,6 +50,7 @@ const state = {
   sopPdfUpdatedAt: "",
   sopPdfUpdating: false,
   sopUploadFileName: "",
+  sopUploadFile: null,
   sopVersionMeta: { id: BUILT_IN_SOP_VERSION_ID, revision: SOP_DOCUMENT.revision, builtIn: true },
   sopVersionHistory: [],
   sopVersionCatalog: {},

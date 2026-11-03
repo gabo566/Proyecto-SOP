@@ -863,8 +863,8 @@ function renderSopVersionManager(state) {
   const error = state.sopDraftError ? `<p class="form-error" role="alert">${escapeHtml(state.sopDraftError)}</p>` : "";
   const preview = state.sopDraft ? renderSopVersionPreview(state.sopDraft, state) : "";
   return `<section class="sop-version-panel" aria-labelledby="sop-version-title"><div class="sop-version-manager-header"><div class="section-heading"><div class="section-title"><span class="heading-icon material-symbols-rounded" aria-hidden="true">rule_settings</span><div><p class="eyebrow sop-version-access-badge"><span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>Solo cuenta 140784</p><h2 id="sop-version-title">Modificar SOP</h2></div></div></div>
-    <form class="sop-version-form sop-version-upload-form" id="sop-version-upload-form"><input class="sop-pdf-native-input" name="pdf" type="file" accept="application/pdf,.pdf" aria-label="Seleccionar archivo PDF de la SOP" required />
-      <div class="sop-version-actions"><button class="button button--primary" type="button" data-action="choose-sop-pdf" ${state.sopVersionBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.sopVersionBusy ? "hourglass_top" : "upload_file"}</span>${state.sopVersionBusy ? "Leyendo PDF…" : "Subir PDF"}</button><small data-sop-pdf-name>${escapeHtml(state.sopUploadFileName || "Selecciona un archivo PDF")}</small></div>
+    <form class="sop-version-form sop-version-upload-form" id="sop-version-upload-form"><input class="sop-pdf-native-input" name="pdf" type="file" accept="application/pdf,.pdf" aria-label="Seleccionar archivo PDF de la SOP" />
+      <div class="sop-version-actions"><button class="button button--outlined" type="button" data-action="choose-sop-pdf" ${state.sopVersionBusy || state.sopDraft ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">upload_file</span>Subir PDF</button><button class="button button--primary" type="submit" ${state.sopVersionBusy || !state.sopUploadFile || state.sopDraft ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.sopVersionBusy ? "hourglass_top" : "manage_search"}</span>${state.sopVersionBusy ? "Extrayendo SOP…" : "Extraer SOP"}</button><small data-sop-pdf-name>${escapeHtml(state.sopDraft?.pdf?.name || state.sopUploadFile?.name || state.sopUploadFileName || "Selecciona un archivo PDF")}</small></div>
       ${error}</form></div>
     ${renderSopCatalog(state)}
     ${preview}
@@ -1057,6 +1057,10 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
       showSopDraftPreview(dialog, state, nextIndex);
     } else if (action.dataset.action === "choose-sop-pdf") {
       if (state.sopVersionBusy) return;
+      if (state.sopDraft) {
+        showToast("Guarda o cancela la revisión actual antes de seleccionar otro PDF.", "warning");
+        return;
+      }
       const fileInput = app.querySelector("#sop-version-upload-form input[name=pdf]");
       if (!fileInput) {
         showToast("No se encontró el selector de archivos PDF.", "warning");
@@ -1077,6 +1081,8 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
       state.sopDraft = null;
       state.sopDraftError = "";
       state.sopDraftNotice = "";
+      state.sopUploadFile = null;
+      state.sopUploadFileName = "";
       showToast("Revisión cancelada; no se guardaron sus cambios.");
       render();
     } else if (action.dataset.action === "delete-sop-version") {
@@ -1179,6 +1185,7 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
         state.sopDraft = null;
         state.sopDraftError = "";
         state.sopDraftNotice = "";
+        state.sopUploadFileName = "";
         state.sopVersionBusy = false;
         recordLocalAuditEvent("sop_version_saved", { details: `Rev. ${version.document.revision} · ${version.document.id} · ${version.document.stationAssignment}` });
         showToast(`SOP Rev. ${version.document.revision} guardada y deshabilitada. Asigna la estación y habilítala cuando esté lista.`);
@@ -1203,9 +1210,17 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
       const selectedFile = event.target.files?.[0];
       const fileName = app.querySelector("[data-sop-pdf-name]");
       if (selectedFile && !state.sopVersionBusy) {
+        if (state.sopDraft) {
+          showToast("Guarda o cancela la revisión actual antes de seleccionar otro PDF.", "warning");
+          event.target.value = "";
+          return;
+        }
+        state.sopUploadFile = selectedFile;
         state.sopUploadFileName = selectedFile.name;
         if (fileName) fileName.textContent = selectedFile.name;
-        event.target.form?.requestSubmit();
+        state.sopDraftError = "";
+        app.querySelector("#sop-version-upload-form button[type=submit]")?.removeAttribute("disabled");
+        app.querySelector("#sop-version-upload-form .form-error")?.remove();
       }
       return;
     }
@@ -1331,9 +1346,14 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
     }
     if (!event.target.matches("#sop-version-upload-form")) return;
     event.preventDefault();
-    if (!canManageSopVersions()) return;
+    if (!canManageSopVersions() || state.sopVersionBusy || state.sopDraft) return;
     const form = event.target;
-    const pdfFile = form.elements.namedItem("pdf").files?.[0];
+    const pdfFile = state.sopUploadFile ?? form.elements.namedItem("pdf").files?.[0];
+    if (!pdfFile) {
+      state.sopDraftError = "Selecciona un archivo PDF antes de extraer la SOP.";
+      render();
+      return;
+    }
     state.sopVersionBusy = true;
     state.sopDraftError = "";
     state.sopDraftNotice = "";
@@ -1345,6 +1365,8 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
       state.sopDraft = null;
       state.sopDraftError = error?.message || "No se pudo validar el archivo de SOP.";
     }
+    state.sopUploadFile = null;
+    state.sopUploadFileName = "";
     state.sopVersionBusy = false;
     render();
   });
