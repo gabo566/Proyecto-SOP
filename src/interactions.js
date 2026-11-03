@@ -127,7 +127,8 @@ function bindInteractions(app, handlers) {
     if (image.complete) updateStepImageZoom();
   }
 
-  function setSopPageZoom(zoom, anchor = null) {
+  function setSopPageZoom(zoom) {
+    if (state.sopFocusedZoom) return;
     state.sopPageZoom = Math.max(50, Math.min(300, zoom));
     const viewport = document.querySelector("#sop-page-preview");
     if (!viewport) {
@@ -141,40 +142,102 @@ function bindInteractions(app, handlers) {
     if (level) level.textContent = `${state.sopPageZoom}%`;
     if (zoomIn) zoomIn.disabled = state.sopPageZoom >= 300;
     if (zoomOut) zoomOut.disabled = state.sopPageZoom <= 50;
-    renderSopPagePreview(anchor);
+    renderSopPagePreview();
+  }
+
+  function syncSopZoomControls() {
+    const zoomIn = document.querySelector('[data-action="sop-page-zoom-in"]');
+    const zoomOut = document.querySelector('[data-action="sop-page-zoom-out"]');
+    const reset = document.querySelector('[data-action="sop-page-zoom-reset"]');
+    if (zoomIn) zoomIn.disabled = state.sopFocusedZoom || state.sopPageZoom >= 300;
+    if (zoomOut) zoomOut.disabled = state.sopFocusedZoom || state.sopPageZoom <= 50;
+    if (reset) reset.disabled = state.sopFocusedZoom;
   }
 
   function toggleSopFocusZoom() {
     state.sopFocusedZoom = !state.sopFocusedZoom;
+    if (state.sopFocusedZoom) state.sopFocusLensZoom = 2;
     const button = document.querySelector('[data-action="sop-page-toggle-focused-zoom"]');
     const viewport = document.querySelector("#sop-page-preview");
     const hint = document.querySelector("#sop-page-focus-zoom-hint");
+    const lens = document.querySelector("#sop-page-focus-zoom-lens");
+    const crosshair = document.querySelector("#sop-page-focus-zoom-crosshair");
+    const level = document.querySelector("[data-focus-lens-level]");
     button?.setAttribute("aria-pressed", String(state.sopFocusedZoom));
     if (viewport) viewport.dataset.focusZoom = String(state.sopFocusedZoom);
     if (hint) hint.hidden = !state.sopFocusedZoom;
+    if (lens) lens.hidden = true;
+    if (crosshair) crosshair.hidden = true;
+    if (level) level.textContent = `${Number(state.sopFocusLensZoom || 2).toFixed(1)}×`;
+    syncSopZoomControls();
   }
 
-  function handleFocusedSopWheel(event) {
+  function drawFocusedSopLens(event) {
     const viewport = event.target.closest?.("#sop-page-preview");
     const canvas = viewport?.querySelector("canvas");
     if (!state.sopFocusedZoom || !viewport || !canvas || canvas.hidden || event.target !== canvas) return;
     const canvasBounds = canvas.getBoundingClientRect();
     if (event.clientX < canvasBounds.left || event.clientX > canvasBounds.right
       || event.clientY < canvasBounds.top || event.clientY > canvasBounds.bottom) return;
-    const nextZoom = Math.max(50, Math.min(300, (Number(state.sopPageZoom) || 110) + (event.deltaY < 0 ? 10 : -10)));
-    if (nextZoom === Number(state.sopPageZoom)) return;
     const viewportBounds = viewport.getBoundingClientRect();
+    const lens = document.querySelector("#sop-page-focus-zoom-lens");
+    const lensWindow = lens?.querySelector(".guided-focus-zoom-lens-window");
+    const lensCanvas = lens?.querySelector("[data-focus-lens-canvas]");
+    const lensOverlay = lens?.querySelector("[data-focus-lens-overlay]");
+    const crosshair = document.querySelector("#sop-page-focus-zoom-crosshair");
+    const hint = document.querySelector("#sop-page-focus-zoom-hint");
+    if (!lens || !lensWindow || !lensCanvas || !crosshair) return;
+    lens.hidden = false;
+    if (hint) hint.hidden = true;
+
+    const sourceX = ((event.clientX - canvasBounds.left) / canvasBounds.width) * canvas.width;
+    const sourceY = ((event.clientY - canvasBounds.top) / canvasBounds.height) * canvas.height;
+    const pixelScaleX = canvas.width / canvasBounds.width;
+    const pixelScaleY = canvas.height / canvasBounds.height;
+    const zoom = Math.max(1.25, Math.min(5, Number(state.sopFocusLensZoom) || 2));
+    const cropWidth = Math.min(canvas.width, lensWindow.clientWidth / zoom * pixelScaleX);
+    const cropHeight = Math.min(canvas.height, lensWindow.clientHeight / zoom * pixelScaleY);
+    const cropX = Math.max(0, Math.min(canvas.width - cropWidth, sourceX - cropWidth / 2));
+    const cropY = Math.max(0, Math.min(canvas.height - cropHeight, sourceY - cropHeight / 2));
+    const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+    const outputWidth = Math.max(1, Math.round(lensWindow.clientWidth * outputScale));
+    const outputHeight = Math.max(1, Math.round(lensWindow.clientHeight * outputScale));
+    if (lensCanvas.width !== outputWidth || lensCanvas.height !== outputHeight) {
+      lensCanvas.width = outputWidth;
+      lensCanvas.height = outputHeight;
+    }
+    const context = lensCanvas.getContext("2d");
+    if (!context) return;
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, outputWidth, outputHeight);
+
+    if (lensOverlay) {
+      const originalOverlay = viewport.querySelector(".sop-annotation-overlay");
+      const sourceKey = `${viewport.dataset.pdfSource}:${viewport.dataset.pdfPage}`;
+      if (originalOverlay && lensOverlay.dataset.sourceKey !== sourceKey) {
+        lensOverlay.innerHTML = originalOverlay.innerHTML.replaceAll("sop-annotation-arrowhead", "sop-focus-lens-arrowhead");
+        lensOverlay.dataset.sourceKey = sourceKey;
+      }
+      lensOverlay.setAttribute("viewBox", `${cropX / canvas.width * 1000} ${cropY / canvas.height * 1000} ${cropWidth / canvas.width * 1000} ${cropHeight / canvas.height * 1000}`);
+    }
+    crosshair.style.left = `${event.clientX - viewportBounds.left - viewport.clientLeft}px`;
+    crosshair.style.top = `${event.clientY - viewportBounds.top - viewport.clientTop}px`;
+    crosshair.hidden = false;
+  }
+
+  function handleFocusedSopWheel(event) {
+    const viewport = event.target.closest?.("#sop-page-preview");
+    if (!state.sopFocusedZoom || !viewport || event.target.tagName !== "CANVAS") return;
     event.preventDefault();
-    const anchor = {
-      pointX: Math.max(0, Math.min(1, (event.clientX - canvasBounds.left) / Math.max(1, canvasBounds.width))),
-      pointY: Math.max(0, Math.min(1, (event.clientY - canvasBounds.top) / Math.max(1, canvasBounds.height))),
-      pointerX: event.clientX - viewportBounds.left - viewport.clientLeft,
-      pointerY: event.clientY - viewportBounds.top - viewport.clientTop,
-    };
-    setSopPageZoom(nextZoom, anchor);
+    state.sopFocusLensZoom = Math.max(1.25, Math.min(5, (Number(state.sopFocusLensZoom) || 2) + (event.deltaY < 0 ? 0.25 : -0.25)));
+    const level = document.querySelector("[data-focus-lens-level]");
+    if (level) level.textContent = `${state.sopFocusLensZoom.toFixed(1)}×`;
+    drawFocusedSopLens(event);
   }
 
   window.addEventListener("resize", updateStepImageZoom, { passive: true });
+  window.addEventListener("pointermove", drawFocusedSopLens, { passive: true });
   window.addEventListener("wheel", handleFocusedSopWheel, { passive: false });
 
   app.addEventListener("click", (event) => {

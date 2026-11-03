@@ -270,9 +270,22 @@ button { color: inherit; }
 .sop-annotation--note rect { fill: #fff0b8; stroke: #a96a05; stroke-width: 4; filter: drop-shadow(0 2px 3px #15233550); }
 .sop-annotation--note text { fill: #3e321d; font-family: Roboto, sans-serif; font-size: 21px; font-weight: 700; pointer-events: none; }
 .guided-pdf-viewport canvas { display: block; max-width: 100%; height: auto; background: #fff; }
-.guided-pdf-viewport[data-focus-zoom="true"] canvas { cursor: zoom-in; }
+.guided-pdf-viewport[data-focus-zoom="true"] canvas { cursor: crosshair; }
 .guided-focus-zoom-hint { position: absolute; z-index: 3; top: 10px; left: 50%; max-width: calc(100% - 20px); transform: translateX(-50%); padding: 7px 10px; border: 1px solid #cad8e6; border-radius: 99px; color: #29445f; background: #fffffff2; box-shadow: 0 2px 8px #192a3b20; font-size: 10px; font-weight: 650; text-align: center; pointer-events: none; }
 .guided-focus-zoom-hint[hidden] { display: none; }
+.guided-focus-zoom-crosshair { position: absolute; z-index: 2; width: 22px; height: 22px; transform: translate(-50%,-50%); border: 1px solid #fff; border-radius: 50%; background: #c9182050; box-shadow: 0 0 0 2px #c91820, 0 1px 5px #18283c90; pointer-events: none; }
+.guided-focus-zoom-crosshair::before, .guided-focus-zoom-crosshair::after { position: absolute; top: 50%; left: 50%; display: block; background: #c91820; content: ""; transform: translate(-50%,-50%); }
+.guided-focus-zoom-crosshair::before { width: 30px; height: 1px; }
+.guided-focus-zoom-crosshair::after { width: 1px; height: 30px; }
+.guided-focus-zoom-crosshair[hidden] { display: none; }
+.guided-focus-zoom-lens { position: absolute; z-index: 4; top: 14px; right: 14px; width: min(280px,calc(100% - 28px)); padding: 7px; border: 1px solid #bfcbd8; border-radius: 10px; color: #29445f; background: #fff; box-shadow: 0 5px 18px #17263840; pointer-events: none; }
+.guided-focus-zoom-lens[hidden] { display: none; }
+.guided-focus-zoom-lens header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 2px 5px; font-size: 9px; }
+.guided-focus-zoom-lens output { padding: 3px 6px; border-radius: 99px; color: #a71920; background: #fff0f0; font-size: 9px; font-weight: 800; }
+.guided-focus-zoom-lens-window { position: relative; width: 100%; height: 156px; overflow: hidden; border: 1px solid #d7e0e9; border-radius: 6px; background: #eef2f6; }
+.guided-focus-zoom-lens-window canvas { display: block; width: 100%; height: 100%; }
+.guided-focus-zoom-lens-overlay { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: hidden; pointer-events: none; }
+.guided-focus-zoom-lens-overlay marker path { fill: #d31e27; }
 .guided-focus-zoom-button { min-height: 32px; gap: 5px; padding: 0 9px; font-size: 9px; white-space: nowrap; }
 .guided-focus-zoom-button .material-symbols-rounded { font-size: 16px; }
 .guided-focus-zoom-button[aria-pressed="true"] { border-color: #bd2027; color: #a71920; background: #fff0f0; box-shadow: inset 0 0 0 1px #bd202730; }
@@ -535,6 +548,8 @@ button { color: inherit; }
   .guided-page-toolbar > .guided-page-heading { flex: 1 1 auto; }
   .guided-page-toolbar > .sop-page-zoom-controls { flex: 1 1 100%; flex-wrap: wrap; justify-content: flex-start; }
   .guided-focus-zoom-button { flex: 1 0 100%; }
+  .guided-focus-zoom-lens { top: 8px; right: 8px; width: min(210px,calc(100% - 16px)); }
+  .guided-focus-zoom-lens-window { height: 112px; }
 }
 @media (max-width: 900px) {
   .sop-page-checklist-layout { grid-template-columns: minmax(0,1fr); }
