@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Propuestas · Inicio de sesión refinado</title>
+<link rel="stylesheet" href="../public/assets/fonts/fonts.css" />
+<style>
+:root{--red:#a92328;--red-d:#8a1b20;--red-l:#dc6a62}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:Roboto,system-ui,sans-serif;color:#fff;background:#0d1822}
+.ms{font-family:"Material Symbols Rounded";font-weight:400;font-style:normal;display:inline-block;line-height:1;font-size:22px;vertical-align:middle;font-variation-settings:"FILL" 1;font-feature-settings:"liga"}
+button,input{font-family:inherit}
+.sw{position:fixed;z-index:50;top:12px;left:50%;transform:translateX(-50%);display:flex;background:rgb(13 24 34 / 82%);backdrop-filter:blur(8px);border:1px solid rgb(255 255 255 / 25%);border-radius:999px;padding:4px;gap:2px}
+.sw button{border:0;background:none;color:#fff;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer}
+.sw button.on{background:#fff;color:var(--red)}
+.v{display:none;position:relative;min-height:100vh;place-items:center;padding:70px 16px 40px;overflow:hidden}.v.on{display:grid}
+.bg{position:absolute;inset:0;background:url(../public/assets/login-datacenter-background.png) center/cover}
+.bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgb(2 17 30 / 25%),rgb(2 17 30 / 80%))}
+.c{position:relative;width:min(100%,640px);display:grid;justify-items:center;gap:14px;text-align:center}
+.logo{width:min(100%,360px);filter:drop-shadow(0 6px 18px rgb(0 0 0 / 55%))}
+.kick{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#d7e4f0}
+h1{margin:0;font-weight:800;line-height:1.05}
+.rule{height:3px;border-radius:99px;background:linear-gradient(90deg,transparent,#d93a30,transparent);width:min(100%,420px)}
+h2{margin:0;font-size:20px;font-weight:500;color:#eef4fb}
+form{width:min(100%,520px);display:grid;gap:14px;text-align:left}
+.note{font-size:12px;color:rgb(236 244 251 / 80%);max-width:460px;line-height:1.5;margin-top:6px}
+
+/* D · tipografía refinada */
+#vD h1{font-size:clamp(34px,5vw,52px);letter-spacing:-.025em;text-shadow:0 2px 18px rgb(0 0 0 / 55%)}
+#vD h1 em{font-style:normal;color:#ffb4ab}
+#vD .kick{background:rgb(255 255 255 / 10%);border:1px solid rgb(255 255 255 / 25%);border-radius:999px;padding:6px 14px}
+#vD label{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#d7e4f0;margin:4px 0 -8px 22px}
+#vD input{height:62px;border-radius:999px;border:2px solid rgb(255 255 255 / 40%);background:rgb(255 255 255 / 9%);color:#fff;font-size:19px;padding:0 26px;outline:0;transition:border-color .15s,box-shadow .15s}
+#vD input::placeholder{color:#a9bccd}
+#vD input:focus{border-color:#ffb4ab;box-shadow:0 0 0 4px rgb(255 180 171 / 24%)}
+.btn{display:flex;align-items:center;justify-content:center;gap:12px;height:64px;border-radius:999px;border:0;background:var(--red);color:#fff;font-size:20px;font-weight:800;letter-spacing:.01em;cursor:pointer;box-shadow:0 10px 28px rgb(169 35 40 / 55%);margin-top:8px}
+.btn:hover{background:var(--red-d)}
+
+/* E · campos con icono y botón destacado */
+#vE h1{font-size:clamp(32px,4.6vw,46px);letter-spacing:-.02em}
+#vE h1 span{display:block;font-size:.5em;font-weight:500;letter-spacing:0;color:#ffcfc9;margin-top:6px}
+#vE .pnl{padding:26px;border-radius:28px;background:rgb(13 24 34 / 55%);border:1px solid rgb(255 255 255 / 18%);backdrop-filter:blur(14px)}
+.fe{display:flex;align-items:center;gap:12px;height:66px;border-radius:20px;background:rgb(255 255 255 / 8%);border:2px solid rgb(255 255 255 / 25%);padding:0 10px 0 8px;transition:border-color .15s,box-shadow .15s}
+.fe:focus-within{border-color:#ffb4ab;box-shadow:0 0 0 4px rgb(255 180 171 / 22%)}
+.fe .ib{width:48px;height:48px;border-radius:14px;background:var(--red);display:flex;align-items:center;justify-content:center;flex:none}
+.fe input{flex:1;height:100%;border:0;outline:0;background:none;color:#fff;font-size:19px}
+.fe input::placeholder{color:#a9bccd}
+.fe small{display:block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#ffcfc9}
+.fe .w{flex:1;display:grid}.fe .w input{height:28px}
+.big{display:flex;align-items:center;justify-content:space-between;height:68px;border-radius:999px;border:0;background:linear-gradient(100deg,var(--red-d),var(--red) 55%,#c23a3c);color:#fff;font-size:21px;font-weight:800;padding:0 10px 0 32px;cursor:pointer;box-shadow:0 12px 30px rgb(169 35 40 / 60%)}
+.big .ar{width:48px;height:48px;border-radius:50%;background:#fff;color:var(--red);display:flex;align-items:center;justify-content:center}
+
+/* F · líneas, minimalista */
+#vF h1{font-size:clamp(36px,5.4vw,58px);font-weight:300;letter-spacing:-.03em}
+#vF h1 b{font-weight:800}
+#vF .kick{color:#ffb4ab}
+.ff{position:relative;border-bottom:2px solid rgb(255 255 255 / 45%);padding:22px 0 8px;transition:border-color .15s}
+.ff:focus-within{border-color:#ffb4ab}
+.ff small{position:absolute;left:0;top:0;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#d7e4f0}
+.ff input{width:100%;border:0;outline:0;background:none;color:#fff;font-size:26px;font-weight:300;letter-spacing:.02em}
+.ff input::placeholder{color:#7f95a8}
+.ghost{display:flex;align-items:center;justify-content:center;gap:12px;height:62px;border-radius:14px;border:2px solid #fff;background:none;color:#fff;font-size:18px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;margin-top:10px}
+#vF .ghost{color:#fff!important;background:rgb(255 255 255 / 6%)}.ghost:hover{background:var(--red)!important;border-color:var(--red)}
+@media(max-width:600px){h2{font-size:17px}.sw button{padding:7px 9px;font-size:12px}}
+</style>
+</head>
+<body>
+<div class="sw" role="group" aria-label="Propuesta">
+  <button data-v="D" class="on">D · Letras</button><button data-v="E">E · Iconos y botón</button><button data-v="F">F · Líneas</button>
+</div>
+
+<section class="v on" id="vD"><div class="bg"></div>
+  <div class="c">
+    <img class="logo" src="../public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" />
+    <span class="kick">GB200 · Acceso local de demostración</span>
+    <h1>Seguimiento de SOPs<br /><em>Nvidia Racks</em></h1>
+    <div class="rule"></div>
+    <h2>Ingresar al sistema</h2>
+    <form onsubmit="return false">
+      <label for="d1">Usuario</label><input id="d1" placeholder="Número de empleado" inputmode="numeric" />
+      <label for="d2">Contraseña</label><input id="d2" type="password" placeholder="Tu contraseña" />
+      <button class="btn">Ingresar<span class="ms">arrow_forward</span></button>
+    </form>
+    <p class="note">Las cuentas y permisos se simulan en este navegador. No es autenticación segura ni acceso a producción.</p>
+  </div>
+</section>
+
+<section class="v" id="vE"><div class="bg"></div>
+  <div class="c">
+    <img class="logo" src="../public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" />
+    <h1>Seguimiento de SOPs<span>Nvidia Racks · GB200</span></h1>
+    <div class="pnl" style="width:min(100%,520px)">
+      <form onsubmit="return false">
+        <div class="fe"><span class="ib"><span class="ms">badge</span></span><span class="w"><small>Usuario</small><input placeholder="Número de empleado" inputmode="numeric" /></span></div>
+        <div class="fe"><span class="ib"><span class="ms">lock</span></span><span class="w"><small>Contraseña</small><input type="password" placeholder="Tu contraseña" /></span><span class="ms" style="color:#c9d6e2;margin-right:8px">visibility</span></div>
+        <button class="big">Ingresar al sistema<span class="ar"><span class="ms">arrow_forward</span></span></button>
+      </form>
+    </div>
+    <p class="note">Acceso local de demostración. Las cuentas y permisos se simulan en este navegador.</p>
+  </div>
+</section>
+
+<section class="v" id="vF"><div class="bg"></div>
+  <div class="c">
+    <img class="logo" src="../public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" style="width:min(100%,300px)" />
+    <span class="kick">Acceso local de demostración</span>
+    <h1>Seguimiento <b>de SOPs</b><br />Nvidia Racks</h1>
+    <form onsubmit="return false" style="margin-top:12px;gap:22px">
+      <div class="ff"><small>Usuario</small><input placeholder="140785" inputmode="numeric" /></div>
+      <div class="ff"><small>Contraseña</small><input type="password" placeholder="••••••••" /></div>
+      <button class="ghost">Ingresar<span class="ms">arrow_forward</span></button>
+    </form>
+    <p class="note">Las cuentas y permisos se simulan en este navegador. No es autenticación segura.</p>
+  </div>
+</section>
+
+<script>
+document.querySelectorAll('.sw button').forEach(function(b){b.onclick=function(){document.querySelectorAll('.v').forEach(function(v){v.classList.remove('on')});document.getElementById('v'+b.dataset.v).classList.add('on');document.querySelectorAll('.sw button').forEach(function(x){x.classList.toggle('on',x===b)})}});
+</script>
+</body>
+</html>

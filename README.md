@@ -1,5 +1,7 @@
 # SOP de desensamble GB200 · Ingrasys
 
+> Documentación técnica ampliada: empieza en [`docs/00-LEEME-AGENTE.md`](docs/00-LEEME-AGENTE.md). Esta referencia fue revisada el 2 de noviembre de 2026 contra el commit `d3b7e93`.
+
 Aplicación web estática en español para consultar y registrar procedimientos de desensamble. El prototipo combina instrucciones y referencias visuales con un recorrido de validación SOP hoja por hoja, perfiles locales de operador/supervisor/administrador, una bitácora ilustrativa y un flujo para detener trabajos, documentar retrabajos y revisar evidencia fotográfica.
 
 > **Estado del proyecto:** prototipo local. La interfaz identifica expresamente un entorno de muestra sin conexión a producción. La versión web se sirve como sitio estático desde GitHub Pages; no hay servidor de aplicación, API ni base de datos compartida. El inicio de sesión y los roles son simulados en el navegador y no autentican identidades ni protegen información.
@@ -52,7 +54,7 @@ Estas notas son advertencias editoriales del prototipo, no una resolución de in
 
 - Después de iniciar sesión, el operador elige MFG o RWK. En MFG puede elegir TDR, SYS_ASSY_1 o SYS_ASSY_2; solo aparecen las estaciones donde existe al menos una SOP habilitada por Administración. Si una estación tiene varias SOP habilitadas, el operador elige cuál utilizar; si solo hay una, queda seleccionada automáticamente.
 - Antes de comenzar, la pantalla muestra el nombre, identificador y revisión de la SOP seleccionada. Al continuar, el sistema abre esa revisión exacta y registra su identificador con la validación.
-- La cuenta 140784 carga PDF desde «Modificar SOP». El borrador detectado solicita la estación MFG/TDR, MFG/SYS_ASSY_1, MFG/SYS_ASSY_2 o RWK/RWK y permite revisar pasos. Al guardarse, la revisión queda deshabilitada hasta que Administración la habilite en el catálogo.
+- La cuenta administradora autorizada por la lógica local carga PDF desde «Modificar SOP». El borrador detectado solicita la estación MFG/TDR, MFG/SYS_ASSY_1, MFG/SYS_ASSY_2 o RWK/RWK y permite revisar pasos. Al guardarse, la revisión queda deshabilitada hasta que Administración la habilite en el catálogo.
 - En «Modificar SOP», la vista previa permite marcar cada hoja con flechas, recuadros, números y notas breves vinculadas a un paso. Las anotaciones se guardan dentro de la revisión local y se dibujan sobre la hoja que consulta el operador.
 - En el catálogo, cada SOP del historial muestra su revisión, estación y disponibilidad mediante un interruptor. Una columna separada «Status» indica si está habilitada o deshabilitada; las acciones de revisión y eliminación quedan al final. Los encabezados se alinean con sus columnas y los valores de Área y Estación se centran en sus selectores. Administración puede cambiar la estación y habilitar o deshabilitar cada revisión. Si habilita una revisión, la revisión anterior del mismo identificador se deshabilita automáticamente; otras SOP distintas pueden seguir habilitadas en esa estación.
 - La pantalla inicial de registro conserva la selección MFG/RWK y los datos del nodo y la tarjeta. La franja roja muestra el logo de Ingrasys y los datos del usuario conectado (nombre, número de empleado, puesto y rol); el resumen inferior también identifica a quien realizará la acción junto con la estación y la SOP. La selección queda guardada en la validación.
@@ -99,21 +101,11 @@ Los datos iniciales son 19 registros ficticios distribuidos entre BMC, Busbar, C
 
 ### Perfiles y bitácora local
 
-El inicio de sesión utiliza el número de empleado como usuario. Las cuentas iniciales disponibles son:
+El inicio de sesión utiliza el número de empleado como usuario. El código contiene perfiles iniciales de demostración, incluidos operadores y administradores; sus nombres, identificadores y contraseñas no se reproducen en esta documentación para no convertir datos de acceso o personales en documentación pública. La fuente verificable es `src/user-control.js`.
 
 La pantalla de inicio usa el fondo de `public/assets/login-datacenter-background.png` como imagen local, con una capa oscura para mantener legibles el formulario y el logo.
 
-| Nombre | Usuario | Contraseña | Puesto | Rol |
-| --- | --- | --- | --- | --- |
-| Operador Demo | `140785` | `0785` | Técnico de FA | Operador |
-| Gabriel Medina Ramirez | `140784` | `0784` | Ing FA JR | Administrador |
-| Brandon Garcia Olguin | `140783` | `0783` | Ing FA JR | Administrador |
-| Tania Azucena Zafra Santos | `140860` | `0860` | DEBUGGER SR | Operador |
-| Miguel Angel Ruvalcaba Marron | `140123` | `0123` | DEBUGGER SR | Operador |
-| Julio Cesar Rojo Rodriguez | `141090` | `1090` | DEBUGGER SR | Operador |
-| Jesus Humberto Ortega Mejia | `121907` | `1907` | DEBUGGER SR | Operador |
-
-Las cuatro cuentas DEBUGGER SR usan como contraseña los últimos cuatro dígitos de su número de empleado. Desde «Crear usuarios» en la barra lateral, un administrador puede registrar nombre, número de empleado, puesto, contraseña inicial y tipo de usuario (usuario común u administrador). Los números de empleado deben ser únicos. En la misma sección puede desactivar o reactivar el acceso de cualquier cuenta, incluidas las precargadas, y asignar una nueva contraseña. Una cuenta desactivada no puede iniciar sesión aunque conserve su contraseña; su información se conserva y su acceso puede reactivarse. No se permite desactivar la cuenta que tiene la sesión abierta ni dejar el sistema sin administradores activos. El formulario de cambio solicita elegir la cuenta y capturar una contraseña nueva de al menos cuatro caracteres; nunca muestra la anterior.
+Desde «Crear usuarios» en la barra lateral, un administrador puede registrar nombre, número de empleado, puesto, contraseña inicial y tipo de usuario (usuario común u administrador). Los números de empleado deben ser únicos. En la misma sección puede desactivar o reactivar el acceso de cualquier cuenta, incluidas las precargadas, y asignar una nueva contraseña. Una cuenta desactivada no puede iniciar sesión aunque conserve su contraseña; su información se conserva y su acceso puede reactivarse. No se permite desactivar la cuenta que tiene la sesión abierta ni dejar el sistema sin administradores activos. El formulario de cambio solicita elegir la cuenta y capturar una contraseña nueva de al menos cuatro caracteres; nunca muestra la anterior.
 
 | Rol | Flujo que representa |
 | --- | --- |
@@ -127,9 +119,9 @@ Al marcar o reabrir un paso se registra el usuario activo, número de empleado y
 
 ### Cargar una SOP nueva y conservar versiones
 
-La cuenta administradora `140784` tiene la opción «Modificar SOP». Aunque la cuenta `140783` también tiene rol de administrador para las demás funciones locales, esa cuenta no ve ni puede usar el administrador de versiones de SOP. El control se aplica en la interfaz del prototipo y no representa una autorización segura de servidor.
+La lógica local restringe «Modificar SOP» a una cuenta administradora configurada en `src/sop-version-control.js`. El control se aplica en la interfaz del prototipo y no representa una autorización segura de servidor.
 
-Para crear una revisión, el administrador carga **un solo archivo PDF** con «Subir SOP PDF» y pulsa «Extraer SOP», el botón que aparece a su lado, para iniciar el análisis. El navegador extrae el texto con PDF.js, reconoce los números de paso y los agrupa por hoja. Si el documento contiene `# Control` y `Rev`, se usan para completar el identificador y la revisión; el nombre del archivo se propone como título y se puede corregir. Antes de guardar, la pantalla permite editar esos datos, cambiar números e instrucciones, eliminar detecciones incorrectas y agregar pasos omitidos. El límite del archivo es 100 MB.
+Para crear una revisión, el administrador carga **un solo archivo PDF** con «Subir SOP PDF» y pulsa «Extraer SOP», el botón que aparece a su lado, para iniciar el análisis. El navegador extrae el texto con PDF.js, reconoce los números de paso y los agrupa por hoja. Si el documento contiene `# Control` y `Rev`, se usan para completar el identificador y la revisión; el nombre del archivo se propone como título y se puede corregir. Antes de guardar, la pantalla permite editar esos datos, cambiar números e instrucciones, eliminar detecciones incorrectas y agregar pasos omitidos. El código actual no aplica un límite fijo de bytes; la memoria disponible del navegador sigue siendo una limitación práctica.
 
 El PDF debe tener texto seleccionable y conservar una numeración de pasos reconocible, como `1.-`, `7.1.1.-` o `54.5.-`, dentro de un diseño de SOP similar al PDF de referencia. Los PDF escaneados requieren una capa de texto OCR antes de cargarlos; esta función no ejecuta OCR. La extracción se comprueba con la SOP incluida, donde reconoce sus 132 pasos. Aun así, el administrador debe revisar el borrador: ningún extractor puede asegurar por sí solo que entendió correctamente todos los documentos o instrucciones.
 
@@ -205,7 +197,7 @@ La aplicación no usa un framework ni un bundler. `index.html` carga scripts cl�
 | `worker/index.js` | Worker de Sites que devuelve `index.html` para rutas GET/HEAD HTML desconocidas. No es un backend de operaciones. |
 | `scripts/prepare-sites-build.mjs` | Copia el worker y la configuración de hosting a `dist` para empaquetado de Sites. No se requiere para desarrollo local. |
 | `tests/sites-worker.test.mjs` | Pruebas del comportamiento del worker y de los archivos del paquete de Sites; no cubren todo el flujo de la interfaz. |
-| `tests/sop-version-control.test.mjs` | Extracción de los 132 pasos de la SOP de referencia y restricción de administración a 140784. |
+| `tests/sop-version-control.test.mjs` | Extracción de los 132 pasos de la SOP de referencia y restricción de administración a la cuenta configurada. |
 | `tests/work-stations.test.mjs` | Visibilidad por estación, selección entre SOP habilitadas, revisión exacta y respeto del estado habilitado/deshabilitado. |
 | `tests/sop-run.test.mjs` | Bloqueo de avance si faltan pasos, progreso por hoja, confirmación y transferencia sin perder autoría ni checklist. |
 | `.openai/hosting.json` | Configuración de hosting actual: sin bindings configurados para D1 o R2. |
@@ -227,3 +219,5 @@ Antes de tratar el proyecto como una herramienta de producción, haría falta de
 ## Regla para mantener esta documentación
 
 Actualiza este README en la misma modificación que cambie el propósito, los flujos, las reglas de validación, los datos de la SOP, el almacenamiento, las tecnologías, los comandos locales o cualquier otra capacidad descrita aquí. Mantén las explicaciones y el inventario de archivos alineados con el comportamiento real del código; elimina o corrige la información que deje de aplicar. No documentes un despliegue como parte del flujo vigente hasta que el proyecto y su responsable lo hayan solicitado expresamente.
+
+La fuente de contexto detallada está dividida en [`docs/01-vision-y-objetivo.md`](docs/01-vision-y-objetivo.md), [`docs/02-arquitectura.md`](docs/02-arquitectura.md), [`docs/03-mapa-de-archivos.md`](docs/03-mapa-de-archivos.md), los módulos de [`docs/04-modulos/`](docs/04-modulos/), y los documentos de modelo, entorno, validación, seguridad y glosario. Si el README y el código discrepan, prevalece el código y debe registrarse la corrección en `docs/09-decisiones-e-historial.md`.

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Propuestas · Encabezado de Registrar validación</title>
+<link rel="stylesheet" href="../src/styles.css" />
+<link rel="stylesheet" href="../public/assets/fonts/fonts.css" />
+<link rel="stylesheet" href="../src/styles-md3.css" />
+<style>
+body{margin:0;background:#fff8f7}
+.pv{position:sticky;top:0;z-index:60;display:flex;justify-content:center;padding:10px;background:rgb(13 24 34 / 92%)}
+.pv .sw{display:flex;gap:2px;background:rgb(255 255 255 / 12%);border-radius:999px;padding:4px}
+.pv button{border:0;background:none;color:#fff;border-radius:999px;padding:8px 14px;font:700 13px Roboto,sans-serif;cursor:pointer;white-space:nowrap}
+.pv button.on{background:#fff;color:#b8470a}
+.station-intake-screen{padding-top:0}
+.ms{font-family:"Material Symbols Rounded";font-weight:400;font-style:normal;line-height:1}
+
+/* Interacciones suaves compartidas */
+.station-intake-user{transition:transform .18s ease,box-shadow .18s ease;cursor:default}
+.station-intake-user:hover{transform:translateY(-2px)}
+.operator-flow-step{cursor:pointer;transition:transform .15s ease}
+.operator-flow-step:hover{transform:translateY(-2px)}
+.operator-flow-step>span{transition:background .2s ease,box-shadow .2s ease,color .2s ease}
+.operator-flow-progress>i{position:relative;overflow:hidden;background:#e5d6d0!important}
+.operator-flow-progress>i::after{content:"";position:absolute;inset:0;transform-origin:left;transform:scaleX(0);transition:transform .45s ease;background:var(--acc)}
+.operator-flow-progress>i.fill::after{transform:scaleX(1)}
+.station-intake-banner h1,.station-intake-banner p,.station-intake-eyebrow{-webkit-text-stroke:0!important;paint-order:normal!important}
+
+/* V1 · Naranja profundo */
+body[data-v="1"]{--acc:#d9560b}
+body[data-v="1"] .station-intake-banner{background:radial-gradient(circle at 90% -40%,rgb(255 255 255 / 24%) 0,transparent 50%),linear-gradient(100deg,#a8360a 0%,#d9560b 55%,#ee7a1b 100%);box-shadow:0 6px 18px rgb(120 40 0 / 40%)}
+body[data-v="1"] .station-intake-banner h1{text-shadow:0 2px 8px rgb(70 20 0 / 55%)}
+body[data-v="1"] .station-intake-eyebrow{background:rgb(70 20 0 / 30%);border-color:rgb(255 255 255 / 45%)}
+body[data-v="1"] .station-intake-banner-icon{background:rgb(70 20 0 / 28%);border-color:rgb(255 255 255 / 45%)}
+body[data-v="1"] .station-intake-user{background:linear-gradient(135deg,#2a4258,#172635);border-color:rgb(255 255 255 / 55%)}
+body[data-v="1"] .station-intake-role{background:#d9560b;color:#fff}
+body[data-v="1"] .operator-flow-step--active>span{background:#d9560b;box-shadow:0 0 0 4px #ffe0cc}
+body[data-v="1"] .operator-flow-step--complete>span{background:#d9560b;color:#fff}
+
+/* V2 · Azul marino con acento naranja (el más sobrio) */
+body[data-v="2"]{--acc:#e8730f}
+body[data-v="2"] .station-intake-banner{background:radial-gradient(circle at 92% -50%,rgb(232 115 15 / 28%) 0,transparent 55%),linear-gradient(100deg,#0f1b27,#172635 60%,#223a50);border-bottom:5px solid #e8730f;box-shadow:0 6px 18px rgb(13 24 34 / 45%)}
+body[data-v="2"] .station-intake-banner::before,body[data-v="2"] .station-intake-banner::after{border-color:rgb(232 115 15 / 20%)}
+body[data-v="2"] .station-intake-eyebrow{background:#e8730f;border-color:#e8730f;color:#fff;text-shadow:none}
+body[data-v="2"] .station-intake-banner-icon{background:#e8730f;border-color:#f6a35a;color:#fff}
+body[data-v="2"] .station-intake-banner h1{text-shadow:0 2px 10px rgb(0 0 0 / 50%)}
+body[data-v="2"] .station-intake-user{background:rgb(255 255 255 / 8%);border:1.5px solid rgb(232 115 15 / 70%);box-shadow:none}
+body[data-v="2"] .station-intake-avatar{background:#e8730f;color:#fff}
+body[data-v="2"] .station-intake-role{background:#e8730f;color:#fff;border-color:transparent}
+body[data-v="2"] .operator-flow-step--active>span{background:#e8730f;box-shadow:0 0 0 4px #ffe3cc}
+body[data-v="2"] .operator-flow-step--complete>span{background:#e8730f;color:#fff}
+
+/* V3 · Corte diagonal carbón y naranja */
+body[data-v="3"]{--acc:#e0600f}
+body[data-v="3"] .station-intake-banner{background:linear-gradient(105deg,#1b2430 0%,#1b2430 34%,#e0600f 34.2%,#f08225 100%);box-shadow:0 6px 18px rgb(60 30 0 / 40%)}
+body[data-v="3"] .station-intake-banner::before,body[data-v="3"] .station-intake-banner::after{display:none}
+body[data-v="3"] .station-intake-banner h1{text-shadow:0 2px 8px rgb(80 30 0 / 55%)}
+body[data-v="3"] .station-intake-eyebrow{background:rgb(27 36 48 / 70%);border-color:rgb(255 255 255 / 40%)}
+body[data-v="3"] .station-intake-banner-icon{background:rgb(27 36 48 / 75%);border-color:rgb(255 255 255 / 40%)}
+body[data-v="3"] .station-intake-user{background:#1b2430;border:2px solid #fff}
+body[data-v="3"] .station-intake-avatar{background:#e0600f;color:#fff}
+body[data-v="3"] .station-intake-role{background:#e0600f;color:#fff;border-color:transparent}
+body[data-v="3"] .operator-flow-step--active>span{background:#1b2430;box-shadow:0 0 0 4px #ffd9bd}
+body[data-v="3"] .operator-flow-step--complete>span{background:#e0600f;color:#fff}
+body[data-v="3"] .operator-flow-step--active strong{color:#1b2430}
+</style>
+</head>
+<body data-v="1">
+<div class="pv"><div class="sw">
+  <button data-v="1" class="on">V1 · Naranja profundo</button><button data-v="2">V2 · Marino con acento naranja</button><button data-v="3">V3 · Corte diagonal</button>
+</div></div>
+<main style="max-width:none">
+<div class="station-intake-screen">
+  <section class="station-intake-banner" aria-label="Registrar validación">
+    <a class="station-intake-banner-brand" href="#top" aria-label="Ingrasys"><img src="../public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" /></a>
+    <div class="station-intake-banner-heading"><span class="station-intake-banner-icon" aria-hidden="true"><span class="material-symbols-rounded">fact_check</span></span><div><span class="station-intake-eyebrow" id="eb">Paso 1 de 3 · Seleccionar estación</span><h1 id="station-intake-title">Registrar validación</h1><p>Seguimiento de SOPs Nvidia Racks</p></div></div>
+    <div class="station-intake-user" aria-label="Usuario activo"><span class="station-intake-avatar" aria-hidden="true">GA</span><span><strong>Gabriel Medina Ramirez</strong><small>No. de empleado 140784</small><small>Ing FA JR</small></span><span class="station-intake-role">Administrador</span></div>
+  </section>
+  <nav class="operator-flow-progress" aria-label="Progreso del registro" id="pg">
+    <div class="operator-flow-step operator-flow-step--active" data-s="1"><span>1</span><strong>Seleccionar estación</strong></div><i></i>
+    <div class="operator-flow-step" data-s="2"><span>2</span><strong>Ver SOP asignada</strong></div><i></i>
+    <div class="operator-flow-step" data-s="3"><span>3</span><strong>Confirmar y guardar</strong></div>
+  </nav>
+  <p style="text-align:center;color:#534341;font-size:13px;margin:10px 0">Toca los pasos para ver cómo reacciona el progreso. Es una maqueta: no cambia la aplicación.</p>
+</div>
+</main>
+<script>
+var names=["Seleccionar estación","Ver SOP asignada","Confirmar y guardar"];
+function setStep(n){
+  var steps=document.querySelectorAll('#pg .operator-flow-step'),lines=document.querySelectorAll('#pg>i');
+  steps.forEach(function(s,i){var k=i+1;s.classList.toggle('operator-flow-step--active',k===n);s.classList.toggle('operator-flow-step--complete',k<n);s.querySelector('span').innerHTML=k<n?'<span class="ms" style="font-size:20px;font-variation-settings:\'FILL\' 1">check</span>':String(k)});
+  lines.forEach(function(l,i){l.classList.toggle('fill',i+1<n)});
+  document.getElementById('eb').textContent='Paso '+n+' de 3 · '+names[n-1];
+}
+document.querySelectorAll('#pg .operator-flow-step').forEach(function(s){s.onclick=function(){setStep(+s.dataset.s)}});
+document.querySelectorAll('.pv button').forEach(function(b){b.onclick=function(){document.body.dataset.v=b.dataset.v;document.querySelectorAll('.pv button').forEach(function(x){x.classList.toggle('on',x===b)})}});
+</script>
+</body>
+</html>

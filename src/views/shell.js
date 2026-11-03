@@ -23,7 +23,7 @@ function renderSidebar(state) {
   return `${state.navOpen ? '<button class="nav-scrim" type="button" aria-label="Cerrar menú" data-action="close-menu"></button>' : ""}
     <aside class="sidebar ${state.navOpen ? "sidebar--open" : ""}" aria-label="Navegación principal">
       <a class="brand" href="#top" data-action="brand-home" aria-label="Ingrasys, inicio">
-        <img class="brand-full" src="./public/assets/ingrasys-logo-dark.png" alt="Ingrasys" />
+        <img class="brand-full" src="./public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" />
         <img class="brand-mark" src="./public/assets/ingrasys-emblem.png" alt="" aria-hidden="true" />
       </a>
       <nav class="side-nav">${navItems}</nav>
@@ -38,8 +38,9 @@ function renderTopbar(state = {}) {
     </button>
     <div class="topbar-title">
       <span class="topbar-title-icon"><span class="material-symbols-rounded" aria-hidden="true">description</span></span>
-      <div class="topbar-title-copy"><span class="topbar-kicker">SOP actual · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}</span><h1>${escapeHtml(SOP_DOCUMENT.title)}</h1><p>Control de ejecución, validación y trazabilidad</p></div>
+      <div class="topbar-title-copy"><h1>${escapeHtml(SOP_DOCUMENT.title)}</h1><span class="topbar-kicker">SOP actual · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}</span></div>
     </div>
+    <div class="topbar-user-panel">
     <div class="topbar-profile">
       <details class="profile-menu">
         <summary class="profile-chip" aria-label="Opciones de ${escapeHtml(user.name)}">
@@ -51,9 +52,9 @@ function renderTopbar(state = {}) {
       </details>
     </div>
     <div class="topbar-meta">
-      <div class="date-chip"><span class="material-symbols-rounded" aria-hidden="true">calendar_today</span><span>${escapeHtml(TODAY_DATE_LABEL)}</span></div>
       <div class="shift-chip" aria-label="Turno actual"><span class="material-symbols-rounded" aria-hidden="true">groups</span><span id="current-shift-label">${getCurrentShiftLabel()}</span></div>
       <button class="icon-button help-button" type="button" data-action="open-help" data-focus-key="help-open" aria-label="Ayuda sobre almacenamiento local" title="Ayuda"><span class="material-symbols-rounded" aria-hidden="true">help</span></button>
+    </div>
     </div>
   </header>`;
 }
@@ -125,6 +126,6 @@ function renderSummaryMetrics(todayRecords, state) {
 }
 
 function renderFooter() {
-  return `<footer class="app-footer"><span>Ingrasys · SOP de desensamble GB200</span><span>Prototipo local · sin conexión a sistemas productivos</span></footer>`;
+  return `<footer class="app-footer"><span>Ingrasys · SOP de desensamble GB200 / GB300</span><span>Prototipo local · sin conexión a sistemas productivos</span></footer>`;
 }
 

@@ -39,7 +39,7 @@ const state = {
   reviewNote: "",
   recordsDialogOpen: false,
   helpDialogOpen: false,
-  activeSection: "overview",
+  activeSection: readSavedSection(),
   includeDemoData: false,
   reportFilters: { dateFrom: "", dateTo: "", shift: "all", category: "all", employeeNumber: "all" },
   reportPage: 1,
@@ -168,6 +168,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   }
   ensureGuidedSopRun();
   if (state.activeSection === "sop-admin" && !canManageSopVersions()) state.activeSection = "overview";
+  try { sessionStorage.setItem(ACTIVE_SECTION_KEY, state.activeSection); } catch { /* sessionStorage no disponible */ }
   const previousFocus = focusKey === undefined ? getFocusState() : { key: focusKey, start: null, end: null };
   const allRecords = getRecords();
   const records = filterDemoRecords(allRecords, state.activeSection === "traceability" && state.includeDemoData);
@@ -570,6 +571,10 @@ bindInteractions(app, {
     render();
   },
   createLocalUser: (formData) => {
+    if (String(formData.get("userPassword") ?? "") !== String(formData.get("userPasswordConfirm") ?? "")) {
+      showToast("Las contraseñas no coinciden.", "warning");
+      return;
+    }
     const result = addLocalUser({
       name: String(formData.get("userName") ?? ""),
       employeeNumber: String(formData.get("employeeNumber") ?? ""),
@@ -635,3 +640,14 @@ restoreCurrentSopVersion(state).then(async () => {
   state.sopStorageReady = true;
   render();
 });
+
+var ACTIVE_SECTION_KEY = "sop-operador-active-section";
+
+function readSavedSection() {
+  try {
+    const saved = sessionStorage.getItem("sop-operador-active-section");
+    return ["overview", "production", "traceability", "reports", "users", "sop-admin"].includes(saved) ? saved : "overview";
+  } catch {
+    return "overview";
+  }
+}

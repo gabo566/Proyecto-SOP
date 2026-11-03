@@ -279,6 +279,37 @@ function bindInteractions(app, handlers) {
     const action = event.target.closest("[data-action]");
     if (!action || !app.contains(action)) return;
     switch (action.dataset.action) {
+      case "toggle-password-visibility": {
+        const field = action.closest(".password-field")?.querySelector("input");
+        if (!field) break;
+        const show = field.type === "password";
+        field.type = show ? "text" : "password";
+        action.setAttribute("aria-pressed", String(show));
+        action.setAttribute("aria-label", show ? "Ocultar contraseña" : "Mostrar contraseña");
+        action.querySelector(".material-symbols-rounded").textContent = show ? "visibility_off" : "visibility";
+        field.focus();
+        break;
+      }
+      case "toggle-login-password": {
+        const input = document.querySelector("#login-password");
+        if (!input) break;
+        const show = input.type === "password";
+        input.type = show ? "text" : "password";
+        action.setAttribute("aria-pressed", String(show));
+        action.setAttribute("aria-label", show ? "Ocultar contraseña" : "Mostrar contraseña");
+        action.querySelector(".material-symbols-rounded").textContent = show ? "visibility_off" : "visibility";
+        input.focus();
+        break;
+      }
+      case "pick-station": {
+        if (prepareSopChangeFromIntake(action)) break;
+        const nextVersion = getEnabledSopVersionsForStation(state, action.dataset.stationValue)[0];
+        state.form.stationAssignment = action.dataset.stationValue;
+        state.form.sopVersionId = nextVersion?.id ?? "";
+        state.formError = "";
+        render({ focusKey: action.dataset.focusKey });
+        break;
+      }
       case "navigate": handleNavigation(action); break;
       case "open-sop-admin-from-intake":
         if (!canManageSopVersions()) break;
@@ -483,6 +514,11 @@ function bindInteractions(app, handlers) {
 
   app.addEventListener("input", (event) => {
     const { target } = event;
+    if (target.matches('#local-user-form input[name="userPassword"], #local-user-form input[name="userPasswordConfirm"]')) {
+      const form = target.form;
+      const confirm = form.elements.namedItem("userPasswordConfirm");
+      confirm.setCustomValidity(form.elements.namedItem("userPassword").value === confirm.value ? "" : "Las contraseñas no coinciden.");
+    }
     if (target.matches('[data-login-field="username"]')) {
       state.loginUsername = target.value;
     } else if (target.matches("#operator-handoff-form input")) {

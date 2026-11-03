@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Propuestas · Inicio de sesión</title>
+<link rel="stylesheet" href="../public/assets/fonts/fonts.css" />
+<style>
+:root{--red:#a92328;--red-d:#8a1b20;--red-l:#dc6a62;--navy:#172635;--navy-d:#0d1822;--cream:#fff8f7;--ink:#201a19;--muted:#534341;--line:#d8c2bf}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:Roboto,system-ui,sans-serif;color:var(--ink);background:#0d1822}
+.ms{font-family:"Material Symbols Rounded";font-weight:400;font-style:normal;display:inline-block;line-height:1;font-size:22px;vertical-align:middle;font-variation-settings:"FILL" 1;font-feature-settings:"liga"}
+button,input{font-family:inherit}
+.sw{position:fixed;z-index:50;top:12px;left:50%;transform:translateX(-50%);display:flex;background:rgb(13 24 34 / 82%);backdrop-filter:blur(8px);border:1px solid rgb(255 255 255 / 25%);border-radius:999px;padding:4px;gap:2px}
+.sw button{border:0;background:none;color:#fff;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer}
+.sw button.on{background:#fff;color:var(--red)}
+.v{display:none;min-height:100vh}.v.on{display:block}
+
+/* A */
+#vA{position:relative;display:none;place-items:center;overflow:hidden;padding:70px 16px 40px}
+#vA.on{display:grid}
+#vA .bg{position:absolute;inset:0;background:url(../public/assets/login-datacenter-background.png) center/cover}
+#vA .bg::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 40%,rgb(13 24 34 / 20%),rgb(13 24 34 / 82%) 75%),linear-gradient(180deg,rgb(169 35 40 / 22%),rgb(13 24 34 / 70%))}
+.glass{position:relative;width:min(100%,460px);padding:34px 34px 28px;border-radius:28px;background:rgb(255 255 255 / 10%);border:1px solid rgb(255 255 255 / 30%);backdrop-filter:blur(22px) saturate(140%);box-shadow:0 24px 70px rgb(0 0 0 / 55%),inset 0 1px 0 rgb(255 255 255 / 35%);color:#fff;display:grid;gap:18px;justify-items:center;text-align:center}
+.glass .logo{width:210px;filter:drop-shadow(0 4px 14px rgb(0 0 0 / 50%))}
+.glass h1{margin:0;font-size:26px;font-weight:700;letter-spacing:-.01em}
+.glass p.s{margin:6px 0 0;color:#d6e0ea;font-size:14px}
+.fld{position:relative;width:100%;text-align:left}
+.fld input{width:100%;height:58px;border-radius:16px;border:1.5px solid rgb(255 255 255 / 40%);background:rgb(255 255 255 / 10%);color:#fff;font-size:17px;padding:20px 48px 0 48px;outline:none;transition:border-color .15s,background .15s}
+.fld input:focus{border-color:#ffb4ab;background:rgb(255 255 255 / 16%);box-shadow:0 0 0 4px rgb(255 180 171 / 22%)}
+.fld label{position:absolute;left:48px;top:18px;font-size:16px;color:#c9d6e2;pointer-events:none;transition:all .15s}
+.fld input:focus+label,.fld input:not(:placeholder-shown)+label{top:8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#ffcfc9;font-weight:700}
+.fld .ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#ffb4ab}
+.fld .eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:0;color:#d6e0ea;cursor:pointer;width:38px;height:38px;border-radius:50%}
+.cta{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:58px;border-radius:999px;border:0;background:linear-gradient(100deg,var(--red-d),var(--red) 55%,#c23a3c);color:#fff;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 10px 26px rgb(169 35 40 / 55%);transition:transform .12s,box-shadow .12s}
+.cta:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgb(169 35 40 / 65%)}
+.note{display:flex;align-items:center;gap:8px;font-size:12px;color:#c9d6e2}
+.note .ms{font-size:16px}
+
+/* B */
+#vB{display:none;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);min-height:100vh}
+#vB.on{display:grid}
+#vB .L{position:relative;color:#fff;padding:56px 56px 40px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:url(../public/assets/login-datacenter-background.png) center/cover}
+#vB .L::before{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgb(138 27 32 / 88%),rgb(13 24 34 / 86%) 70%)}
+#vB .L>*{position:relative}
+#vB .L img{width:230px;filter:drop-shadow(0 4px 12px rgb(0 0 0 / 45%))}
+#vB .L h2{margin:0 0 14px;font-size:44px;line-height:1.08;letter-spacing:-.02em;font-weight:800;max-width:520px}
+#vB .L p{margin:0;font-size:17px;color:#e8d4d2;max-width:480px}
+.ft{display:grid;gap:14px;margin-top:34px}
+.ft div{display:flex;align-items:center;gap:14px;font-size:16px}
+.ft .b{width:44px;height:44px;border-radius:14px;background:rgb(255 255 255 / 14%);border:1px solid rgb(255 255 255 / 28%);display:flex;align-items:center;justify-content:center}
+#vB .R{background:var(--cream);display:grid;place-items:center;padding:40px 24px}
+.fm{width:min(100%,400px);display:grid;gap:18px}
+.fm h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.01em}
+.fm p{margin:0;color:var(--muted)}
+.lf{display:grid;gap:6px;font-size:14px;font-weight:700}
+.lf .in{display:flex;align-items:center;gap:10px;height:56px;border-radius:16px;border:2px solid #857371;background:#fff;padding:0 14px;transition:border-color .15s,box-shadow .15s}
+.lf .in:focus-within{border-color:var(--red);box-shadow:0 0 0 4px rgb(169 35 40 / 18%)}
+.lf .in .ms{color:var(--red)}
+.lf input{flex:1;border:0;outline:0;font-size:17px;background:none;color:var(--ink)}
+.cta2{display:flex;align-items:center;justify-content:center;gap:10px;height:58px;border-radius:999px;border:0;background:var(--red);color:#fff;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px rgb(169 35 40 / 40%)}
+.cta2:hover{background:var(--red-d)}
+.help{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.help b{color:var(--red)}
+.demo{background:#ffe8c2;color:#7a4b00;border-radius:14px;padding:10px 14px;font-size:13px;display:flex;gap:8px}
+
+/* C */
+#vC{display:none;background:radial-gradient(circle at 20% 0,#24405a 0,var(--navy) 45%,var(--navy-d) 100%);color:#fff;padding:70px 20px 40px;place-items:center}
+#vC.on{display:grid}
+.kp{width:min(100%,880px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:26px;align-items:stretch}
+.kp .a,.kp .bx{background:rgb(255 255 255 / 6%);border:1px solid rgb(255 255 255 / 16%);border-radius:28px;padding:28px}
+.kp .a{display:grid;gap:16px;align-content:start}
+.kp .a img{width:200px}
+.kp h1{margin:6px 0 0;font-size:28px;font-weight:800}
+.kp .a p{margin:0;color:#b8c7d6}
+.slot{height:60px;border-radius:16px;border:2px solid #4d6a85;background:rgb(13 24 34 / 55%);display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:24px;letter-spacing:.14em;font-weight:500}
+.slot.act{border-color:#ffb4ab;box-shadow:0 0 0 4px rgb(255 180 171 / 22%)}
+.slot small{font-size:12px;letter-spacing:.06em;color:#8fa6bb;text-transform:uppercase;font-weight:700}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pad button{height:64px;border-radius:18px;border:1px solid rgb(255 255 255 / 20%);background:rgb(255 255 255 / 10%);color:#fff;font-size:26px;font-weight:500;cursor:pointer;transition:background .1s,transform .08s}
+.pad button:active{transform:scale(.95);background:rgb(255 255 255 / 22%)}
+.pad button.k{font-size:16px;font-weight:700;background:rgb(255 255 255 / 4%)}
+.pad button.go{grid-column:1/-1;height:68px;background:var(--red);border-color:var(--red-l);font-size:20px;font-weight:700;box-shadow:0 10px 26px rgb(169 35 40 / 55%);display:flex;align-items:center;justify-content:center;gap:10px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips span{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 12px;background:rgb(255 255 255 / 10%);border:1px solid rgb(255 255 255 / 20%);font-size:13px;color:#d6e0ea}
+@media(max-width:820px){#vB.on{grid-template-columns:1fr}#vB .L{padding:28px 22px;min-height:300px}#vB .L h2{font-size:30px}.ft{display:none}.kp{grid-template-columns:1fr}.sw button{padding:7px 10px;font-size:12px}}
+</style>
+</head>
+<body>
+<div class="sw" role="group" aria-label="Propuesta de inicio de sesión">
+  <button data-v="A" class="on">A · Cristal</button><button data-v="B">B · Dividida</button><button data-v="C">C · Teclado táctil</button>
+</div>
+
+<section class="v on" id="vA">
+  <div class="bg"></div>
+  <form class="glass" onsubmit="return false">
+    <img class="logo" src="../public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" />
+    <div><h1>Seguimiento de SOPs</h1><p class="s">Nvidia Racks · GB200</p></div>
+    <div class="fld"><span class="ms ic">badge</span><input id="a1" placeholder=" " autocomplete="username" inputmode="numeric" /><label for="a1">Número de empleado</label></div>
+    <div class="fld"><span class="ms ic">lock</span><input id="a2" type="password" placeholder=" " autocomplete="current-password" /><label for="a2">Contraseña</label><button type="button" class="eye" aria-label="Mostrar contraseña" onclick="var i=document.getElementById('a2');i.type=i.type==='password'?'text':'password'"><span class="ms">visibility</span></button></div>
+    <button class="cta">Ingresar<span class="ms">arrow_forward</span></button>
+    <div class="note"><span class="ms">info</span>Acceso local de demostración. No es autenticación segura.</div>
+  </form>
+</section>
+
+<section class="v" id="vB">
+  <div class="L">
+    <img src="../public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" />
+    <div>
+      <h2>Cada paso, bien hecho y registrado.</h2>
+      <p>Procedimientos de desensamble y ensamble guiados para el operador, con evidencia y trazabilidad.</p>
+      <div class="ft">
+        <div><span class="b"><span class="ms">checklist</span></span>Pasos guiados hoja por hoja</div>
+        <div><span class="b"><span class="ms">photo_camera</span></span>Evidencia fotográfica en retrabajos</div>
+        <div><span class="b"><span class="ms">history</span></span>Trazabilidad por serie y operador</div>
+      </div>
+    </div>
+    <div style="font-size:13px;color:#d6c3c1">GB200 · Nvidia Racks</div>
+  </div>
+  <div class="R">
+    <form class="fm" onsubmit="return false">
+      <div><h1>Bienvenido</h1><p>Ingresa con tu número de empleado.</p></div>
+      <label class="lf">Número de empleado<span class="in"><span class="ms">badge</span><input placeholder="Ej. 140785" inputmode="numeric" /></span></label>
+      <label class="lf">Contraseña<span class="in"><span class="ms">lock</span><input type="password" placeholder="Tu contraseña" /><span class="ms" style="color:#857371">visibility</span></span></label>
+      <button class="cta2">Ingresar<span class="ms">arrow_forward</span></button>
+      <div class="help"><span>¿Problemas para entrar?</span><b>Habla con tu supervisor</b></div>
+      <div class="demo"><span class="ms" style="font-size:18px">info</span>Acceso local de demostración; los permisos son simulados.</div>
+    </form>
+  </div>
+</section>
+
+<section class="v" id="vC">
+  <div class="kp">
+    <div class="a">
+      <img src="../public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" />
+      <h1>Hola, ¿quién trabaja hoy?</h1>
+      <p>Captura tu número de empleado y tu contraseña con el teclado. Pensado para tableta, con guantes.</p>
+      <div class="chips"><span><span class="ms" style="font-size:16px">precision_manufacturing</span>MFG</span><span><span class="ms" style="font-size:16px">build_circle</span>RWK</span><span><span class="ms" style="font-size:16px">wifi_off</span>Sin red</span></div>
+      <div class="slot act" id="s1"><small>Empleado</small><span id="v1">······</span></div>
+      <div class="slot" id="s2"><small>Contraseña</small><span id="v2"></span></div>
+    </div>
+    <div class="bx"><div class="pad" id="pad"></div></div>
+  </div>
+</section>
+
+<script>
+var cur=1,val={1:"",2:""};
+function ren(){document.getElementById('v1').textContent=val[1]||"······";document.getElementById('v2').textContent="•".repeat(val[2].length);document.getElementById('s1').classList.toggle('act',cur===1);document.getElementById('s2').classList.toggle('act',cur===2)}
+(function(){var p=document.getElementById('pad'),h='';["1","2","3","4","5","6","7","8","9"].forEach(function(n){h+='<button onclick="key(\''+n+'\')">'+n+'</button>'});
+h+='<button class="k" onclick="val[cur]=\'\';ren()">Borrar</button><button onclick="key(\'0\')">0</button><button class="k" onclick="cur=cur===1?2:1;ren()">Cambiar</button><button class="go" onclick="cur=cur===1?2:1;ren()">Ingresar<span class="ms">arrow_forward</span></button>';p.innerHTML=h})();
+function key(n){if(val[cur].length<10)val[cur]+=n;ren()}
+document.querySelectorAll('.sw button').forEach(function(b){b.onclick=function(){document.querySelectorAll('.v').forEach(function(v){v.classList.remove('on')});document.getElementById('v'+b.dataset.v).classList.add('on');document.querySelectorAll('.sw button').forEach(function(x){x.classList.toggle('on',x===b)})}});
+ren();
+</script>
+</body>
+</html>

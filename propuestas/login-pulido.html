@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Propuestas · Login actual pulido</title>
+<link rel="stylesheet" href="../src/styles.css" />
+<link rel="stylesheet" href="../public/assets/fonts/fonts.css" />
+<style>
+/* Base = login actual de la aplicación (styles.css). Las variantes solo ajustan letras, campos y botón. */
+body{margin:0}
+.sw{position:fixed;z-index:50;top:12px;left:50%;transform:translateX(-50%);display:flex;background:rgb(13 24 34 / 85%);backdrop-filter:blur(8px);border:1px solid rgb(255 255 255 / 25%);border-radius:999px;padding:4px;gap:2px}
+.sw button{border:0;background:none;color:#fff;border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit}
+.sw button.on{background:#fff;color:#a92328}
+.login-logo-frame img{mix-blend-mode:normal;filter:drop-shadow(0 4px 14px rgb(0 0 0 / 45%))}
+.login-form .row{position:relative;display:block}
+.login-form .row .ms{position:absolute;left:22px;top:50%;transform:translateY(-50%);font-size:22px;pointer-events:none;display:none}
+.ms{font-family:"Material Symbols Rounded";font-weight:400;font-style:normal;line-height:1;font-variation-settings:"FILL" 1;font-feature-settings:"liga"}
+
+/* P1 · letras y campos limpios, botón rojo */
+body[data-v="1"] .login-kicker{margin-top:16px;padding:7px 16px;border:1px solid rgb(255 255 255 / 28%);border-radius:999px;background:rgb(255 255 255 / 9%);font-size:12px;letter-spacing:.16em}
+body[data-v="1"] .login-content h1{font-size:clamp(36px,5.2vw,54px);font-weight:800;letter-spacing:-.03em;text-shadow:0 0 28px rgba(83,224,117,.55),0 3px 16px rgba(0,0,0,.45)}
+body[data-v="1"] .login-content h2{font-size:20px;font-weight:500;color:#cfdcea;margin-top:26px}
+body[data-v="1"] .login-form label{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#cfdcea;margin:6px 0 -8px 26px}
+body[data-v="1"] .login-form input{min-height:64px;padding:0 28px 0 58px;border:2px solid rgb(255 255 255 / 42%);background:rgb(255 255 255 / 9%);font-size:19px}
+body[data-v="1"] .login-form .row .ms{display:block;color:#ffb4ab}
+body[data-v="1"] .login-submit{min-height:66px;width:min(100%,640px);font-size:20px;font-weight:800;background:linear-gradient(100deg,#8a1b20,#a92328 55%,#c23a3c);box-shadow:0 12px 30px rgb(169 35 40 / 55%)}
+
+/* P2 · paleta azul original, refinada */
+body[data-v="2"] .login-kicker{margin-top:16px;font-size:12px;letter-spacing:.2em;color:#9fd4ff}
+body[data-v="2"] .login-content h1{font-size:clamp(36px,5.2vw,54px);font-weight:800;letter-spacing:-.03em}
+body[data-v="2"] .login-content h2{font-size:20px;color:#cfdcea;margin-top:26px}
+body[data-v="2"] .login-form label{font-size:13px;font-weight:700;letter-spacing:.06em;color:#9fd4ff;margin:6px 0 -8px 26px}
+body[data-v="2"] .login-form input{min-height:64px;padding:0 58px 0 58px;border:2px solid #188fe7;background:rgb(2 22 38 / 55%);font-size:19px;box-shadow:inset 0 0 18px rgb(24 143 231 / 14%)}
+body[data-v="2"] .login-form .row .ms{display:block;color:#56b9ff}
+body[data-v="2"] .login-submit{min-height:66px;width:min(100%,640px);font-size:20px;font-weight:800;border:0;background:linear-gradient(100deg,#0670d6,#168ef8 60%,#3aa3ff);box-shadow:0 12px 30px rgb(0 117 242 / 45%)}
+
+/* P3 · campos azules y botón rojo de marca */
+body[data-v="3"] .login-kicker{margin-top:16px;font-size:12px;letter-spacing:.2em;color:#ffcfc9}
+body[data-v="3"] .login-content h1{font-size:clamp(36px,5.2vw,54px);font-weight:800;letter-spacing:-.03em}
+body[data-v="3"] .login-content h2{font-size:20px;color:#cfdcea;margin-top:26px}
+body[data-v="3"] .login-form label{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#cfe3f7;margin:6px 0 -8px 26px}
+body[data-v="3"] .login-form input{min-height:64px;padding:0 58px;border:2px solid #188fe7;background:rgb(2 22 38 / 55%);font-size:19px}
+body[data-v="3"] .login-form .row .ms{display:block;color:#ff8a80}
+body[data-v="3"] .login-submit{min-height:66px;width:min(100%,640px);font-size:20px;font-weight:800;border:0;background:linear-gradient(100deg,#8a1b20,#a92328 55%,#c23a3c);box-shadow:0 12px 30px rgb(169 35 40 / 55%)}
+</style>
+</head>
+<body data-v="0">
+<div class="sw" role="group" aria-label="Propuesta">
+  <button data-v="0" class="on">Actual</button><button data-v="1">P1 · Letras y botón rojo</button><button data-v="2">P2 · Azul original</button><button data-v="3">P3 · Campos azules, botón rojo</button>
+</div>
+<main class="login-screen">
+  <img class="login-background" src="../public/assets/login-datacenter-background.png" alt="" aria-hidden="true" />
+  <section class="login-content">
+    <div class="login-logo-frame"><img src="../public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" /></div>
+    <p class="login-kicker">GB200 · Acceso local de demostración</p>
+    <h1>Seguimiento de SOPs<br />Nvidia Racks</h1>
+    <h2>Ingresar al sistema</h2>
+    <form class="login-form" onsubmit="return false">
+      <label for="u">Usuario</label>
+      <span class="row"><span class="ms">badge</span><input id="u" placeholder="Número de usuario" /></span>
+      <label for="p">Contraseña</label>
+      <span class="row"><span class="ms">lock</span><input id="p" type="password" placeholder="Contraseña" /></span>
+      <button class="login-submit" type="submit"><span>Ingresar</span><span class="material-symbols-rounded ms" aria-hidden="true">arrow_forward</span></button>
+    </form>
+    <p class="login-note">Las cuentas y permisos se simulan en este navegador. No es autenticación segura ni acceso a producción.</p>
+  </section>
+</main>
+<script>
+document.querySelectorAll('.sw button').forEach(function(b){b.onclick=function(){document.body.dataset.v=b.dataset.v;document.querySelectorAll('.sw button').forEach(function(x){x.classList.toggle('on',x===b)})}});
+</script>
+</body>
+</html>

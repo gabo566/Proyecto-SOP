@@ -12,6 +12,15 @@ function renderStationIntakeSopChoice(state, assignment, isSelected) {
   return `<span class="station-choice-sop-selector"><span>SOP habilitadas:</span><select aria-label="SOP habilitadas para ${escapeHtml(assignment.type)} · ${escapeHtml(assignment.label)}" data-sop-version data-focus-key="sop-version-select">${versions.map((version) => `<option value="${escapeHtml(version.id)}" ${version.id === selectedId ? "selected" : ""}>${escapeHtml(version.document.title)} · Rev. ${escapeHtml(version.document.revision)}</option>`).join("")}</select></span>`;
 }
 
+function renderStationPills(assignments, current, label) {
+  if (!assignments.length) return "";
+  return `<span class="station-pills" role="group" aria-label="${escapeHtml(label)}">${assignments.map((item) => {
+    const selected = item.value === current?.value;
+    const name = item.type === "RWK" && !item.custom ? "Desensamble" : item.label;
+    return `<button type="button" class="station-pill ${selected ? "station-pill--on" : ""}" data-action="pick-station" data-station-value="${escapeHtml(item.value)}" data-focus-key="station-pick-${escapeHtml(item.value)}" aria-pressed="${selected}">${escapeHtml(name)}</button>`;
+  }).join("")}</span>`;
+}
+
 function renderStationIntake(state) {
   const user = getAuthenticatedLocalUser();
   const currentAssignment = getWorkStationAssignment(state.form.stationAssignment);
@@ -22,9 +31,7 @@ function renderStationIntake(state) {
   const enabledRwkAssignments = getEnabledWorkStationAssignments(state, "RWK");
   const status = getStationIntakeStatus(state);
   const canContinue = isStationIntakeComplete(state.form) && Boolean(activeVersion);
-  const assignmentOptions = enabledMfgAssignments
-    .map((item) => `<option value="${escapeHtml(item.value)}" ${item.value === assignment?.value ? "selected" : ""}>${escapeHtml(item.label)}</option>`)
-    .join("");
+  const stationHint = '<span class="station-choice-status station-choice-status--hint">Elige una estación</span>';
   const error = state.formError ? `<p class="form-error station-intake-error" id="station-intake-error" role="alert">${escapeHtml(state.formError)}</p>` : "";
   const isMfg = selectedType === "MFG";
   const mfgSelected = isMfg && enabledMfgAssignments.some((item) => item.value === assignment?.value);
@@ -35,11 +42,7 @@ function renderStationIntake(state) {
       ? `<span class="station-choice-status">${enabledMfgAssignments.length} estación${enabledMfgAssignments.length === 1 ? "" : "es"} habilitada${enabledMfgAssignments.length === 1 ? "" : "s"}</span>`
       : '<span class="station-choice-status station-choice-status--disabled">Sin SOP habilitadas por Administración</span>';
   const rwkAssignment = enabledRwkAssignments.find((item) => item.value === assignment?.value) ?? enabledRwkAssignments[0];
-  const rwkStationControl = rwkSelected
-    ? enabledRwkAssignments.length > 1
-      ? `<span class="station-choice-selector"><span>Estación:</span><select aria-label="Estación de retrabajo" data-station-code data-focus-key="station-code-select">${enabledRwkAssignments.map((item) => `<option value="${escapeHtml(item.value)}" ${item.value === assignment?.value ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}</select></span>`
-      : `<span class="station-choice-selector"><span>Estación:</span><strong>${escapeHtml(assignment?.label ?? rwkAssignment?.label ?? "RWK")}</strong></span>`
-    : "";
+  const rwkStationControl = renderStationPills(enabledRwkAssignments, rwkSelected ? assignment : null, "Estaciones de retrabajo");
   const rwkStatus = rwkSelected
     ? renderStationIntakeSopChoice(state, assignment, true)
     : enabledRwkAssignments.length
@@ -49,10 +52,9 @@ function renderStationIntake(state) {
   return `<div class="station-intake-screen" aria-labelledby="station-intake-title">
     <section class="station-intake-banner" aria-label="Registrar validación">
       <a class="station-intake-banner-brand" href="#top" aria-label="Ingrasys">
-        <img src="./public/assets/ingrasys-logo.png" alt="Ingrasys" />
+        <img src="./public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" />
       </a>
-      <div class="station-intake-banner-heading"><span class="material-symbols-rounded" aria-hidden="true">fact_check</span><div><h1 id="station-intake-title">Registrar validación</h1><p>Seguimiento de SOPs Nvidia Racks</p></div></div>
-      <div class="station-intake-user" aria-label="Usuario activo"><span class="station-intake-avatar" aria-hidden="true">${escapeHtml(user.name.slice(0,2).toLocaleUpperCase("es-MX"))}</span><span><strong>${escapeHtml(user.name)}</strong><small>No. de empleado ${escapeHtml(user.employeeNumber)}</small><small>${escapeHtml(user.position || "Técnico de FA")} · ${escapeHtml(LOCAL_USER_ROLES[user.role])}</small></span></div>
+      <div class="station-intake-banner-heading"><span class="station-intake-banner-icon" aria-hidden="true"><span class="material-symbols-rounded">fact_check</span></span><div><h1 id="station-intake-title">Registrar validación</h1></div></div>
     </section>
     <nav class="operator-flow-progress" aria-label="Progreso del registro">
       <div class="operator-flow-step operator-flow-step--active" aria-current="step"><span>1</span><strong>Seleccionar estación</strong></div><i></i>
@@ -61,29 +63,29 @@ function renderStationIntake(state) {
     </nav>
     <form id="station-intake-form" class="station-intake-form" novalidate>
       <section class="station-choice-section" aria-labelledby="station-choice-title">
-        <div class="station-section-title"><h2 id="station-choice-title">Selecciona la estación</h2><p>Elige el tipo de estación donde se realizará la validación. Solo aparecen estaciones con SOP habilitadas.</p></div>
+        <div class="station-section-title"><span class="station-section-num" aria-hidden="true">1</span><div><h2 id="station-choice-title">¿En qué área de la línea de producción te encuentras?</h2><p>Toca una estación. Solo aparecen las que tienen SOP habilitada.</p></div></div>
         <fieldset class="station-choice-grid"><legend class="sr-only">Tipo de estación</legend>
           <label class="station-choice station-choice--mfg ${isMfg ? "station-choice--selected" : ""} ${enabledMfgAssignments.length ? "" : "station-choice--disabled"}">
             <input type="radio" name="stationAssignmentType" data-station-type data-focus-key="station-MFG" value="MFG" ${isMfg ? "checked" : ""} ${enabledMfgAssignments.length ? "" : "disabled"} />
-            <span class="station-choice-radio" aria-hidden="true"></span><span class="station-code station-code--mfg">MFG</span><span class="station-choice-copy"><strong>Manufactura</strong><small>Estación de proceso en línea de producción.</small></span>
-            ${mfgSelected ? `<span class="station-choice-selector"><span>Estación:</span><select aria-label="Estación de manufactura" data-station-code data-focus-key="station-code-select">${assignmentOptions}</select></span>` : ""}
-            ${mfgSelected ? mfgStatus : !enabledMfgAssignments.length ? mfgStatus : ""}
+            <span class="station-choice-radio" aria-hidden="true"></span><span class="station-code station-code--mfg"><span class="material-symbols-rounded" aria-hidden="true">precision_manufacturing</span>MFG</span><span class="station-choice-copy"><strong>Manufactura</strong><small>Estación de proceso en línea de producción.</small></span>
+            ${renderStationPills(enabledMfgAssignments, mfgSelected ? assignment : null, "Estaciones de manufactura")}
+            ${mfgSelected || !enabledMfgAssignments.length ? mfgStatus : stationHint}
           </label>
           <label class="station-choice station-choice--rwk ${selectedType === "RWK" ? "station-choice--selected" : ""} ${enabledRwkAssignments.length ? "" : "station-choice--disabled"}">
             <input type="radio" name="stationAssignmentType" data-station-type data-focus-key="station-RWK" value="RWK" ${selectedType === "RWK" ? "checked" : ""} ${enabledRwkAssignments.length ? "" : "disabled"} />
-            <span class="station-choice-radio" aria-hidden="true"></span><span class="station-code station-code--rwk">RWK</span><span class="station-choice-copy"><strong>Retrabajo</strong><small>Desensamble, retrabajo o reparación del equipo.</small></span>
+            <span class="station-choice-radio" aria-hidden="true"></span><span class="station-code station-code--rwk"><span class="material-symbols-rounded" aria-hidden="true">build_circle</span>RWK</span><span class="station-choice-copy"><strong>Retrabajo</strong><small>Desensamble, retrabajo o reparación del equipo.</small></span>
             ${rwkStationControl}
-            ${rwkSelected || !enabledRwkAssignments.length ? rwkStatus : ""}
+            ${rwkSelected || !enabledRwkAssignments.length ? rwkStatus : stationHint}
           </label>
         </fieldset>
       </section>
       <section class="station-asset-section" aria-labelledby="station-asset-title">
-        <div class="station-section-title"><h2 id="station-asset-title">Datos obligatorios del nodo y la tarjeta</h2><p>Ingresa los números de parte (PN) y series tal como se visualizan en el equipo.</p></div>
+        <div class="station-section-title"><span class="station-section-num" aria-hidden="true">2</span><div><h2 id="station-asset-title">Captura los datos del equipo</h2><p>Copia el PN y la serie tal como aparecen en la etiqueta. Los cuatro son obligatorios.</p></div></div>
         <div class="station-asset-grid">
-          <label>PN del nodo <em aria-hidden="true">*</em><select data-form-field="nodePartNumber" data-focus-key="intake-node-part" required><option value="">Selecciona el PN del nodo</option>${NODE_PART_NUMBER_OPTIONS.map((partNumber) => `<option value="${escapeHtml(partNumber)}" ${state.form.nodePartNumber === partNumber ? "selected" : ""}>${escapeHtml(partNumber)}</option>`).join("")}</select></label>
-          <label>Serie del nodo <em aria-hidden="true">*</em><input data-form-field="serial" data-focus-key="intake-node-serial" value="${escapeHtml(state.form.serial ?? "")}" placeholder="Ej. SN12345678" required maxlength="100" autocomplete="off" /></label>
-          <label>PN de la tarjeta <em aria-hidden="true">*</em><input data-form-field="componentPartNumber" data-focus-key="intake-card-part" value="${escapeHtml(state.form.componentPartNumber ?? "")}" placeholder="Ej. 699-ABC123-00" required maxlength="100" autocomplete="off" /></label>
-          <label>Serie de la tarjeta <em aria-hidden="true">*</em><input data-form-field="componentSerial" data-focus-key="intake-card-serial" value="${escapeHtml(state.form.componentSerial ?? "")}" placeholder="Ej. TG12345678" required maxlength="100" autocomplete="off" /></label>
+          <label><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">memory</span>PN del nodo <em aria-hidden="true">*</em></span><select data-form-field="nodePartNumber" data-focus-key="intake-node-part" required><option value="">Selecciona el PN del nodo</option>${NODE_PART_NUMBER_OPTIONS.map((partNumber) => `<option value="${escapeHtml(partNumber)}" ${state.form.nodePartNumber === partNumber ? "selected" : ""}>${escapeHtml(partNumber)}</option>`).join("")}</select></label>
+          <label><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">qr_code_2</span>Serie del nodo <em aria-hidden="true">*</em></span><input data-form-field="serial" data-focus-key="intake-node-serial" value="${escapeHtml(state.form.serial ?? "")}" placeholder="Ej. SN12345678" required maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" /></label>
+          <label><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">developer_board</span>PN de la tarjeta <em aria-hidden="true">*</em></span><input data-form-field="componentPartNumber" data-focus-key="intake-card-part" value="${escapeHtml(state.form.componentPartNumber ?? "")}" placeholder="Ej. 699-ABC123-00" required maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" /></label>
+          <label><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">pin</span>Serie de la tarjeta <em aria-hidden="true">*</em></span><input data-form-field="componentSerial" data-focus-key="intake-card-serial" value="${escapeHtml(state.form.componentSerial ?? "")}" placeholder="Ej. TG12345678" required maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" /></label>
         </div>
       </section>
       <section class="station-work-summary" aria-label="Resumen de estación, operador y SOP">
@@ -91,9 +93,9 @@ function renderStationIntake(state) {
         <div class="station-summary-item station-summary-operator"><span class="material-symbols-rounded" aria-hidden="true">account_circle</span><span><small>Operador que realiza la acción</small><strong>${escapeHtml(user.name)}</strong><small>No. de empleado ${escapeHtml(user.employeeNumber)} · ${escapeHtml(user.position || "Técnico de FA")}</small></span></div>
         <div class="station-summary-item station-summary-sop"><span class="material-symbols-rounded" aria-hidden="true">description</span><span><small>SOP seleccionada · ${escapeHtml(assignment?.type ?? "")} · ${escapeHtml(assignment?.label ?? "")}</small><strong>${escapeHtml(activeVersion?.document?.title ?? "No hay una SOP habilitada")}</strong><small>${activeVersion ? `${escapeHtml(activeVersion.document.id)} · Rev. ${escapeHtml(activeVersion.document.revision)}` : "Administración debe asignar y habilitar una SOP."}</small></span></div>
       </section>
-      <footer class="station-intake-footer">${isStationIntakeComplete(state.form) ? `<p class="station-intake-status ${activeVersion ? "station-intake-status--ready" : ""}" id="station-intake-status" role="status" aria-live="polite">${escapeHtml(status)}</p>` : ""}
+      <footer class="station-intake-footer"><p class="station-intake-status ${canContinue ? "station-intake-status--ready" : ""}" id="station-intake-status" role="status" aria-live="polite"><span class="material-symbols-rounded" aria-hidden="true">${canContinue ? "check_circle" : "info"}</span><span>${escapeHtml(status)}</span></p>
         ${error}
-        <button class="button button--primary station-intake-continue" type="submit" ${canContinue ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>Continuar a la SOP</button>
+        <button class="button button--primary station-intake-continue" type="submit" ${canContinue ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>Abrir la SOP</button>
       </footer>
     </form>
     <p class="station-intake-footnote">La selección y los identificadores se conservarán en el registro de esta validación.</p>

@@ -55,7 +55,8 @@ async function renderSopDraftPdfPage(dialog, version, procedureIndex, stepIndex)
     const canvasWrap = canvas.parentElement;
     const availableWidth = Math.max(1, frame.clientWidth - 24);
     const availableHeight = Math.max(1, frame.clientHeight - 24);
-    const scale = Math.min(availableWidth / natural.width, availableHeight / natural.height);
+    const zoom = Math.max(1, Math.min(6, Number(dialog.dataset.zoom) || 1));
+    const scale = Math.min(availableWidth / natural.width, availableHeight / natural.height) * zoom;
     const viewport = page.getViewport({ scale });
     const outputScale = Math.max(1, Math.min(window.devicePixelRatio || 1, 2, 4096 / viewport.width, 4096 / viewport.height));
     const context = canvas.getContext("2d", { alpha: false });
@@ -74,7 +75,9 @@ async function renderSopDraftPdfPage(dialog, version, procedureIndex, stepIndex)
     }).promise;
     if (sequence !== sopDraftPreviewSequence) return;
 
-    const bounds = procedure.steps[stepIndex]?.sourceBounds;
+    const currentStep = procedure.steps[stepIndex];
+    const hasTextFix = (procedure.annotations ?? []).some((annotation) => annotation.type === "textfix" && annotation.stepNumber === currentStep?.number);
+    const bounds = hasTextFix ? null : currentStep?.sourceBounds;
     if (bounds) {
       const lowerLeft = viewport.convertToViewportPoint(bounds.x, bounds.y);
       const upperRight = viewport.convertToViewportPoint(bounds.x + bounds.width, bounds.y + bounds.height);
@@ -92,11 +95,30 @@ async function renderSopDraftPdfPage(dialog, version, procedureIndex, stepIndex)
       context.restore();
       status.textContent = `Hoja ${procedure.sheet} completa · ubicación del paso ${procedure.steps[stepIndex]?.number} resaltada`;
     } else {
-      status.textContent = `Hoja ${procedure.sheet} completa · consulta el texto actualizado del paso en el panel lateral`;
+      status.textContent = hasTextFix
+        ? `Hoja ${procedure.sheet} completa · paso ${currentStep.number} con el texto corregido`
+        : `Hoja ${procedure.sheet} completa · consulta el texto actualizado del paso en el panel lateral`;
     }
     const overlay = dialog.querySelector("[data-sop-annotation-overlay]");
     if (overlay) overlay.innerHTML = renderSopAnnotationContents(procedure.annotations ?? []);
     canvas.hidden = false;
+    canvas._sopViewport = viewport;
+    const focusBounds = procedure.steps[stepIndex]?.sourceBounds;
+    const zoomTarget = dialog._zoomTarget;
+    if (zoom > 1 && zoomTarget) {
+      dialog._zoomTarget = null;
+      const frameRect = frame.getBoundingClientRect();
+      const wrapRect = canvasWrap.getBoundingClientRect();
+      frame.scrollLeft += wrapRect.left + zoomTarget.cx * wrapRect.width - (frameRect.left + frame.clientWidth / 2);
+      frame.scrollTop += wrapRect.top + zoomTarget.cy * wrapRect.height - (frameRect.top + frame.clientHeight / 2);
+    } else if (zoom > 1 && focusBounds) {
+      const a = viewport.convertToViewportPoint(focusBounds.x, focusBounds.y);
+      const b = viewport.convertToViewportPoint(focusBounds.x + focusBounds.width, focusBounds.y + focusBounds.height);
+      const frameRect = frame.getBoundingClientRect();
+      const wrapRect = canvasWrap.getBoundingClientRect();
+      frame.scrollLeft += wrapRect.left + (a[0] + b[0]) / 2 - (frameRect.left + frame.clientWidth / 2);
+      frame.scrollTop += wrapRect.top + (a[1] + b[1]) / 2 - (frameRect.top + frame.clientHeight / 2);
+    }
   } catch (error) {
     if (sequence !== sopDraftPreviewSequence) return;
     status.textContent = error?.message || "No se pudo cargar la hoja de la SOP.";

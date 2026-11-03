@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Propuestas · Revisar extracción con vista previa</title>
+<link rel="stylesheet" href="../public/assets/fonts/fonts.css" />
+<style>
+:root{--red:#a92328;--navy:#172635;--org:#e8730f;--line:#d8c2bf;--ink:#201a19;--mu:#5b4f4d;--bg:#fff8f7;--ok:#146c3a}
+*{box-sizing:border-box}
+body{margin:0;font-family:Roboto,system-ui,sans-serif;color:var(--ink);background:var(--bg);font-size:15px;line-height:1.4}
+button{font-family:inherit;cursor:pointer;border:0}
+header{background:var(--navy);color:#fff;border-bottom:5px solid var(--org);padding:14px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+header h1{margin:0;font-size:20px}
+.tabs{display:inline-flex;background:rgb(255 255 255/16%);border-radius:999px;padding:3px}
+.tabs button{background:none;color:#fff;font-weight:700;font-size:14px;padding:8px 16px;border-radius:999px}
+.tabs button.on{background:#fff;color:var(--red)}
+.note{margin:12px 20px 0;padding:10px 14px;border-radius:14px;background:#fff0d8;border:1px solid #f0c27a;font-size:14px}
+main{padding:14px 20px 40px}
+.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:14px}
+.view{display:none}.view.on{display:block}
+.vp{position:relative;overflow:hidden;border-radius:12px;background:#e9e4e3;aspect-ratio:2184/1688}
+.vp .sh{position:absolute;inset:0;transform-origin:0 0;transition:transform .55s cubic-bezier(.2,.7,.2,1)}
+.vp img{display:block;width:100%;height:100%}
+.hl{position:absolute;border:4px solid var(--red);border-radius:10px;box-shadow:0 0 0 4000px rgb(20 10 10/45%);pointer-events:none;transition:all .4s}
+.hl b{position:absolute;top:-18px;left:-10px;min-width:34px;height:34px;padding:0 8px;border-radius:999px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px}
+.ov{position:absolute;background:#fff;border:3px solid var(--red);border-radius:10px;padding:4px 10px;font-size:clamp(9px,1.45vw,19px);font-weight:600;color:#111;line-height:1.25;overflow:hidden}
+.ov i{font-style:normal;background:var(--red);color:#fff;border-radius:999px;padding:0 7px;margin-right:6px;font-weight:800}
+.step{display:grid;grid-template-columns:76px 1fr;gap:10px;border:2px solid var(--line);border-radius:16px;padding:10px;margin-bottom:10px;background:#fff}
+.step.cur{border-color:var(--red);background:#fff4f2}
+.step label{font-size:13px;font-weight:700;color:var(--mu);display:grid;gap:4px}
+.step input,.step textarea{font:inherit;font-weight:600;border:2px solid #857371;border-radius:12px;padding:8px 10px;width:100%;color:var(--navy)}
+.step input{text-align:center;height:46px;font-size:17px}
+.step textarea{min-height:64px;resize:vertical;font-size:14px}
+.step input:focus,.step textarea:focus{outline:3px solid var(--org);border-color:var(--red)}
+.split{display:grid;grid-template-columns:minmax(300px,.8fr) 1.5fr;gap:16px;align-items:start}
+.sticky{position:sticky;top:10px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}
+.chip{background:#fff;border:2px solid var(--red);color:var(--red);font-weight:800;font-size:14px;padding:8px 14px;border-radius:999px}
+.chip.on{background:var(--red);color:#fff}
+.strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+.crop{height:130px;border-radius:10px;border:2px solid var(--line);background-size:cover;margin-bottom:8px}
+.cap{font-size:13px;color:var(--mu);margin:8px 2px 0}
+@media(max-width:900px){.split,.strip{grid-template-columns:1fr}.sticky{position:static}}
+</style>
+</head>
+<body>
+<header><h1>Revisar extracción · 3 propuestas</h1>
+<div class="tabs" id="tabs"><button class="on" data-v="a">A · Lado a lado</button><button data-v="b">B · Imagen arriba + recortes</button><button data-v="c">C · Editar sobre la imagen</button></div></header>
+<div class="note"><b>Sí es posible.</b> La app ya dibuja cada hoja del PDF como imagen y sabe en qué hoja y paso va cada texto. Lo que cambia al editar un paso es la <b>capa superpuesta</b> (marco, número y texto corregido), no los píxeles del PDF original. Prueba: haz clic en un paso y escribe en él.</div>
+<main>
+
+<section class="view on" id="v-a">
+ <div class="split">
+  <div class="card" id="listA"></div>
+  <div class="card sticky"><div class="vp" id="vpA"><div class="sh"><img src="../public/assets/sop-pages/sop-page-05.jpg" alt="Hoja 5"><div class="hl" id="hlA"><b id="hlAn">1</b></div></div></div>
+   <div class="bar"><button class="chip on" id="zoomA">Acercar al paso</button><span class="cap">Hoja 5 · el marco sigue al paso que editas.</span></div></div>
+ </div>
+</section>
+
+<section class="view" id="v-b">
+ <div class="card"><div class="vp" id="vpB"><div class="sh"><img src="../public/assets/sop-pages/sop-page-05.jpg" alt="Hoja 5"><div class="hl" id="hlB"><b id="hlBn">1</b></div></div></div></div>
+ <div class="strip" id="stripB"></div>
+ <p class="cap">Cada paso muestra su recorte de la hoja a la izquierda del texto; al tocar un recorte, la imagen de arriba lo resalta.</p>
+</section>
+
+<section class="view" id="v-c">
+ <div class="card"><div class="bar" style="margin:0 0 10px"><button class="chip on" id="origC">Ver con mis correcciones</button><span class="cap" style="margin:0">Escribe directamente en la etiqueta sobre la hoja.</span></div>
+  <div class="vp" id="vpC"><div class="sh"><img src="../public/assets/sop-pages/sop-page-05.jpg" alt="Hoja 5"><div id="ovC"></div></div></div></div>
+</section>
+</main>
+
+<script>
+var W=2184,H=1688;
+var steps=[
+ {n:"1",t:"Coloca el chasis en el carrito como se muestra en la Imagen.",box:[120,880,1030,1415],lab:[120,880,820,45],crop:[120,880,1030,1415]},
+ {n:"2",t:"Remueve la tapa del chassis y colócala en la parte inferior del carrito.",box:[1180,335,1910,795],lab:[1300,335,560,75],crop:[1180,335,1910,795]},
+ {n:"3",t:"Desatornille los 4 tornillos de cada handle (Derecho e Izquierdo) y guárdalos para evitar perdidas, para este proceso usar un torque de 4.8-5.3",box:[1055,900,2075,1435],lab:[1090,905,950,75],crop:[1055,900,2075,1435]}
+];
+var cur=0;
+function pct(b){return 'left:'+b[0]/W*100+'%;top:'+b[1]/H*100+'%;width:'+(b[2]-b[0])/W*100+'%;height:'+(b[3]-b[1])/H*100+'%'}
+function focusBox(vp,hl,hln,i,zoom){
+  var b=steps[i].box;hl.style.cssText=pct(b);hln.textContent=steps[i].n;
+  var sh=vp.querySelector('.sh');
+  if(!zoom){sh.style.transform='none';return}
+  var w=(b[2]-b[0])/W,h=(b[3]-b[1])/H,s=Math.min(.9/w,.9/h,3);
+  var cx=(b[0]+b[2])/2/W,cy=(b[1]+b[3])/2/H;
+  sh.style.transform='translate('+(50-cx*s*100)+'%,'+(50-cy*s*100)+'%) scale('+s+')';
+}
+function renderAll(){
+  /* A */
+  var A=document.getElementById('listA');A.innerHTML='<h3 style="margin:0 0 10px">Hoja 5 · '+steps.length+' pasos</h3>';
+  steps.forEach(function(s,i){var d=document.createElement('div');d.className='step'+(i===cur?' cur':'');
+   d.innerHTML='<label>Número<input value="'+s.n+'"></label><label>Instrucción<textarea>'+s.t+'</textarea></label>';
+   d.querySelector('input').oninput=function(e){s.n=e.target.value;sync(true)};
+   d.querySelector('textarea').oninput=function(e){s.t=e.target.value;sync(true)};
+   d.onfocusin=function(){if(cur!==i){cur=i;sync()}};A.appendChild(d)});
+  /* B */
+  var B=document.getElementById('stripB');B.innerHTML='';
+  steps.forEach(function(s,i){var d=document.createElement('div');d.className='step'+(i===cur?' cur':'');d.style.gridTemplateColumns='1fr';
+   var b=s.crop,bw=(b[2]-b[0])/W,bh=(b[3]-b[1])/H;
+   d.innerHTML='<div class="crop" style="background-image:url(../public/assets/sop-pages/sop-page-05.jpg);background-size:'+100/bw+'% '+100/bh+'%;background-position:'+(b[0]/W)/(1-bw)*100+'% '+(b[1]/H)/(1-bh)*100+'%"></div><div style="display:grid;grid-template-columns:70px 1fr;gap:10px"><label>Número<input value="'+s.n+'"></label><label>Instrucción<textarea>'+s.t+'</textarea></label></div>';
+   d.querySelector('.crop').onclick=function(){cur=i;sync()};
+   d.querySelector('input').oninput=function(e){s.n=e.target.value;sync(true)};
+   d.querySelector('textarea').oninput=function(e){s.t=e.target.value;sync(true)};
+   d.onfocusin=function(){if(cur!==i){cur=i;sync()}};B.appendChild(d)});
+  /* C */
+  var C=document.getElementById('ovC');C.innerHTML='';
+  steps.forEach(function(s,i){var d=document.createElement('div');d.className='ov';d.style.cssText=pct([s.lab[0],s.lab[1],s.lab[0]+s.lab[2],s.lab[1]+s.lab[3]]);d.style.height='auto';d.style.minHeight=s.lab[3]/H*100+'%';
+   d.innerHTML='<i>'+s.n+'</i><span contenteditable="true" spellcheck="false">'+s.t+'</span>';
+   d.querySelector('span').oninput=function(e){s.t=e.target.textContent};
+   d.style.display=showC?'block':'none';C.appendChild(d)});
+  focusBox(document.getElementById('vpA'),document.getElementById('hlA'),document.getElementById('hlAn'),cur,zoomOn);
+  focusBox(document.getElementById('vpB'),document.getElementById('hlB'),document.getElementById('hlBn'),cur,false);
+}
+var zoomOn=true,showC=true;
+function sync(keepFocus){
+  document.getElementById('hlAn').textContent=steps[cur].n;document.getElementById('hlBn').textContent=steps[cur].n;
+  document.querySelectorAll('#ovC .ov i').forEach(function(e,i){e.textContent=steps[i].n});
+  if(!keepFocus){var ae=document.activeElement;renderAll();return}
+  document.querySelectorAll('#ovC .ov span').forEach(function(e,i){if(document.activeElement!==e)e.textContent=steps[i].t});
+}
+document.getElementById('zoomA').onclick=function(){zoomOn=!zoomOn;this.classList.toggle('on',zoomOn);this.textContent=zoomOn?'Acercar al paso':'Ver hoja completa';focusBox(document.getElementById('vpA'),document.getElementById('hlA'),document.getElementById('hlAn'),cur,zoomOn)};
+document.getElementById('origC').onclick=function(){showC=!showC;this.classList.toggle('on',showC);this.textContent=showC?'Ver con mis correcciones':'Ver hoja original';document.querySelectorAll('#ovC .ov').forEach(function(e){e.style.display=showC?'block':'none'})};
+document.getElementById('tabs').onclick=function(e){var v=e.target.dataset.v;if(!v)return;[].forEach.call(this.children,function(b){b.classList.toggle('on',b===e.target)});document.querySelectorAll('.view').forEach(function(s){s.classList.toggle('on',s.id==='v-'+v)})};
+renderAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Propuestas · Login fusionado (dividida + actual)</title>
+<link rel="stylesheet" href="../public/assets/fonts/fonts.css" />
+<style>
+:root{--red:#a92328;--red-d:#8a1b20;--blue:#168ef8;--navy:#0f1b27;--glow:0 0 22px rgb(90 255 190 / 38%)}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:Roboto,system-ui,sans-serif;color:#fff;background:#0d1822}
+.ms{font-family:"Material Symbols Rounded";font-weight:400;font-style:normal;display:inline-block;line-height:1;font-size:22px;vertical-align:middle;font-variation-settings:"FILL" 1;font-feature-settings:"liga"}
+button,input{font-family:inherit}
+.sw{position:fixed;z-index:50;top:12px;left:50%;transform:translateX(-50%);display:flex;background:rgb(13 24 34 / 85%);backdrop-filter:blur(8px);border:1px solid rgb(255 255 255 / 25%);border-radius:999px;padding:4px;gap:2px}
+.sw button{border:0;background:none;color:#fff;border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.sw button.on{background:#fff;color:var(--red)}
+.v{display:none;position:relative;min-height:100vh;overflow:hidden}.v.on{display:grid}
+.photo{position:absolute;inset:0;background:url(../public/assets/login-datacenter-background.png) center/cover}
+.logo{width:230px;filter:drop-shadow(0 4px 14px rgb(0 0 0 / 55%))}
+.kick{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#d7e4f0;background:rgb(255 255 255 / 10%);border:1px solid rgb(255 255 255 / 25%);border-radius:999px;padding:6px 14px}
+h1{margin:0;font-weight:800;line-height:1.05;letter-spacing:-.02em;text-shadow:var(--glow),0 2px 14px rgb(0 0 0 / 55%)}
+h1 em{font-style:normal;color:#ffb4ab;text-shadow:0 2px 14px rgb(0 0 0 / 55%)}
+.rule{height:3px;border-radius:99px;background:linear-gradient(90deg,#d93a30,transparent);width:260px}
+.ft{display:grid;gap:12px}.ft div{display:flex;align-items:center;gap:12px;font-size:16px}
+.ft .b{width:42px;height:42px;border-radius:14px;background:rgb(255 255 255 / 12%);border:1px solid rgb(255 255 255 / 26%);display:flex;align-items:center;justify-content:center}
+label{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#d7e4f0}
+.in{display:flex;align-items:center;gap:10px;height:60px;border-radius:999px;border:2px solid var(--bc,#168ef8);background:rgb(255 255 255 / 8%);padding:0 22px;transition:box-shadow .15s}
+.in:focus-within{box-shadow:0 0 0 4px rgb(255 255 255 / 18%)}
+.in .ms{color:#cfe3f7}.in input{flex:1;border:0;outline:0;background:none;color:#fff;font-size:18px}.in input::placeholder{color:#a9bccd}
+.fm{display:grid;gap:8px}.fm label{margin:6px 0 0 22px}
+.cta{display:flex;align-items:center;justify-content:center;gap:12px;height:62px;border-radius:999px;border:0;color:#fff;font-size:19px;font-weight:800;cursor:pointer;margin-top:10px;background:var(--cb,var(--blue));box-shadow:0 10px 26px var(--cs,rgb(22 142 248 / 45%))}
+.note{font-size:12px;color:rgb(236 244 251 / 80%);line-height:1.5}
+
+/* G · dividida oscura (actual + B) */
+#vG{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
+#vG .L{position:relative;padding:48px 56px;display:flex;flex-direction:column;justify-content:space-between;gap:24px}
+#vG .L .photo{filter:saturate(1.1)}
+#vG .L::before{content:"";position:absolute;inset:0;background:linear-gradient(120deg,rgb(2 17 30 / 20%),rgb(2 17 30 / 78%))}
+#vG .L>*:not(.photo){position:relative}
+#vG h1{font-size:clamp(34px,4vw,54px);margin:16px 0 14px}
+#vG .R{background:linear-gradient(180deg,#132434,var(--navy));display:grid;place-items:center;padding:40px 28px;border-left:1px solid rgb(255 255 255 / 12%)}
+#vG form{width:min(100%,420px)}
+#vG h2{margin:0 0 10px;font-size:26px;font-weight:700}
+
+/* H · tarjeta puente */
+#vH{place-items:center;padding:80px 20px 40px}
+#vH .photo::after,#vI .photo::after,#vJ .photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgb(2 17 30 / 30%),rgb(2 17 30 / 82%))}
+#vH .card{position:relative;width:min(100%,1000px);display:grid;grid-template-columns:1fr 1fr;border-radius:32px;overflow:hidden;box-shadow:0 30px 80px rgb(0 0 0 / 60%);border:1px solid rgb(255 255 255 / 22%)}
+#vH .a{padding:44px;background:linear-gradient(150deg,rgb(138 27 32 / 92%),rgb(23 38 53 / 94%));display:grid;gap:18px;align-content:center}
+#vH .a h1{font-size:40px}
+#vH .b2{padding:44px;background:rgb(255 248 247 / 97%);color:#201a19;display:grid;gap:10px;align-content:center}
+#vH .b2 h2{margin:0;font-size:28px;font-weight:800}.b2 p{margin:0 0 6px;color:#534341}
+#vH label{color:#534341}
+#vH .in{--bc:#857371;background:#fff}#vH .in input{color:#201a19}#vH .in .ms{color:var(--red)}#vH .in input::placeholder{color:#85736f}
+#vH .cta{--cb:var(--red);--cs:rgb(169 35 40 / 45%)}
+
+/* I · formulario a la derecha */
+#vI{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);align-items:center;padding:70px 56px 40px;gap:40px}
+#vI .hero{position:relative;display:grid;gap:18px;justify-items:start}
+#vI .hero h1{font-size:clamp(38px,4.8vw,62px)}
+#vI .glass{position:relative;border-radius:30px;background:rgb(255 255 255 / 10%);border:1px solid rgb(255 255 255 / 30%);backdrop-filter:blur(20px) saturate(140%);padding:34px;box-shadow:0 24px 70px rgb(0 0 0 / 55%),inset 0 1px 0 rgb(255 255 255 / 30%)}
+#vI .glass h2{margin:0 0 6px;font-size:24px;font-weight:700}
+#vI .cta{--cb:var(--red);--cs:rgb(169 35 40 / 55%)}#vI .in{--bc:rgb(255 255 255 / 45%)}
+
+/* J · centrado + franja */
+#vJ{place-items:center;padding:70px 20px 100px}
+#vJ .c{position:relative;display:grid;justify-items:center;gap:14px;text-align:center;width:min(100%,560px)}
+#vJ h1{font-size:clamp(34px,5vw,52px)}
+#vJ form{width:100%;text-align:left}
+#vJ .strip{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:34px;flex-wrap:wrap;padding:18px 20px;background:rgb(13 24 34 / 75%);backdrop-filter:blur(10px);border-top:1px solid rgb(255 255 255 / 15%);font-size:14px;color:#d7e4f0}
+#vJ .strip span{display:flex;align-items:center;gap:8px}
+#vJ .cta{--cb:var(--red);--cs:rgb(169 35 40 / 55%)}
+
+@media(max-width:860px){#vG,#vI{grid-template-columns:1fr}#vG .L{min-height:380px;padding:28px}#vH .card{grid-template-columns:1fr}#vI{padding:70px 20px 30px}.sw button{padding:7px 9px;font-size:12px}.ft{display:none}}
+</style>
+</head>
+<body>
+<div class="sw" role="group" aria-label="Propuesta">
+  <button data-v="G" class="on">G · Dividida oscura</button><button data-v="H">H · Tarjeta puente</button><button data-v="I">I · Formulario a la derecha</button><button data-v="J">J · Centrado con franja</button>
+</div>
+
+<section class="v on" id="vG">
+  <div class="L"><div class="photo"></div>
+    <img class="logo" src="../public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" />
+    <div>
+      <span class="kick">GB200 · Acceso local de demostración</span>
+      <h1>Seguimiento de SOPs<br /><em>Nvidia Racks</em></h1>
+      <div class="rule"></div>
+      <div class="ft" style="margin-top:26px">
+        <div><span class="b"><span class="ms">checklist</span></span>Pasos guiados hoja por hoja</div>
+        <div><span class="b"><span class="ms">photo_camera</span></span>Evidencia fotográfica en retrabajos</div>
+        <div><span class="b"><span class="ms">history</span></span>Trazabilidad por serie y operador</div>
+      </div>
+    </div>
+    <div class="note">Las cuentas y permisos se simulan en este navegador. No es autenticación segura ni acceso a producción.</div>
+  </div>
+  <div class="R"><form class="fm" onsubmit="return false"><h2>Ingresar al sistema</h2>
+    <label>Usuario</label><span class="in"><span class="ms">badge</span><input placeholder="Número de empleado" /></span>
+    <label>Contraseña</label><span class="in"><span class="ms">lock</span><input type="password" placeholder="Tu contraseña" /><span class="ms">visibility</span></span>
+    <button class="cta">Ingresar<span class="ms">arrow_forward</span></button></form></div>
+</section>
+
+<section class="v" id="vH"><div class="photo"></div>
+  <div class="card">
+    <div class="a"><img class="logo" src="../public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" /><span class="kick" style="justify-self:start">GB200 · Demostración</span>
+      <h1>Seguimiento de SOPs <em>Nvidia Racks</em></h1><div class="rule"></div>
+      <div class="ft"><div><span class="b"><span class="ms">checklist</span></span>Pasos guiados</div><div><span class="b"><span class="ms">history</span></span>Trazabilidad</div></div></div>
+    <form class="b2" onsubmit="return false"><h2>Ingresar al sistema</h2><p>Con tu número de empleado.</p>
+      <label>Usuario</label><span class="in"><span class="ms">badge</span><input placeholder="Número de empleado" /></span>
+      <label>Contraseña</label><span class="in"><span class="ms">lock</span><input type="password" placeholder="Tu contraseña" /></span>
+      <button class="cta">Ingresar<span class="ms">arrow_forward</span></button></form>
+  </div>
+</section>
+
+<section class="v" id="vI"><div class="photo"></div>
+  <div class="hero"><img class="logo" src="../public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" /><span class="kick">GB200 · Acceso local de demostración</span>
+    <h1>Seguimiento de SOPs<br /><em>Nvidia Racks</em></h1><div class="rule"></div>
+    <div class="ft"><div><span class="b"><span class="ms">checklist</span></span>Pasos guiados hoja por hoja</div><div><span class="b"><span class="ms">photo_camera</span></span>Evidencia fotográfica</div><div><span class="b"><span class="ms">history</span></span>Trazabilidad por serie y operador</div></div></div>
+  <form class="glass fm" onsubmit="return false"><h2>Ingresar al sistema</h2>
+    <label>Usuario</label><span class="in"><span class="ms">badge</span><input placeholder="Número de empleado" /></span>
+    <label>Contraseña</label><span class="in"><span class="ms">lock</span><input type="password" placeholder="Tu contraseña" /><span class="ms">visibility</span></span>
+    <button class="cta">Ingresar<span class="ms">arrow_forward</span></button><span class="note" style="text-align:center;margin-top:6px">Las cuentas se simulan en este navegador.</span></form>
+</section>
+
+<section class="v" id="vJ"><div class="photo"></div>
+  <div class="c"><img class="logo" src="../public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" style="width:300px" /><span class="kick">GB200 · Acceso local de demostración</span>
+    <h1>Seguimiento de SOPs<br /><em>Nvidia Racks</em></h1><div class="rule" style="background:linear-gradient(90deg,transparent,#d93a30,transparent)"></div>
+    <form class="fm" onsubmit="return false"><label>Usuario</label><span class="in"><span class="ms">badge</span><input placeholder="Número de empleado" /></span>
+      <label>Contraseña</label><span class="in"><span class="ms">lock</span><input type="password" placeholder="Tu contraseña" /></span>
+      <button class="cta">Ingresar<span class="ms">arrow_forward</span></button></form></div>
+  <div class="strip"><span><span class="ms">checklist</span>Pasos guiados</span><span><span class="ms">photo_camera</span>Evidencia fotográfica</span><span><span class="ms">history</span>Trazabilidad</span></div>
+</section>
+
+<script>
+document.querySelectorAll('.sw button').forEach(function(b){b.onclick=function(){document.querySelectorAll('.v').forEach(function(v){v.classList.remove('on')});document.getElementById('v'+b.dataset.v).classList.add('on');document.querySelectorAll('.sw button').forEach(function(x){x.classList.toggle('on',x===b)})}});
+</script>
+</body>
+</html>

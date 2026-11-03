@@ -116,7 +116,16 @@ function isStationIntakeComplete(form = {}) {
 }
 
 function getStationIntakeStatus(state) {
-  if (!isStationIntakeComplete(state.form)) return "Completa los cuatro datos obligatorios para continuar.";
+  if (!isStationIntakeComplete(state.form)) {
+    const form = state.form ?? {};
+    const missing = [
+      ["PN del nodo", form.nodePartNumber],
+      ["Serie del nodo", form.serial],
+      ["PN de la tarjeta", form.componentPartNumber],
+      ["Serie de la tarjeta", form.componentSerial],
+    ].filter(([, value]) => !value?.trim()).map(([label]) => label);
+    return `Falta capturar: ${missing.join(", ")}.`;
+  }
   if (!findSopVersionForStation(state, state.form.stationAssignment, state.form.sopVersionId)) {
     const assignment = getWorkStationAssignment(state.form.stationAssignment);
     return assignment

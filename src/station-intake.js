@@ -67,7 +67,10 @@ function updateStationIntakeUI(state) {
   const sopSummary = form.querySelector(".station-summary-sop");
   if (button) button.disabled = !canContinue;
   if (status) {
-    status.textContent = getStationIntakeStatus(state);
+    const statusText = status.querySelector("span:last-child");
+    const statusIcon = status.querySelector(".material-symbols-rounded");
+    if (statusText) statusText.textContent = getStationIntakeStatus(state);
+    if (statusIcon) statusIcon.textContent = canContinue ? "check_circle" : "info";
     status.classList.toggle("station-intake-status--ready", canContinue);
   }
   if (sopSummary) {

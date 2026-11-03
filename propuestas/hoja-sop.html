@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Propuestas · Hoja SOP con la hoja completa</title>
+<link rel="stylesheet" href="../public/assets/fonts/fonts.css" />
+<style>
+:root{--red:#a92328;--red-d:#8a1b20;--red-c:#ffdad6;--navy:#172635;--ok:#146c3a;--ok-c:#d6f2e0;--warn:#7a4b00;--warn-c:#ffe8c2;--line:#d8c2bf;--ink:#201a19;--muted:#534341;--bg:#fff8f7}
+*{box-sizing:border-box}
+body{margin:0;font-family:Roboto,system-ui,sans-serif;color:var(--ink);background:var(--bg);font-size:15px;line-height:1.4}
+.ms{font-family:"Material Symbols Rounded";font-weight:400;font-style:normal;display:inline-block;line-height:1;font-size:22px;vertical-align:middle;font-variation-settings:"FILL" 1;-webkit-font-feature-settings:"liga";font-feature-settings:"liga"}
+button{font-family:inherit;cursor:pointer;border:0}
+.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 20px;background:linear-gradient(100deg,#8a1b20,#a92328 50%,#c23a3c);color:#fff;box-shadow:0 4px 14px rgb(65 0 2 / 30%)}
+.top h1{margin:0;font-size:20px;font-weight:700}.top .sp{flex:1}
+.seg{display:inline-flex;background:rgb(255 255 255 / 18%);border-radius:999px;padding:3px}
+.seg button{background:none;color:#fff;border-radius:999px;padding:8px 16px;font-size:14px;font-weight:700}
+.seg button.on{background:#fff;color:var(--red)}
+.sw{display:inline-flex;align-items:center;gap:6px;border:1.5px solid #fff;background:none;color:#fff;border-radius:999px;padding:7px 14px;font-size:14px;font-weight:700}
+.sw.on{background:#fff;color:var(--red)}
+.meta{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 20px;font-size:13px;color:var(--muted)}
+.meta b{color:var(--ink)}
+.bar{flex:1;min-width:160px;height:10px;border-radius:99px;background:#ece0de;overflow:hidden}.bar>span{display:block;height:100%;background:var(--ok);transition:width .3s}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700;background:var(--warn-c);color:var(--warn)}
+.chip .ms{font-size:18px}
+main{padding:0 20px 28px}
+.card{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 1px 2px rgb(65 0 2 / 10%),0 4px 14px rgb(65 0 2 / 6%)}
+.vp{position:relative;overflow:hidden;border-radius:14px;background:#e9e4e3;aspect-ratio:2200/1700}
+.vp .sh{position:absolute;inset:0;transform-origin:0 0;transition:transform .55s cubic-bezier(.2,.7,.2,1)}
+.vp img{display:block;width:100%;height:100%}
+.hl{position:absolute;border:3px solid var(--red);border-radius:10px;pointer-events:none;transition:opacity .3s}
+.hl.dim{box-shadow:0 0 0 4000px rgb(20 10 10 / 45%)}
+.hl .n{position:absolute;top:-16px;left:-8px;background:var(--red);color:#fff;border-radius:999px;min-width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
+.tools{position:absolute;right:10px;top:10px;display:flex;gap:6px}
+.tools button{background:#fff;color:var(--ink);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700;box-shadow:0 2px 6px rgb(0 0 0 / 25%);display:flex;gap:6px;align-items:center}
+.tools button.on{background:var(--red);color:#fff}
+.step{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:start;border:2px solid var(--line);border-radius:18px;padding:12px;background:#fff;text-align:left;width:100%;color:var(--ink)}
+.step .dot{width:40px;height:40px;border-radius:50%;background:#ece0de;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px}
+.step.cur{border-color:var(--red);background:#fff4f2}.step.cur .dot{background:var(--red);color:#fff}
+.step.ok{border-color:var(--ok);background:var(--ok-c)}.step.ok .dot{background:var(--ok);color:#fff}
+.step .tx{font-size:15px}.step .crit{display:inline-block;font-size:11px;font-weight:700;background:var(--red);color:#fff;border-radius:6px;padding:2px 6px;margin-left:6px}
+.step img{width:100%;border-radius:10px;margin-top:8px;display:block}
+.go{display:flex;align-items:center;justify-content:center;gap:10px;border-radius:999px;font-weight:700;width:100%;color:#fff;background:var(--ok);height:64px;font-size:21px;box-shadow:0 4px 12px rgb(20 108 58 / 35%)}
+.go.undo{background:var(--ok-c);color:var(--ok);box-shadow:none;height:52px;font-size:16px}
+.ghost{display:flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;border:2px solid var(--line);background:#fff;color:var(--ink);height:44px;padding:0 16px;font-size:14px;font-weight:700}
+.ghost.red{color:var(--red)}
+.safety{display:flex;gap:6px;flex-wrap:wrap}
+.lay:not(.on){display:none!important}
+.gA{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(320px,1fr);gap:16px;align-items:start}
+.panel{display:grid;gap:10px;padding:14px}
+.gB .strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:14px}
+.gC{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:16px;align-items:start}
+.big{width:100%;border-radius:14px;display:block}
+.mini{position:relative;width:180px;border-radius:10px;overflow:hidden;border:2px solid #fff;box-shadow:0 3px 10px rgb(0 0 0 / 35%)}
+.mini img{display:block;width:100%}.mini .hl{border-width:2px;border-radius:4px}
+.pos{position:absolute;left:12px;bottom:12px}
+.done-box{text-align:center;padding:26px 16px;display:grid;gap:10px;justify-items:center}
+.sig{border:2px dashed #b8a6a3;border-radius:14px;height:56px;width:min(420px,100%);display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted)}
+.rep{background:#fff0ee;border:2px solid var(--red);border-radius:16px;padding:12px;display:grid;gap:8px}
+.rep .opts{display:flex;gap:8px;flex-wrap:wrap}.rep .opts span{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700}
+.note{font-size:13px;color:var(--muted);padding:0 20px 18px}
+@media(max-width:900px){.gA,.gC{grid-template-columns:1fr}.top h1{font-size:17px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Hoja 5 de 46 · Desensamble general de Compu tray</h1>
+  <span class="sp"></span>
+  <div class="seg" role="group" aria-label="Propuesta de diseño">
+    <button data-lay="A" class="on">A · Hoja y pasos</button>
+    <button data-lay="B">B · Hoja arriba</button>
+    <button data-lay="C">C · Enfoque</button>
+  </div>
+  <button class="sw" id="expert" aria-pressed="false"><span class="ms">bolt</span>Modo experto</button>
+</header>
+<div class="meta">
+  <span>Estación <b>RWK</b></span><span>Serie <b>SN-DEMO-001</b></span><span>Operador <b>Operador Demo</b></span>
+  <span class="bar"><span id="bar" style="width:0%"></span></span><b id="cnt">0 de 3 pasos</b>
+  <span class="safety" id="safety"></span>
+</div>
+<main>
+  <section class="lay gA on" id="layA"></section>
+  <section class="lay gB" id="layB"></section>
+  <section class="lay" id="layC"></section>
+</main>
+<p class="note">Prototipo con la hoja real 5 de la SOP y las imágenes de referencia reales. Los datos son de demostración; nada se guarda.</p>
+
+<script>
+var SHEET="../public/assets/sop-pages/sop-page-05.jpg";
+var STEPS=[
+ {t:"Coloque el chasis del nodo sobre el carrito de trabajo.",img:"../public/assets/sop-step-blocks/sheet-5-step-1.jpg",r:[0.045,0.525,0.44,0.33],crit:false},
+ {t:"Retire la tapa del chasis y colóquela debajo del carrito.",img:"../public/assets/sop-step-blocks/sheet-5-step-2.jpg",r:[0.54,0.195,0.34,0.285],crit:false},
+ {t:"Retire los 4 tornillos de cada manija. Guarde los tornillos para el ensamble. Torque indicado: 4.8–5.3 in-lb, punta PH2.",img:"../public/assets/sop-step-blocks/sheet-5-step-3.jpg",r:[0.486,0.535,0.464,0.32],crit:true}
+];
+var SAFE=[["engineering","Punta PH2"],["pan_tool","Guantes"],["bolt","Pulsera ESD"]];
+var S={lay:"A",cur:0,done:[false,false,false],expert:false,zoom:true,rep:false,msg:"",fin:false};
+function vis(){return STEPS.map(function(s,i){return i}).filter(function(i){return !S.expert||STEPS[i].crit})}
+function pct(v){return (v*100).toFixed(2)+"%"}
+function xf(r){var s=Math.min(0.9/r[2],0.9/r[3],2.1);var cx=r[0]+r[2]/2,cy=r[1]+r[3]/2;return "translate("+((0.5-s*cx)*100).toFixed(2)+"%,"+((0.5-s*cy)*100).toFixed(2)+"%) scale("+s.toFixed(3)+")"}
+function box(i,dim,cls){var r=STEPS[i].r;return '<div class="hl '+(dim?'dim ':'')+(cls||'')+'" style="left:'+pct(r[0])+';top:'+pct(r[1])+';width:'+pct(r[2])+';height:'+pct(r[3])+'"><span class="n">'+(i+1)+'</span></div>'}
+function viewer(withTools){
+ var all=vis().map(function(i){return box(i,false,i===S.cur?"":"")}).join("");
+ var st=S.zoom?xf(STEPS[S.cur].r):"none";
+ var h='<div class="vp"><div class="sh" style="transform:'+st+'"><img src="'+SHEET+'" alt="Hoja 5 de la SOP"/>'+(S.zoom?box(S.cur,false):all.replace(/class="hl "/g,'class="hl"'))+'</div>';
+ if(withTools)h+='<div class="tools"><button class="'+(S.zoom?'on':'')+'" onclick="S.zoom=true;draw()"><span class="ms">center_focus_strong</span>Enfocar paso</button><button class="'+(!S.zoom?'on':'')+'" onclick="S.zoom=false;draw()"><span class="ms">description</span>Hoja completa</button></div>';
+ return h+'</div>'}
+function stepCard(i,thumb){var c=S.done[i]?"ok":(i===S.cur?"cur":"");return '<button class="step '+c+'" onclick="go('+i+')"><span class="dot">'+(S.done[i]?'<span class="ms" style="font-size:24px">check</span>':(i+1))+'</span><span class="tx">'+STEPS[i].t+(STEPS[i].crit?'<span class="crit">CRÍTICO</span>':'')+(thumb?'<img src="'+STEPS[i].img+'" alt="Referencia del paso '+(i+1)+'"/>':'')+'</span></button>'}
+function actions(){
+ var h=S.done[S.cur]?'<button class="go undo" onclick="undo()"><span class="ms">check_circle</span>Hecho · tocar para deshacer</button>':'<button class="go" onclick="done()"><span class="ms" style="font-size:30px">check</span>Hecho</button>';
+ h+='<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="ghost" onclick="prev()"><span class="ms" style="font-size:20px">arrow_back</span>Anterior</button><button class="ghost red" style="flex:1" onclick="S.rep=!S.rep;draw()"><span class="ms" style="font-size:20px">flag</span>Reportar problema</button></div>';
+ if(S.rep)h+='<div class="rep"><b>¿Qué pasó en este paso?</b><div class="opts"><span>Falta pieza</span><span>Pieza dañada</span><span>Torque fuera de rango</span><span>Otro</span></div><button class="go" style="background:var(--red);height:48px;font-size:16px;box-shadow:none" onclick="S.rep=false;S.msg=\'Aquí se detendría el trabajo y se guardaría la no conformidad.\';draw()">Detener trabajo y registrar</button></div>';
+ if(S.msg)h+='<span class="chip">'+S.msg+'</span>';
+ return h}
+function finBox(){return '<div class="card done-box"><span class="ms" style="font-size:56px;color:var(--ok)">task_alt</span><div style="font-size:24px;font-weight:700">Hoja 5 completa</div><div style="color:var(--muted)">Revisa la hoja y firma para continuar.</div><div class="sig"><span class="ms">draw</span>Firma del operador</div><button class="go" style="background:var(--red);width:min(420px,100%);box-shadow:none" onclick="S.msg=\'Se abriría la hoja 6. La maqueta termina aquí.\';draw()">Continuar a hoja 6<span class="ms">arrow_forward</span></button><button class="ghost" onclick="S.fin=false;S.done[vis()[vis().length-1]]=false;draw()">Reabrir último paso</button>'+(S.msg?'<span class="chip">'+S.msg+'</span>':'')+'</div>'}
+function go(i){S.cur=i;S.msg="";S.rep=false;draw()}
+function prev(){var v=vis(),k=v.indexOf(S.cur);if(k>0)go(v[k-1])}
+function undo(){S.done[S.cur]=false;S.fin=false;draw()}
+function done(){S.done[S.cur]=true;var v=vis();var pend=v.filter(function(i){return !S.done[i]});if(!pend.length){S.fin=true}else{var a=v.filter(function(i){return i>S.cur&&!S.done[i]});S.cur=a.length?a[0]:pend[0]}draw()}
+function draw(){
+ var v=vis();if(v.indexOf(S.cur)<0)S.cur=v[0];
+ var nd=v.filter(function(i){return S.done[i]}).length;
+ document.getElementById("bar").style.width=Math.round(nd/v.length*100)+"%";
+ document.getElementById("cnt").textContent=nd+" de "+v.length+" pasos"+(S.expert?" críticos":"");
+ var ex=document.getElementById("expert");ex.classList.toggle("on",S.expert);ex.setAttribute("aria-pressed",S.expert);
+ document.getElementById("safety").innerHTML=SAFE.map(function(s){return '<span class="chip"><span class="ms">'+s[0]+'</span>'+s[1]+'</span>'}).join("");
+ var rail=v.map(function(i){return stepCard(i,false)}).join("");
+ var A='<div class="card" style="padding:12px">'+viewer(true)+'</div><div class="card panel">'+(S.fin?finBox():'<div style="font-size:12px;font-weight:700;color:var(--red);letter-spacing:.08em">PASO '+(S.cur+1)+' DE '+STEPS.length+(STEPS[S.cur].crit?' · CRÍTICO':'')+'</div>'+rail+actions())+'</div>';
+ document.getElementById("layA").innerHTML=A;
+ var cards=v.map(function(i){return stepCard(i,true)}).join("");
+ var B='<div class="card" style="padding:12px">'+viewer(true)+'</div>'+(S.fin?finBox():'<div class="strip">'+cards+'</div><div class="card panel" style="margin-top:14px">'+actions()+'</div>');
+ document.getElementById("layB").innerHTML=B;
+ var st=STEPS[S.cur];
+ var C='<div class="card" style="padding:12px;position:relative"><img class="big" src="'+st.img+'" alt="Referencia del paso '+(S.cur+1)+'"/><div class="pos"><div class="mini"><img src="'+SHEET+'" alt="Ubicación en la hoja"/>'+box(S.cur,false)+'</div></div></div><div class="card panel">'+(S.fin?finBox():'<div style="font-size:12px;font-weight:700;color:var(--red);letter-spacing:.08em">PASO '+(S.cur+1)+' DE '+STEPS.length+(st.crit?' · CRÍTICO':'')+'</div><div style="font-size:22px;font-weight:700;line-height:1.3">'+st.t+'</div>'+actions())+'</div>';
+ document.getElementById("layC").className="lay gC"+(S.lay==="C"?" on":"");
+ document.getElementById("layC").innerHTML=C;
+ ["A","B","C"].forEach(function(k){var e=document.getElementById("lay"+k);e.classList.toggle("on",S.lay===k)});
+ document.querySelectorAll(".seg button").forEach(function(b){b.classList.toggle("on",b.dataset.lay===S.lay)})}
+document.querySelectorAll(".seg button").forEach(function(b){b.onclick=function(){S.lay=b.dataset.lay;draw()}});
+document.getElementById("expert").onclick=function(){S.expert=!S.expert;S.fin=false;draw()};
+draw();
+</script>
+</body>
+</html>
