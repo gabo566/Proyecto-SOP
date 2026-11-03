@@ -389,7 +389,21 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .sop-catalog-revision { padding: 3px 8px; color: #355570; background: #e8eff5; font-size: 9px; }
 .sop-catalog-info-trigger { width: 22px; height: 22px; flex-basis: 22px; border-radius: 50%; }
 .sop-catalog-area, .sop-catalog-station { gap: 5px; color: #50657a; font-size: 10px; }
-.sop-catalog-area select, .sop-catalog-station select { min-height: 38px; padding: 0 10px; border-color: #c6d3df; border-radius: 10px; font-size: 11px; text-align: center; text-align-last: center; }
+.sop-catalog-area select, .sop-catalog-station select {
+  min-height: 38px;
+  padding: 0 20px;
+  border-color: #c6d3df;
+  border-radius: 10px;
+  font-size: 10px;
+  text-align: center !important;
+  text-align-last: center !important;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: linear-gradient(45deg,transparent 50%,#253b52 50%),linear-gradient(135deg,#253b52 50%,transparent 50%);
+  background-position: calc(100% - 13px) 50%,calc(100% - 8px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
 .sop-catalog-enabled { justify-content: center; gap: 8px; color: #4f6378; font-size: 10px; }
 .sop-catalog-enabled strong { font-size: 11px; }
 .sop-catalog-status-cell { min-width: 0; display: flex; align-items: center; justify-content: center; color: #586a7e; text-align: center; }
