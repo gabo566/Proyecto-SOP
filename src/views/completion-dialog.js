@@ -16,7 +16,7 @@ const REPAIR_TYPES = [
 ];
 function createEmptyForm() {
   const user = getActiveLocalUser();
-  return { name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", nodeNumber: "", serial: "", nodePartNumber: SOP_DOCUMENT.nodePartNumber, repairType: "", componentPartNumber: "", componentSerial: "", stationAssignment: "MFG:TDR", sopVersionId: "", declaration: false };
+  return { name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", nodeNumber: "", serial: "", nodePartNumber: SOP_DOCUMENT.nodePartNumber, repairType: "", componentPartNumber: "", componentSerial: "", stationAssignment: "MFG:TDR", sopVersionId: "", disassemblyType: "", declaration: false };
 }
 
 function renderComponentFields(form, workDraft = null) {

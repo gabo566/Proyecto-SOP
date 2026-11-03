@@ -21,6 +21,19 @@ function renderStationPills(assignments, current, label) {
   }).join("")}</span>`;
 }
 
+const DISASSEMBLY_ICONS = {"Chasis": "inventory_2", "Busbar": "bolt", "BMC": "memory", "Cold Plate / Manifold": "water_drop", "Bianca": "developer_board", "Cableado / energía": "cable", "Inspección": "search", "PDB / BMC": "electrical_services", "E1.S": "storage", "Bahías / PCIe": "dns"};
+
+function renderDisassemblyChoice(choice) {
+  if (!choice.options.length) return "";
+  return `<fieldset class="station-disassembly" aria-labelledby="station-disassembly-title"><legend id="station-disassembly-title"><span class="material-symbols-rounded" aria-hidden="true">build_circle</span>¿Qué tipo de desensamble vas a realizar?</legend>
+    <p>Elige una opción. Solo verás las hojas de esa parte del nodo.</p>
+    <div class="station-disassembly-grid">${choice.options.map((option, index) => {
+      const selected = option.id === choice.selected?.id;
+      const icon = option.id === DISASSEMBLY_FULL_ID ? "account_tree" : DISASSEMBLY_ICONS[option.label] ?? "settings";
+      return `<button type="button" class="station-disassembly-option ${selected ? "station-disassembly-option--on" : ""} ${option.id === DISASSEMBLY_FULL_ID ? "station-disassembly-option--full" : ""}" data-action="pick-disassembly" data-disassembly-id="${escapeHtml(option.id)}" data-focus-key="disassembly-${index}" aria-pressed="${selected}"><span class="material-symbols-rounded" aria-hidden="true">${selected ? "check_circle" : icon}</span><strong>${escapeHtml(option.label)}</strong><small>${option.sheets} ${option.sheets === 1 ? "hoja" : "hojas"} · ${option.steps} pasos</small></button>`;
+    }).join("")}</div></fieldset>`;
+}
+
 function renderStationIntake(state) {
   const user = getAuthenticatedLocalUser();
   const currentAssignment = getWorkStationAssignment(state.form.stationAssignment);
@@ -30,7 +43,8 @@ function renderStationIntake(state) {
   const enabledMfgAssignments = getEnabledWorkStationAssignments(state, "MFG");
   const enabledRwkAssignments = getEnabledWorkStationAssignments(state, "RWK");
   const status = getStationIntakeStatus(state);
-  const canContinue = isStationIntakeComplete(state.form) && Boolean(activeVersion);
+  const disassemblyChoice = getStationDisassemblyChoice(state);
+  const canContinue = isStationIntakeReady(state);
   const stationHint = '<span class="station-choice-status station-choice-status--hint">Elige una estación</span>';
   const error = state.formError ? `<p class="form-error station-intake-error" id="station-intake-error" role="alert">${escapeHtml(state.formError)}</p>` : "";
   const isMfg = selectedType === "MFG";
@@ -78,6 +92,7 @@ function renderStationIntake(state) {
             ${rwkSelected || !enabledRwkAssignments.length ? rwkStatus : stationHint}
           </label>
         </fieldset>
+        ${renderDisassemblyChoice(disassemblyChoice)}
       </section>
       <section class="station-asset-section" aria-labelledby="station-asset-title">
         <div class="station-section-title"><span class="station-section-num" aria-hidden="true">2</span><div><h2 id="station-asset-title">Captura los datos del equipo</h2><p>Copia el PN y la serie tal como aparecen en la etiqueta. Los cuatro son obligatorios.</p></div></div>

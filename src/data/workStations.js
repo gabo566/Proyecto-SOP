@@ -105,7 +105,36 @@ function normalizeStationIntakeAssignment(state) {
   if (!versions.some((version) => version.id === state.form?.sopVersionId)) {
     state.form.sopVersionId = versions[0]?.id ?? "";
   }
+  if (state.form?.disassemblyType && !getStationDisassemblyChoice(state).selected) state.form.disassemblyType = "";
   return state.form?.stationAssignment ?? "";
+}
+
+const DISASSEMBLY_FULL_ID = "__full__";
+
+function getDisassemblyOptions(version) {
+  const procedures = (version?.procedures ?? []).filter((procedure) => Array.isArray(procedure.steps) && procedure.steps.length);
+  const categories = [...new Set(procedures.map((procedure) => String(procedure.category ?? "").trim()).filter(Boolean))];
+  if (categories.length < 2) return [];
+  const summarize = (list) => ({ procedureIds: list.map((procedure) => procedure.id), sheets: list.length, steps: list.reduce((total, procedure) => total + procedure.steps.length, 0) });
+  return [
+    { id: DISASSEMBLY_FULL_ID, label: "Desensamble completo del nodo", ...summarize(procedures) },
+    ...categories.map((category) => ({ id: `cat:${category}`, label: category, ...summarize(procedures.filter((procedure) => procedure.category === category)) })),
+  ];
+}
+
+function getStationDisassemblyChoice(state) {
+  const assignment = getWorkStationAssignment(state.form?.stationAssignment);
+  if (assignment?.type !== "RWK") return { options: [], selected: null };
+  const version = findSopVersionForStation(state, assignment.value, state.form?.sopVersionId);
+  const options = getDisassemblyOptions(version);
+  return { options, selected: options.find((option) => option.id === state.form?.disassemblyType) ?? null };
+}
+
+function isStationIntakeReady(state) {
+  const choice = getStationDisassemblyChoice(state);
+  return isStationIntakeComplete(state.form)
+    && Boolean(findSopVersionForStation(state, state.form.stationAssignment, state.form.sopVersionId))
+    && (!choice.options.length || Boolean(choice.selected));
 }
 
 function isStationIntakeComplete(form = {}) {
@@ -116,9 +145,12 @@ function isStationIntakeComplete(form = {}) {
 }
 
 function getStationIntakeStatus(state) {
-  if (!isStationIntakeComplete(state.form)) {
+  const disassemblyChoice = getStationDisassemblyChoice(state);
+  const needsDisassembly = disassemblyChoice.options.length > 0 && !disassemblyChoice.selected;
+  if (needsDisassembly || !isStationIntakeComplete(state.form)) {
     const form = state.form ?? {};
     const missing = [
+      ...(needsDisassembly ? [["Tipo de desensamble", ""]] : []),
       ["PN del nodo", form.nodePartNumber],
       ["Serie del nodo", form.serial],
       ["PN de la tarjeta", form.componentPartNumber],

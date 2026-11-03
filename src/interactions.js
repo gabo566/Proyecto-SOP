@@ -301,11 +301,18 @@ function bindInteractions(app, handlers) {
         input.focus();
         break;
       }
+      case "pick-disassembly": {
+        state.form.disassemblyType = action.dataset.disassemblyId;
+        state.formError = "";
+        render({ focusKey: action.dataset.focusKey });
+        break;
+      }
       case "pick-station": {
         if (prepareSopChangeFromIntake(action)) break;
         const nextVersion = getEnabledSopVersionsForStation(state, action.dataset.stationValue)[0];
         state.form.stationAssignment = action.dataset.stationValue;
         state.form.sopVersionId = nextVersion?.id ?? "";
+        state.form.disassemblyType = "";
         state.formError = "";
         render({ focusKey: action.dataset.focusKey });
         break;
@@ -423,6 +430,7 @@ function bindInteractions(app, handlers) {
       if (assignment) {
         state.form.stationAssignment = assignment.value;
         state.form.sopVersionId = nextVersion?.id ?? "";
+        state.form.disassemblyType = "";
       }
       state.formError = "";
       render({ focusKey: target.dataset.focusKey });
@@ -432,12 +440,14 @@ function bindInteractions(app, handlers) {
       const nextVersion = getEnabledSopVersionsForStation(state, target.value)[0];
       state.form.stationAssignment = target.value;
       state.form.sopVersionId = nextVersion?.id ?? "";
+      state.form.disassemblyType = "";
       state.formError = "";
       render({ focusKey: target.dataset.focusKey });
       return;
     } else if (target.matches("[data-sop-version]")) {
       if (prepareSopChangeFromIntake(target)) return;
       state.form.sopVersionId = target.value;
+      state.form.disassemblyType = "";
       state.formError = "";
       render({ focusKey: target.dataset.focusKey });
     } else if (target.matches("#procedure-select")) {

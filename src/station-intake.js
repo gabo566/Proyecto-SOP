@@ -9,6 +9,8 @@ function restoreStationIntake(state, snapshot) {
 async function prepareStationSop(state) {
   const assignment = getWorkStationAssignment(state.form.stationAssignment);
   if (!assignment) return { ok: false, message: "Selecciona una estación de trabajo." };
+  const disassemblyChoice = getStationDisassemblyChoice(state);
+  if (disassemblyChoice.options.length && !disassemblyChoice.selected) return { ok: false, message: "Selecciona el tipo de desensamble que vas a realizar." };
   if (!isStationIntakeComplete(state.form)) return { ok: false, message: "Completa el PN y serie del nodo y de la tarjeta." };
   const version = findSopVersionForStation(state, assignment.value, state.form.sopVersionId);
   if (!version) {
@@ -60,7 +62,7 @@ function updateStationIntakeUI(state) {
   if (!form) return;
   const assignment = getWorkStationAssignment(state.form.stationAssignment);
   const activeVersion = findSopVersionForStation(state, assignment?.value, state.form.sopVersionId);
-  const canContinue = isStationIntakeComplete(state.form) && Boolean(activeVersion);
+  const canContinue = isStationIntakeReady(state);
   const button = form.querySelector(".station-intake-continue");
   const status = form.querySelector("#station-intake-status");
   const error = form.querySelector("#station-intake-error");

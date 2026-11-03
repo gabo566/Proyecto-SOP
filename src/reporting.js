@@ -76,6 +76,7 @@ function downloadReportCsv(records) {
     ["Cantidad de pasos confirmados", (record) => record.validatedStepCount],
     ["Declaración final", (record) => record.declarationText],
     ["Categoría", (record) => record.category],
+    ["Tipo de desensamble", (record) => record.disassemblyType],
     ["Tipo de reparación", (record) => record.repairType],
     ["P/N del componente", (record) => record.componentPartNumber],
     ["Serial del componente", (record) => record.componentSerial],

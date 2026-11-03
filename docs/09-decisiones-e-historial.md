@@ -427,6 +427,14 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Pruebas:** 9 pasan; en el navegador TDR/BAT/Desensamble se seleccionan, cambian `state.form.stationAssignment` (`MFG:TDR`, `CUSTOM:MFG:BAT`, `RWK:RWK`) y la tarjeta del área se marca.
 - **Revertir:** restaurar el selector en `station-intake.js`, quitar `pick-station` y el bloque CSS; sin commit.
 
+### C-046 (2026-11-03) — Pregunta «¿Qué tipo de desensamble vas a realizar?» en Retrabajo
+
+- **Solicitud:** en RWK solo hay una SOP (desensamble completo del nodo); preguntar al operador qué tipo de desensamble hará y limitar el recorrido a esa parte.
+- **Criterio de agrupación [Inferido]:** las opciones salen de la `category` de cada hoja de la SOP (`getDisassemblyOptions` en `src/data/workStations.js`): «Desensamble completo del nodo» más una opción por categoría (Chasis, Busbar, BMC, Cold Plate / Manifold, Bianca, Cableado / energía, Inspección, PDB / BMC, E1.S, Bahías / PCIe), con su número de hojas y pasos. Solo se pregunta cuando la SOP tiene dos o más categorías; una SOP subida desde PDF (una sola categoría) no la muestra. **Pendiente de confirmar** con producción si las categorías corresponden a los tipos reales de desensamble.
+- **Archivos tocados:** `src/data/workStations.js` (`getDisassemblyOptions`, `getStationDisassemblyChoice`, `isStationIntakeReady`, mensaje de estado y normalización), `src/views/completion-dialog.js` (`disassemblyType` en el formulario), `src/interactions.js` (acción `pick-disassembly` y reinicio del tipo al cambiar de estación o SOP), `src/views/station-intake.js` (sección de opciones y botón «Abrir la SOP» condicionado), `src/station-intake.js` (validación al abrir), `src/app.js` (el recorrido guiado se crea solo con las hojas elegidas y guarda `run.disassembly`; el registro guarda `disassemblyType`), `src/reporting.js` (columna «Tipo de desensamble» en el CSV), `src/views/procedure.js` (ficha «Tipo de desensamble»), `src/styles-md3.css` (bloque «C-046»), `index.html` (`?v=md3-c046`).
+- **Pruebas:** 9 pasan; en el navegador, RWK muestra 11 opciones (completo: 42 hojas con pasos y 132 pasos); «Bianca» crea un recorrido de 10 hojas (10–…); «Abrir la SOP» queda bloqueado hasta elegir el tipo.
+- **Revertir:** quitar los cambios de los archivos listados; sin comprometer en `main` hasta que se confirme.
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.

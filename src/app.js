@@ -109,7 +109,10 @@ function ensureGuidedSopRun() {
   if (!state.sopRun) {
     const user = getActiveLocalUser();
     const existingForm = { ...state.form };
-    state.sopRun = createGuidedSopRun(PROCEDURES, SOP_DOCUMENT, state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID, user);
+    const disassemblyChoice = getStationDisassemblyChoice(state);
+    const scopedProcedures = disassemblyChoice.selected ? PROCEDURES.filter((item) => disassemblyChoice.selected.procedureIds.includes(item.id)) : PROCEDURES;
+    state.sopRun = createGuidedSopRun(scopedProcedures, SOP_DOCUMENT, state.sopVersionMeta?.id ?? BUILT_IN_SOP_VERSION_ID, user);
+    if (disassemblyChoice.selected) state.sopRun.disassembly = { id: disassemblyChoice.selected.id, label: disassemblyChoice.selected.label };
     state.selectedId = state.sopRun.procedureIds[0];
     state.completedSteps = getGuidedSopCheckedSteps(state.sopRun, state.selectedId);
     if (!state.activeWorkId) {
@@ -468,6 +471,7 @@ function saveCompletion() {
       && (!event.at || new Date(event.at).getTime() >= (run.startedAt ?? 0))).map((event) => event.id),
     position: user.position || "Técnico de FA",
     repairType: state.form.repairType,
+    disassemblyType: run.disassembly?.label ?? "",
     stationAssignment: state.form.stationAssignment,
     source: "local",
     date: getLocalDateKey(now),
