@@ -35,7 +35,7 @@ async function getSopPagePdfDocument(pdfjs, source) {
   return sopPagePdfDocumentPromise;
 }
 
-async function renderSopPagePreview() {
+async function renderSopPagePreview(zoomAnchor = null) {
   const viewport = document.querySelector("#sop-page-preview");
   if (!viewport) return;
   const canvas = viewport.querySelector("canvas");
@@ -97,6 +97,14 @@ async function renderSopPagePreview() {
     if (sequence !== sopPageRenderSequence) return;
     canvas.hidden = false;
     viewport.scrollLeft = Math.max(0, Math.round((viewport.scrollWidth - viewport.clientWidth) / 2));
+    if (zoomAnchor) {
+      const viewportBounds = viewport.getBoundingClientRect();
+      const canvasBounds = canvas.getBoundingClientRect();
+      const contentLeft = canvasBounds.left - viewportBounds.left - viewport.clientLeft + viewport.scrollLeft;
+      const contentTop = canvasBounds.top - viewportBounds.top - viewport.clientTop + viewport.scrollTop;
+      viewport.scrollLeft = contentLeft + zoomAnchor.pointX * canvasBounds.width - zoomAnchor.pointerX;
+      viewport.scrollTop = contentTop + zoomAnchor.pointY * canvasBounds.height - zoomAnchor.pointerY;
+    }
     iframe.src = "about:blank";
     status.hidden = true;
   } catch (error) {

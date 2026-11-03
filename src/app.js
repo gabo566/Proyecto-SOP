@@ -10,7 +10,6 @@ const state = {
   operatorFlowReady: false,
   sopPageZoom: 110,
   sopFocusedZoom: false,
-  sopFocusLensZoom: 2,
   sopStorageReady: false,
   sopRunContextOpen: false,
   completedSteps: restorableWork?.completedSteps ?? [],
