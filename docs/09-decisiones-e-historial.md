@@ -506,6 +506,15 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Pruebas:** 9 pasan; en el navegador se simularon PN no válido, PN válido, serie no válida y válida, y los campos de la tarjeta; el botón se habilita al completar.
 - **Límite:** los registros guardados antes pueden traer un PN precargado; los nuevos empiezan vacíos. **Revertir:** `git revert` de este cambio.
 
+### C-057 (2026-11-03) — Sin desbordamiento en la validación y avance automático entre pasos
+
+- **Solicitud:** el panel de pasos se desbordaba (contador y porcentaje cortados a la derecha); añadir barra de desplazamiento y, al marcar un paso que es el último visible, bajar automáticamente al siguiente pendiente.
+- **Causa:** el panel crecía con su contenido y las tarjetas no tenían `min-width: 0`, de modo que un texto largo sin espacios ensanchaba la columna.
+- **Cambios:** `src/styles-md3.css` (bloque «C-057»): columnas con altura fija (`min(90vh, 1000px)`, mínimo 560 px) y `min-width: 0`; la lista de pasos tiene su propia barra vertical visible (roja, 12 px) y nunca horizontal; el texto de los pasos se parte con `overflow-wrap: anywhere`. `src/interactions.js` (`scrollToNextPendingStep`): al marcar un paso, si el siguiente pendiente no cabe completo en la lista, la lista se desplaza hasta mostrarlo; si no quedan pendientes después, vuelve al primero que falte. `index.html` (`?v=md3-c057`).
+- **Pruebas:** 9 pasan; con 8 pasos (TDR) no hay desbordamiento horizontal (`scrollWidth` = `clientWidth`) y la lista muestra 497 px de 1433; al marcar pasos el desplazamiento fue 0 → 338 → 736 → 936 px y el siguiente pendiente quedó siempre visible. El desplazamiento suave no avanza en el panel de pruebas cuando la ventana está oculta; se verificó con desplazamiento instantáneo.
+- **Observación [Pendiente de confirmar]:** en la captura del usuario varios pasos de su revisión se leían sin espacios («Procedimientoparausodelprograma…»); en los datos actuales los pasos sí tienen espacios, por lo que parece un texto guardado así en esa revisión. Se puede corregir en «Modificar SOP» o volviendo a extraer el PDF.
+- **Revertir:** `git revert` de este cambio.
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.

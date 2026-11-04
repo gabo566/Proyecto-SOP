@@ -542,6 +542,7 @@ function bindInteractions(app, handlers) {
       });
       persistWorkState();
       updateGuidedChecklistUI(getProcedure(), state);
+      if (target.checked) scrollToNextPendingStep(target);
     } else if (target.dataset.formField === "declaration") {
       state.form.declaration = target.checked;
       target.removeAttribute("aria-invalid");
@@ -724,6 +725,21 @@ function bindInteractions(app, handlers) {
       changeLocalUserPassword(new FormData(event.target));
     }
   });
+}
+
+function scrollToNextPendingStep(checkbox) {
+  const list = checkbox.closest(".guided-checklist-list");
+  const current = checkbox.closest(".guided-check-item");
+  if (!list || !current) return;
+  const items = [...list.querySelectorAll(".guided-check-item")];
+  const pending = items.filter((item) => !item.classList.contains("guided-check-item--checked"));
+  const next = pending.find((item) => current.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_FOLLOWING) ?? pending[0];
+  if (!next) return;
+  const listBounds = list.getBoundingClientRect();
+  const nextBounds = next.getBoundingClientRect();
+  if (nextBounds.bottom > listBounds.bottom - 8 || nextBounds.top < listBounds.top + 8) {
+    list.scrollBy({ top: nextBounds.top - listBounds.top - 12, behavior: "smooth" });
+  }
 }
 
 function updateGuidedChecklistUI(procedure, state) {

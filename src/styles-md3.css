@@ -2202,3 +2202,19 @@ details.sop-version-procedure.is-sheet-saved > summary > span { color: #146c3a; 
 @keyframes station-scan-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
 .station-scan-field input:focus { border-color: #2f6fd0; box-shadow: 0 0 0 4px #dbe8fb; }
 @media (prefers-reduced-motion: reduce) { .station-scan-input--shake { animation: none; } }
+
+/* C-057: la validación de hoja no se desborda; el panel de pasos tiene su propia barra de desplazamiento. */
+.sop-execution-panel .sop-page-checklist-layout > .guided-sop-page,
+.sop-execution-panel .sop-page-checklist-layout > .guided-checklist-panel,
+.sop-execution-panel .sop-page-checklist-layout[data-page-zoom] > .guided-sop-page,
+.sop-execution-panel .sop-page-checklist-layout[data-page-zoom] > .guided-checklist-panel { min-width: 0; height: min(90vh, 1000px); min-height: 560px; max-height: none; overflow: hidden; }
+.sop-execution-panel .guided-checklist-panel { display: flex; flex-direction: column; }
+.sop-execution-panel .guided-checklist-list { flex: 1 1 auto; min-height: 0; max-height: none; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: #a92328 #efe3e1; }
+.sop-execution-panel .guided-checklist-list::-webkit-scrollbar { width: 12px; }
+.sop-execution-panel .guided-checklist-list::-webkit-scrollbar-track { background: #efe3e1; border-radius: 999px; }
+.sop-execution-panel .guided-checklist-list::-webkit-scrollbar-thumb { background: #a92328; border: 2px solid #efe3e1; border-radius: 999px; }
+.sop-execution-panel .guided-check-item, .sop-execution-panel .guided-check-details, .sop-execution-panel .guided-check-copy { min-width: 0; max-width: 100%; }
+.sop-execution-panel .guided-check-copy, .sop-execution-panel .guided-check-copy > span { overflow-wrap: anywhere; word-break: break-word; }
+.sop-execution-panel .guided-checklist-footer, .sop-execution-panel .guided-work-utility-actions, .sop-execution-panel .guided-checklist-titlebar, .sop-execution-panel .sop-run-progress { flex: 0 0 auto; }
+.sop-execution-panel .sop-page-checklist-layout { overflow: visible; }
+@media (max-width: 1100px) { .sop-execution-panel .sop-page-checklist-layout > .guided-sop-page, .sop-execution-panel .sop-page-checklist-layout > .guided-checklist-panel { height: auto; min-height: 0; } .sop-execution-panel .guided-checklist-list { max-height: 60vh; } }
