@@ -1,0 +1,802 @@
+function bindInteractions(app, handlers) {
+  const {
+    state,
+    navItems,
+    getRecords,
+    getProcedure,
+    render,
+    showToast,
+    selectProcedure,
+    moveProcedure,
+    openRecords,
+    closeDialog,
+    handleCompletionSubmit,
+    continueGuidedSopSheet,
+    continueStationIntake,
+    previousGuidedSopSheet,
+    openWorkItemDialog,
+    closeWorkItemDialog,
+    handleWorkItemSubmit,
+    resumeWorkItem,
+    handoffWorkOperator,
+    persistWorkState,
+    parkActiveWorkForSopChange,
+    addEvidence,
+    removeEvidence,
+    openEvidenceReview,
+    closeEvidenceReview,
+    decideEvidenceReview,
+    addEvidenceToRecord,
+    addValidationEvidence,
+    removeValidationEvidence,
+    addDraftEvidence,
+    removeDraftEvidence,
+    openRecordEvidence,
+    authenticateLocalUser,
+    endLocalUserSession,
+    createLocalUser,
+    changeLocalUserPassword,
+    toggleLocalUser,
+  } = handlers;
+  let stepImageViewer = { zoom: 100 };
+  let sopAreaSelection = null;
+
+  // Cambios de pantalla discretos (render() reconstruye el DOM): View Transitions con fallback sin animación.
+  // direction: "forward" (por defecto), "back" o "soft" (solo fundido corto, sin desplazamiento).
+  function runWithTransition(update, direction = "forward") {
+    const canAnimate = typeof document.startViewTransition === "function"
+      && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!canAnimate) {
+      update();
+      return Promise.resolve();
+    }
+    document.documentElement.dataset.navDir = direction;
+    const transition = document.startViewTransition(update);
+    return transition.finished
+      .catch(() => {})
+      .finally(() => { delete document.documentElement.dataset.navDir; });
+  }
+
+  function handleNavigation(action) {
+    const item = navItems.find((navItem) => navItem.id === action.dataset.navId);
+    if (!item) return;
+    const role = getActiveLocalUser().role;
+    if ((item.id === "reports" && !["supervisor", "admin"].includes(role))
+      || (item.id === "users" && role !== "admin")
+      || (item.id === "sop-admin" && !canManageSopVersions())) return;
+    state.navOpen = false;
+    if (item.action === "reports") {
+      openRecords(action.dataset.focusKey);
+      return;
+    }
+    // Cada sección abre desde arriba: el scroll se reinicia dentro de la transición (instantáneo) para que
+    // la vista nueva no herede la posición de la anterior ni quede a medias por un scrollIntoView.
+    const update = () => {
+      state.activeSection = item.id;
+      render();
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    };
+    if (item.id === state.activeSection) {
+      update();
+      return;
+    }
+    runWithTransition(update);
+  }
+
+  function prepareSopChangeFromIntake(target) {
+    if (!target.closest("#station-intake-form") || !state.activeWorkId) return false;
+    if (parkActiveWorkForSopChange()) return false;
+    render({ focusKey: target.dataset.focusKey });
+    showToast("No se pudo guardar el avance del trabajo anterior. Libera espacio e inténtalo de nuevo.", "warning");
+    return true;
+  }
+
+  function setScanError(field, message) {
+    state.scanErrors = { ...(state.scanErrors ?? {}), [field]: message };
+    const node = document.querySelector(`[data-scan-error="${field}"]`);
+    if (node) {
+      node.textContent = message;
+      node.hidden = !message;
+    }
+    const input = document.querySelector(`[data-form-field="${field}"]`);
+    if (!input) return;
+    input.setAttribute("aria-invalid", message ? "true" : "false");
+    input.classList.toggle("station-scan-input--error", Boolean(message));
+    if (message) {
+      input.classList.remove("station-scan-input--shake");
+      void input.offsetWidth;
+      input.classList.add("station-scan-input--shake");
+    }
+  }
+
+  function focusNextScanField(field) {
+    const next = SCAN_FIELD_ORDER[SCAN_FIELD_ORDER.indexOf(field) + 1];
+    const target = next
+      ? document.querySelector(`[data-form-field="${next}"]`)
+      : document.querySelector(".station-intake-continue:not(:disabled)");
+    target?.focus();
+  }
+
+  function commitScanField(input, advance) {
+    const field = input.dataset.formField;
+    const value = normalizeScanValue(input.value);
+    if (!value) return false;
+    const result = validateScanField(field, value);
+    if (!result.ok) {
+      state.form[field] = "";
+      input.value = "";
+      setScanError(field, result.message);
+      persistWorkState();
+      updateStationIntakeUI(state);
+      input.focus();
+      return false;
+    }
+    state.form[field] = value;
+    input.value = value;
+    setScanError(field, "");
+    persistWorkState();
+    updateStationIntakeUI(state);
+    if (advance) focusNextScanField(field);
+    return true;
+  }
+
+  app.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || !event.target.matches?.("[data-scan-field]")) return;
+    event.preventDefault();
+    commitScanField(event.target, true);
+  });
+
+  function updateSerialSearch() {
+    const { filtered, visible } = getVisibleSerialRecords(getRecords(), state.serialQuery);
+    const body = document.querySelector("#serial-table-body");
+    const count = document.querySelector("#serial-table-count");
+    if (!body || !count) return;
+    body.innerHTML = visible.length ? renderSerialRows(visible, state.workItems) : '<tr><td class="empty-row" colspan="13">No hay registros que coincidan con la búsqueda.</td></tr>';
+    count.textContent = `Mostrando ${visible.length} de ${filtered.length} ${state.serialQuery.trim() ? "coincidencias" : "registros representativos"}`;
+  }
+
+  function updateDialogSearch() {
+    const body = document.querySelector("#dialog-table-body");
+    if (body) body.innerHTML = renderDialogRows(getRecords(), state.recordsQuery, state.workItems);
+  }
+
+  function clearFormError() {
+    state.formError = "";
+    const error = document.querySelector("#completion-form-error");
+    if (error) {
+      error.textContent = "";
+      error.hidden = true;
+    }
+    app.querySelectorAll("[aria-invalid='true']").forEach((element) => {
+      element.removeAttribute("aria-invalid");
+      element.removeAttribute("aria-describedby");
+    });
+  }
+
+  function updateStepImageZoom() {
+    const image = document.querySelector("#step-image-preview");
+    const zoomLevel = document.querySelector("#step-image-zoom-level");
+    const viewport = document.querySelector(".step-image-dialog-viewport");
+    if (!image || !zoomLevel || !viewport) return;
+    zoomLevel.textContent = `${stepImageViewer.zoom}%`;
+    if (!image.naturalWidth || !image.naturalHeight) return;
+    const fitScale = Math.min(
+      Math.max(1, viewport.clientWidth - 16) / image.naturalWidth,
+      Math.max(1, viewport.clientHeight - 16) / image.naturalHeight,
+      1,
+    );
+    image.style.width = `${Math.round(image.naturalWidth * fitScale * stepImageViewer.zoom / 100)}px`;
+  }
+
+  function setStepImageZoom(zoom) {
+    stepImageViewer.zoom = Math.max(50, Math.min(400, zoom));
+    updateStepImageZoom();
+  }
+
+  function openStepImage(action) {
+    const dialog = document.querySelector("#step-image-dialog");
+    const image = document.querySelector("#step-image-preview");
+    if (!dialog || !image) return;
+    stepImageViewer = { zoom: 90 };
+    document.querySelector("#step-image-dialog-title").textContent = `Paso ${action.dataset.stepNumber} · hoja ${action.dataset.sheet}`;
+    image.alt = action.dataset.imageAlt;
+    document.querySelector("#step-image-caption").textContent = action.dataset.stepText || action.dataset.imageAlt;
+    image.onload = updateStepImageZoom;
+    image.style.width = "auto";
+    image.src = action.dataset.imageSrc;
+    dialog.showModal();
+    if (image.complete) updateStepImageZoom();
+  }
+
+  function setSopPageZoom(zoom, anchor = null) {
+    state.sopPageZoom = Math.max(50, Math.min(500, zoom));
+    const viewport = document.querySelector("#sop-page-preview");
+    if (!viewport) {
+      render();
+      return;
+    }
+    viewport.dataset.zoom = String(state.sopPageZoom);
+    const level = document.querySelector("#sop-page-zoom-level");
+    const zoomIn = document.querySelector('[data-action="sop-page-zoom-in"]');
+    const zoomOut = document.querySelector('[data-action="sop-page-zoom-out"]');
+    if (level) level.textContent = `${state.sopPageZoom}%`;
+    if (zoomIn) zoomIn.disabled = state.sopPageZoom >= 500;
+    if (zoomOut) zoomOut.disabled = state.sopPageZoom <= 50;
+    renderSopPagePreview(anchor);
+  }
+
+  function toggleSopFocusZoom() {
+    state.sopFocusedZoom = !state.sopFocusedZoom;
+    const button = document.querySelector('[data-action="sop-page-toggle-focused-zoom"]');
+    const viewport = document.querySelector("#sop-page-preview");
+    const hint = document.querySelector("#sop-page-focus-zoom-hint");
+    button?.setAttribute("aria-pressed", String(state.sopFocusedZoom));
+    if (viewport) viewport.dataset.focusZoom = String(state.sopFocusedZoom);
+    if (hint) {
+      hint.textContent = "Arrastra sobre la hoja para seleccionar el recuadro; al soltar se ampliará esa zona.";
+      hint.hidden = !state.sopFocusedZoom;
+    }
+    const selectionOverlay = viewport?.querySelector("[data-sop-zoom-selection-overlay]");
+    if (selectionOverlay) selectionOverlay.hidden = true;
+  }
+
+  function getSopSelectionPoint(event, selection) {
+    return {
+      x: Math.max(0, Math.min(1, (event.clientX - selection.canvasBounds.left) / Math.max(1, selection.canvasBounds.width))),
+      y: Math.max(0, Math.min(1, (event.clientY - selection.canvasBounds.top) / Math.max(1, selection.canvasBounds.height))),
+    };
+  }
+
+  function startSopAreaSelection(event) {
+    const viewport = event.target.closest?.("#sop-page-preview");
+    const canvas = viewport?.querySelector("canvas");
+    if (!state.sopFocusedZoom || !viewport || !canvas || canvas.hidden || event.target !== canvas || event.button !== 0) return;
+    const selectionOverlay = viewport.querySelector("[data-sop-zoom-selection-overlay]");
+    const selectionBox = selectionOverlay?.querySelector("[data-sop-zoom-selection-box]");
+    if (!selectionOverlay || !selectionBox) return;
+    const selection = { viewport, canvas, canvasBounds: canvas.getBoundingClientRect(), selectionOverlay, selectionBox, pointerId: event.pointerId };
+    const point = getSopSelectionPoint(event, selection);
+    selection.start = point;
+    selection.end = point;
+    sopAreaSelection = selection;
+    viewport.dataset.selectingArea = "true";
+    selectionOverlay.hidden = false;
+    updateSopAreaSelection(event);
+    const hint = document.querySelector("#sop-page-focus-zoom-hint");
+    if (hint) hint.hidden = true;
+    try { canvas.setPointerCapture(event.pointerId); } catch { /* Pointer capture may be unavailable in older embedded browsers. */ }
+    event.preventDefault();
+  }
+
+  function updateSopAreaSelection(event) {
+    const selection = sopAreaSelection;
+    if (!selection || event.pointerId !== selection.pointerId) return;
+    const end = getSopSelectionPoint(event, selection);
+    selection.end = end;
+    const x = Math.min(selection.start.x, end.x) * 1000;
+    const y = Math.min(selection.start.y, end.y) * 1000;
+    selection.selectionBox.setAttribute("x", String(x));
+    selection.selectionBox.setAttribute("y", String(y));
+    selection.selectionBox.setAttribute("width", String(Math.abs(end.x - selection.start.x) * 1000));
+    selection.selectionBox.setAttribute("height", String(Math.abs(end.y - selection.start.y) * 1000));
+  }
+
+  function finishSopAreaSelection(event) {
+    const selection = sopAreaSelection;
+    if (!selection || event.pointerId !== selection.pointerId) return;
+    updateSopAreaSelection(event);
+    sopAreaSelection = null;
+    selection.selectionOverlay.hidden = true;
+    selection.viewport.dataset.selectingArea = "false";
+    try {
+      if (selection.canvas.hasPointerCapture(event.pointerId)) selection.canvas.releasePointerCapture(event.pointerId);
+    } catch { /* Pointer capture may already have been released by the browser. */ }
+
+    const width = Math.abs(selection.end.x - selection.start.x) * selection.canvasBounds.width;
+    const height = Math.abs(selection.end.y - selection.start.y) * selection.canvasBounds.height;
+    const hint = document.querySelector("#sop-page-focus-zoom-hint");
+    if (width < 18 || height < 18) {
+      if (hint) {
+        hint.textContent = "Arrastra un recuadro más amplio sobre la zona que quieres revisar.";
+        hint.hidden = false;
+      }
+      return;
+    }
+
+    const availableWidth = Math.max(1, selection.viewport.clientWidth - 32);
+    const availableHeight = Math.max(1, selection.viewport.clientHeight - 32);
+    const fitFactor = Math.min(availableWidth / width, availableHeight / height);
+    const currentZoom = Number(state.sopPageZoom) || 110;
+    const factor = Math.max(1.1, fitFactor);
+    const nextZoom = Math.min(500, Math.max(currentZoom + 10, Math.round(currentZoom * factor / 10) * 10));
+    const anchor = {
+      pointX: (selection.start.x + selection.end.x) / 2,
+      pointY: (selection.start.y + selection.end.y) / 2,
+      pointerX: selection.viewport.clientWidth / 2,
+      pointerY: selection.viewport.clientHeight / 2,
+    };
+    toggleSopFocusZoom();
+    setSopPageZoom(nextZoom, anchor);
+  }
+
+  function cancelSopAreaSelection(event) {
+    const selection = sopAreaSelection;
+    if (!selection || event.pointerId !== selection.pointerId) return;
+    sopAreaSelection = null;
+    selection.selectionOverlay.hidden = true;
+    selection.viewport.dataset.selectingArea = "false";
+    try {
+      if (selection.canvas.hasPointerCapture(event.pointerId)) selection.canvas.releasePointerCapture(event.pointerId);
+    } catch { /* Pointer capture may already have been released by the browser. */ }
+    const hint = document.querySelector("#sop-page-focus-zoom-hint");
+    if (hint) {
+      hint.textContent = "Arrastra sobre la hoja para seleccionar el recuadro; al soltar se ampliará esa zona.";
+      hint.hidden = !state.sopFocusedZoom;
+    }
+  }
+
+  window.addEventListener("resize", updateStepImageZoom, { passive: true });
+  window.addEventListener("pointerdown", startSopAreaSelection);
+  window.addEventListener("pointermove", updateSopAreaSelection);
+  window.addEventListener("pointerup", finishSopAreaSelection);
+  window.addEventListener("pointercancel", cancelSopAreaSelection);
+
+  app.addEventListener("click", (event) => {
+    if (event.target instanceof HTMLDialogElement && event.target.open) {
+      const bounds = event.target.getBoundingClientRect();
+      const clickedBackdrop = event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom;
+      if (clickedBackdrop) {
+        if (event.target.id === "step-image-dialog") event.target.close();
+        else if (event.target.id === "work-item-dialog") closeWorkItemDialog();
+        else if (event.target.id === "validation-dialog") event.target.close();
+        else if (event.target.id === "operator-handoff-dialog") event.target.close();
+        else if (event.target.id === "evidence-review-dialog") closeEvidenceReview();
+        else if (event.target.id === "help-dialog") event.target.close();
+        else closeDialog("recordsDialogOpen");
+      }
+      return;
+    }
+    const action = event.target.closest("[data-action]");
+    if (!action || !app.contains(action)) return;
+    switch (action.dataset.action) {
+      case "toggle-password-visibility": {
+        const field = action.closest(".password-field")?.querySelector("input");
+        if (!field) break;
+        const show = field.type === "password";
+        field.type = show ? "text" : "password";
+        action.setAttribute("aria-pressed", String(show));
+        action.setAttribute("aria-label", show ? "Ocultar contraseña" : "Mostrar contraseña");
+        action.querySelector(".material-symbols-rounded").textContent = show ? "visibility_off" : "visibility";
+        field.focus();
+        break;
+      }
+      case "toggle-login-password": {
+        const input = document.querySelector("#login-password");
+        if (!input) break;
+        const show = input.type === "password";
+        input.type = show ? "text" : "password";
+        action.setAttribute("aria-pressed", String(show));
+        action.setAttribute("aria-label", show ? "Ocultar contraseña" : "Mostrar contraseña");
+        action.querySelector(".material-symbols-rounded").textContent = show ? "visibility_off" : "visibility";
+        input.focus();
+        break;
+      }
+      case "toggle-disassembly-sheet": {
+        const current = Array.isArray(state.form.disassemblySheets) ? state.form.disassemblySheets : [];
+        const id = action.dataset.sheetId;
+        state.form.disassemblySheets = current.includes(id) ? current.filter((value) => value !== id) : [...current, id];
+        state.formError = "";
+        render({ focusKey: action.dataset.focusKey });
+        break;
+      }
+      case "select-all-disassembly-sheets":
+      case "clear-disassembly-sheets": {
+        state.form.disassemblySheets = action.dataset.action === "clear-disassembly-sheets" ? [] : getStationDisassemblyChoice(state).options.map((option) => option.id);
+        state.formError = "";
+        render({ focusKey: action.dataset.focusKey });
+        break;
+      }
+      case "pick-station": {
+        if (prepareSopChangeFromIntake(action)) break;
+        const nextVersion = getEnabledSopVersionsForStation(state, action.dataset.stationValue)[0];
+        state.form.stationAssignment = action.dataset.stationValue;
+        state.form.sopVersionId = nextVersion?.id ?? "";
+        state.form.disassemblySheets = [];
+        state.formError = "";
+        runWithTransition(() => render({ focusKey: action.dataset.focusKey }), "soft");
+        break;
+      }
+      case "navigate": handleNavigation(action); break;
+      case "open-sop-admin-from-intake":
+        if (!canManageSopVersions()) break;
+        state.activeSection = "sop-admin";
+        render();
+        break;
+      case "open-menu": state.navOpen = true; render(); break;
+      case "close-menu": state.navOpen = false; render(); break;
+      case "brand-home": state.navOpen = false; render(); break;
+      case "logout-local-user": endLocalUserSession(); break;
+      case "open-help":
+        state.dialogTriggerFocusKey = action.dataset.focusKey || "help-open";
+        state.helpDialogOpen = true;
+        render({ focusDialog: true });
+        break;
+      case "close-help": document.querySelector("#help-dialog")?.close(); break;
+      case "previous-procedure": moveProcedure(-1); break;
+      case "next-procedure": moveProcedure(1); break;
+      case "sop-page-zoom-out": setSopPageZoom(state.sopPageZoom - 10); break;
+      case "sop-page-zoom-in": setSopPageZoom(state.sopPageZoom + 10); break;
+      case "sop-page-zoom-reset": setSopPageZoom(100); break;
+      case "sop-page-toggle-focused-zoom": toggleSopFocusZoom(); break;
+      case "return-to-sop-selection":
+        if (!canOperateGuidedSopRun()) {
+          showToast("Solo el operador actualmente asignado puede volver a la selección de SOP.", "warning");
+          break;
+        }
+        if (!parkActiveWorkForSopChange()) {
+          showToast("No se pudo guardar el avance actual. Inténtalo de nuevo antes de regresar.", "warning");
+          break;
+        }
+        state.formError = "";
+        runWithTransition(() => render({ focusKey: `station-${getWorkStationAssignment(state.form.stationAssignment)?.type ?? "MFG"}` }), "back");
+        break;
+      case "close-validation-dialog": document.querySelector("#validation-dialog")?.close(); break;
+      case "continue-sop-sheet": runWithTransition(() => continueGuidedSopSheet()); break;
+      case "open-final-confirmation": runWithTransition(() => continueGuidedSopSheet()); break;
+      case "previous-sop-sheet": runWithTransition(() => previousGuidedSopSheet(), "back"); break;
+      case "zoom-step-image": openStepImage(action); break;
+      case "step-image-zoom-in": setStepImageZoom(stepImageViewer.zoom + 25); break;
+      case "step-image-zoom-out": setStepImageZoom(stepImageViewer.zoom - 25); break;
+      case "step-image-zoom-reset": setStepImageZoom(90); break;
+      case "close-step-image": document.querySelector("#step-image-dialog")?.close(); break;
+      case "open-records": openRecords(action.dataset.focusKey); break;
+      case "close-records": closeDialog("recordsDialogOpen"); break;
+      case "open-work-item-dialog": openWorkItemDialog(); break;
+      case "close-work-item-dialog": closeWorkItemDialog(); break;
+      case "resume-work": resumeWorkItem(action.dataset.workId); break;
+      case "open-operator-handoff": {
+        const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
+        const canHandOffActiveWork = !activeWork || isActiveHandoffWorkItem(activeWork);
+        if (state.evidenceBusy) {
+          showToast("Espera a que termine de guardarse la evidencia antes de cambiar el operador.", "warning");
+          break;
+        }
+        if (!canHandOffActiveWork || !canOperateGuidedSopRun()) {
+          showToast("El cambio solo está disponible para el operador asignado a un trabajo activo.", "warning");
+          break;
+        }
+        if (!persistWorkState()) {
+          showToast("No se pudo guardar el avance de la SOP. Inténtalo de nuevo.", "warning");
+          break;
+        }
+        const savedWork = state.workItems.find((item) => item.id === state.activeWorkId);
+        if (!isActiveHandoffWorkItem(savedWork)) {
+          showToast("No se pudo guardar un trabajo activo para entregar.", "warning");
+          break;
+        }
+        state.operatorHandoffError = "";
+        state.operatorHandoffDialogOpen = true;
+        state.dialogTriggerFocusKey = action.dataset.focusKey || "change-operator";
+        render({ focusDialog: true });
+        break;
+      }
+      case "close-operator-handoff":
+        document.querySelector("#operator-handoff-dialog")?.close();
+        break;
+      case "toggle-local-user": if (getActiveLocalUser().role === "admin") toggleLocalUser(action.dataset.userId, action.dataset.active === "true"); break;
+      case "remove-evidence": removeEvidence(action.dataset.evidenceId); break;
+      case "remove-validation-evidence": removeValidationEvidence(action.dataset.evidenceId); break;
+      case "remove-stop-evidence": removeDraftEvidence(action.dataset.evidenceId); break;
+      case "review-evidence": if (["supervisor", "admin"].includes(getActiveLocalUser().role)) openEvidenceReview(action.dataset.workId); else showToast("La revisión está reservada para supervisor o administrador.", "warning"); break;
+      case "view-work-evidence": if (["supervisor", "admin"].includes(getActiveLocalUser().role)) openEvidenceReview(action.dataset.workId); else showToast("La evidencia de retrabajo está reservada para supervisor o administrador.", "warning"); break;
+      case "view-record-evidence": if (["supervisor", "admin"].includes(getActiveLocalUser().role)) action.dataset.workId ? openEvidenceReview(action.dataset.workId, action.dataset.recordId, false, true) : openRecordEvidence(action.dataset.recordId); else showToast("La evidencia está reservada para supervisor o administrador.", "warning"); break;
+      case "view-stop-evidence": if (["supervisor", "admin"].includes(getActiveLocalUser().role)) openEvidenceReview(action.dataset.workId); else showToast("La evidencia está reservada para supervisor o administrador.", "warning"); break;
+      case "manage-record-evidence": if (["supervisor", "admin"].includes(getActiveLocalUser().role)) openEvidenceReview(action.dataset.workId, action.dataset.recordId, true); else showToast("La evidencia está reservada para supervisor o administrador.", "warning"); break;
+      case "close-evidence-review": closeEvidenceReview(); break;
+      case "choose-evidence-file": app.querySelector("[data-evidence-input]")?.click(); break;
+      case "choose-validation-evidence": app.querySelector("[data-validation-evidence-input]")?.click(); break;
+      case "choose-stop-evidence": app.querySelector("[data-stop-evidence-input]")?.click(); break;
+      case "choose-record-evidence": app.querySelector("[data-record-evidence-input]")?.click(); break;
+      case "zoom-evidence-image":
+        state.zoomedEvidence = state.reviewEvidence.find((file) => file.id === action.dataset.evidenceId) ?? null;
+        state.evidenceImageDialogOpen = Boolean(state.zoomedEvidence);
+        render();
+        break;
+      case "close-evidence-image": document.querySelector("#evidence-image-dialog")?.close(); break;
+      case "approve-evidence": decideEvidenceReview(action.dataset.workId, true); break;
+      case "reject-evidence": decideEvidenceReview(action.dataset.workId, false); break;
+      case "close-toast": state.toast = null; render(); break;
+      default: break;
+    }
+  });
+
+  app.addEventListener("change", (event) => {
+    const { target } = event;
+    if (target.matches("[data-scan-field]")) {
+      commitScanField(target, false);
+      return;
+    }
+    if (target.matches("[data-station-type]")) {
+      if (prepareSopChangeFromIntake(target)) return;
+      const assignment = getEnabledWorkStationAssignments(state, target.value)[0];
+      const nextVersion = assignment && getEnabledSopVersionsForStation(state, assignment.value)[0];
+      if (assignment) {
+        state.form.stationAssignment = assignment.value;
+        state.form.sopVersionId = nextVersion?.id ?? "";
+        state.form.disassemblySheets = [];
+      }
+      state.formError = "";
+      render({ focusKey: target.dataset.focusKey });
+      return;
+    } else if (target.matches("[data-station-code]")) {
+      if (prepareSopChangeFromIntake(target)) return;
+      const nextVersion = getEnabledSopVersionsForStation(state, target.value)[0];
+      state.form.stationAssignment = target.value;
+      state.form.sopVersionId = nextVersion?.id ?? "";
+      state.form.disassemblySheets = [];
+      state.formError = "";
+      render({ focusKey: target.dataset.focusKey });
+      return;
+    } else if (target.matches("[data-sop-version]")) {
+      if (prepareSopChangeFromIntake(target)) return;
+      state.form.sopVersionId = target.value;
+      state.form.disassemblySheets = [];
+      state.formError = "";
+      render({ focusKey: target.dataset.focusKey });
+    } else if (target.matches("#procedure-select")) {
+      selectProcedure(target.value);
+    } else if (target.matches("[data-step]")) {
+      if (!canOperateGuidedSopRun()) {
+        target.checked = !target.checked;
+        showToast("Solo el operador actualmente asignado puede validar sus pasos.", "warning");
+        return;
+      }
+      const step = target.dataset.step;
+      state.completedSteps = target.checked
+        ? [...state.completedSteps, step]
+        : state.completedSteps.filter((value) => value !== step);
+      setGuidedSopStep(state.sopRun, state.selectedId, step, target.checked);
+      recordLocalAuditEvent(target.checked ? "step_completed" : "step_reopened", {
+        sessionId: state.auditSessionId,
+        serial: state.form.serial.trim(),
+        nodeNumber: state.form.nodeNumber.trim(),
+        procedureId: state.selectedId,
+        procedureTitle: getProcedure().title,
+        sheet: getProcedure().sheet,
+        step,
+      });
+      persistWorkState();
+      updateGuidedChecklistUI(getProcedure(), state);
+      if (target.checked) scrollToNextPendingStep(target);
+    } else if (target.dataset.formField === "declaration") {
+      state.form.declaration = target.checked;
+      target.removeAttribute("aria-invalid");
+      target.removeAttribute("aria-describedby");
+      const submitButton = document.querySelector(".guided-final-actions .validation-submit");
+      if (submitButton) submitButton.disabled = !target.checked;
+      clearFormError();
+    } else if (target.dataset.formField) {
+      if (prepareSopChangeFromIntake(target)) return;
+      state.form[target.dataset.formField] = target.value;
+      if (target.dataset.formField === "nodeNumber") {
+        const value = document.querySelector("#guided-confirmation-node");
+        if (value) value.textContent = target.value.trim() || "nodo sin número";
+      } else if (target.dataset.formField === "serial") {
+        const value = document.querySelector("#guided-confirmation-serial");
+        if (value) value.textContent = target.value.trim() || "serie sin capturar";
+      }
+      persistWorkState();
+      if (state.formError) clearFormError();
+      if (target.closest("#station-intake-form")) updateStationIntakeUI(state);
+    } else if (target.matches('input[name="workType"]')) {
+      state.workDraft.type = target.value;
+      document.querySelector(".work-failed-step").hidden = target.value !== "rework";
+    } else if (target.name === "failedStep") {
+      state.workDraft.failedStep = target.value;
+    } else if (target.name === "reasonCode") {
+      state.workDraft.reasonCode = target.value;
+    } else if (target.dataset.workDraftField) {
+      state.workDraft[target.dataset.workDraftField] = target.value;
+    } else if (target.matches("[data-evidence-input]")) {
+      const selectedFiles = [...target.files];
+      target.value = "";
+      addEvidence(selectedFiles);
+    } else if (target.matches("[data-validation-evidence-input]")) {
+      const selectedFiles = [...target.files];
+      target.value = "";
+      addValidationEvidence(selectedFiles);
+    } else if (target.matches("[data-stop-evidence-input]")) {
+      const selectedFiles = [...target.files];
+      target.value = "";
+      addDraftEvidence(selectedFiles);
+    } else if (target.matches("[data-record-evidence-input]")) {
+      const selectedFiles = [...target.files];
+      target.value = "";
+      addEvidenceToRecord(selectedFiles);
+    }
+  });
+
+  app.addEventListener("input", (event) => {
+    if (event.target.matches("[data-scan-field]") && state.scanErrors?.[event.target.dataset.formField]) setScanError(event.target.dataset.formField, "");
+    if (event.target.matches("[data-disassembly-filter]")) {
+      state.disassemblyFilter = event.target.value;
+      const query = normalizeDisassemblySearch(event.target.value).trim();
+      document.querySelectorAll(".station-disassembly-sheet").forEach((tile) => { tile.hidden = Boolean(query) && !tile.dataset.search.includes(query); });
+      return;
+    }
+    const { target } = event;
+    if (target.matches('#local-user-form input[name="userPassword"], #local-user-form input[name="userPasswordConfirm"]')) {
+      const form = target.form;
+      const confirm = form.elements.namedItem("userPasswordConfirm");
+      confirm.setCustomValidity(form.elements.namedItem("userPassword").value === confirm.value ? "" : "Las contraseñas no coinciden.");
+    }
+    if (target.matches('[data-login-field="username"]')) {
+      state.loginUsername = target.value;
+    } else if (target.matches("#operator-handoff-form input")) {
+      target.removeAttribute("aria-invalid");
+      target.removeAttribute("aria-describedby");
+      state.operatorHandoffError = "";
+      const error = document.querySelector("#operator-handoff-error");
+      if (error) error.hidden = true;
+    } else if (target.dataset.search === "serial") {
+      state.serialQuery = target.value;
+      updateSerialSearch();
+    } else if (target.dataset.search === "dialog") {
+      state.recordsQuery = target.value;
+      updateDialogSearch();
+    } else if (target.dataset.formField) {
+      if (prepareSopChangeFromIntake(target)) return;
+      state.form[target.dataset.formField] = target.value;
+      persistWorkState();
+      if (state.formError) clearFormError();
+      target.removeAttribute("aria-invalid");
+      target.removeAttribute("aria-describedby");
+      if (target.closest("#station-intake-form")) updateStationIntakeUI(state);
+    } else if (target.name === "workNote") {
+      state.workDraft.note = target.value;
+    } else if (target.name === "failedStep") {
+      state.workDraft.failedStep = target.value;
+    } else if (target.name === "reasonCode") {
+      state.workDraft.reasonCode = target.value;
+    } else if (target.dataset.workDraftField) {
+      state.workDraft[target.dataset.workDraftField] = target.value;
+    } else if (target.matches("[data-review-note]")) {
+      state.reviewNote = target.value;
+    }
+  });
+
+  app.addEventListener("submit", (event) => {
+    if (event.target.matches("#station-intake-form")) {
+      event.preventDefault();
+      runWithTransition(() => continueStationIntake());
+      return;
+    }
+    if (event.target.matches("#local-login-form")) {
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      state.loginUsername = String(formData.get("username") ?? "").trim();
+      const user = authenticateLocalUser(state.loginUsername, String(formData.get("password") ?? ""));
+      if (!user) {
+        state.loginError = "Usuario o contraseña incorrectos, o cuenta inactiva.";
+        render();
+        return;
+      }
+      state.loginError = "";
+      state.loginUsername = "";
+      state.activeSection = "overview";
+      const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
+      if (activeWork && activeWork.form?.employeeNumber !== user.employeeNumber) {
+        state.activeWorkId = "";
+        state.completedSteps = [];
+        state.sopRun = null;
+      }
+      if (!state.activeWorkId) {
+        state.sopRun = null;
+        state.form = { ...createEmptyForm(), name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", stationAssignment: "MFG:TDR", sopVersionId: "", nodeNumber: "", serial: "", declaration: false };
+        state.operatorFlowReady = false;
+      } else {
+        state.form = { ...state.form, name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA" };
+        state.operatorFlowReady = false;
+      }
+      state.formError = "";
+      state.auditSessionId = `session-${crypto.randomUUID()}`;
+      localStorage.setItem("sop-operador-audit-session-v1", state.auditSessionId);
+      recordLocalAuditEvent("local_login", { sessionId: state.auditSessionId });
+      render();
+    } else if (event.target.matches("#completion-form")) handleCompletionSubmit(event);
+    if (event.target.matches("#work-item-form")) {
+      handleWorkItemSubmit(event);
+    } else if (event.target.matches("#operator-handoff-form")) {
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      const result = handoffWorkOperator(String(formData.get("operatorUsername") ?? "").trim(), String(formData.get("operatorPassword") ?? ""));
+      const errors = {
+        "not-active-work": "No hay un trabajo SOP activo que se pueda transferir.",
+        "not-current-operator": "Solo el operador actualmente asignado puede entregar este trabajo.",
+        "sop-loading": "Espera a que termine de cargarse la SOP y el historial local para cambiar de operador.",
+        "invalid-credentials": "El número de empleado o la contraseña no son correctos, o la cuenta está inactiva.",
+        "same-operator": "Ingresa las credenciales de otra persona para cambiar de operador.",
+        "save-failed": "No se pudo guardar el avance. El operador actual no cambió; libera espacio e inténtalo de nuevo.",
+      };
+      if (result !== "ok") {
+        state.operatorHandoffError = errors[result] || "No se pudo cambiar el operador.";
+        const error = document.querySelector("#operator-handoff-error");
+        if (error) {
+          error.textContent = state.operatorHandoffError;
+          error.hidden = false;
+        }
+        const password = event.target.querySelector('[name="operatorPassword"]');
+        for (const field of event.target.querySelectorAll("input")) {
+          field.setAttribute("aria-invalid", "true");
+          field.setAttribute("aria-describedby", "operator-handoff-error");
+        }
+        if (password) password.value = "";
+        event.target.querySelector('[name="operatorUsername"]')?.focus();
+        return;
+      }
+      state.operatorHandoffError = "";
+      state.operatorHandoffDialogOpen = false;
+      state.dialogTriggerFocusKey = "change-operator";
+      render({ focusKey: state.dialogTriggerFocusKey });
+      showToast("Avance guardado. El retrabajo continúa con el nuevo operador.", "success");
+    }
+    if (event.target.matches("#local-user-form")) {
+      event.preventDefault();
+      if (getActiveLocalUser().role !== "admin") return;
+      createLocalUser(new FormData(event.target));
+    } else if (event.target.matches("#local-password-form")) {
+      event.preventDefault();
+      if (getActiveLocalUser().role !== "admin") return;
+      changeLocalUserPassword(new FormData(event.target));
+    }
+  });
+}
+
+function scrollToNextPendingStep(checkbox) {
+  const list = checkbox.closest(".guided-checklist-list");
+  const current = checkbox.closest(".guided-check-item");
+  if (!list || !current) return;
+  const items = [...list.querySelectorAll(".guided-check-item")];
+  const pending = items.filter((item) => !item.classList.contains("guided-check-item--checked"));
+  const next = pending.find((item) => current.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_FOLLOWING) ?? pending[0];
+  if (!next) return;
+  const listBounds = list.getBoundingClientRect();
+  const nextBounds = next.getBoundingClientRect();
+  if (nextBounds.bottom > listBounds.bottom - 8 || nextBounds.top < listBounds.top + 8) {
+    list.scrollBy({ top: nextBounds.top - listBounds.top - 12, behavior: "smooth" });
+  }
+}
+
+function updateGuidedChecklistUI(procedure, state) {
+  const checked = new Set(getGuidedSopCheckedSteps(state.sopRun, procedure.id));
+  for (const row of document.querySelectorAll(".guided-check-item")) {
+    const checkbox = row.querySelector("[data-step]");
+    row.classList.toggle("guided-check-item--checked", Boolean(checkbox?.checked));
+  }
+  const currentCount = procedure.steps.filter((step) => checked.has(String(step.number))).length;
+  const currentCountLabel = document.querySelector(".guided-checklist-heading-count");
+  if (currentCountLabel) currentCountLabel.textContent = `${currentCount}/${procedure.steps.length}`;
+  const localProgress = document.querySelector(".guided-checklist-panel .sop-run-progress-track > span");
+  const localProgressLabel = document.querySelector(".guided-checklist-panel .sop-run-progress > strong");
+  const localPercent = procedure.steps.length ? Math.round(currentCount / procedure.steps.length * 100) : 0;
+  if (localProgress) localProgress.style.width = `${localPercent}%`;
+  if (localProgressLabel) localProgressLabel.textContent = `${localPercent}%`;
+  const pendingNote = document.querySelector(".guided-checklist-footer .guided-checklist-note");
+  if (pendingNote) pendingNote.textContent = isGuidedSopProcedureComplete(state.sopRun, procedure)
+    ? "¡Hoja completa! Ya puedes continuar."
+    : `Toca cada paso al terminarlo · faltan ${procedure.steps.length - currentCount}`;
+  const progress = getGuidedSopProgress(state.sopRun, SOP_SHEETS);
+  const progressCopy = document.querySelector(".guided-progress-copy");
+  if (progressCopy) {
+    progressCopy.textContent = `${progress.complete} / ${progress.total} SOP`;
+  }
+  const continueButton = document.querySelector('[data-action="continue-sop-sheet"], [data-action="open-final-confirmation"]');
+  if (continueButton) continueButton.disabled = !isGuidedSopProcedureComplete(state.sopRun, procedure) || !canOperateGuidedSopRun();
+  if (state.formError) {
+    state.formError = "";
+    for (const error of document.querySelectorAll(".form-error")) {
+      error.textContent = "";
+      error.hidden = true;
+    }
+  }
+}
