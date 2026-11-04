@@ -444,12 +444,6 @@ function bindInteractions(app, handlers) {
         setUsersSopOpen(wasOpen ? null : id);
         break;
       }
-      case "users-sop-save":
-        void saveUserSopCard(action.closest("[data-user-card]"));
-        break;
-      case "users-sop-discard":
-        discardUserSopCard(action.closest("[data-user-card]"));
-        break;
       case "users-new-toggle":
         state.usersNewOpen = !state.usersNewOpen;
         state.usersPasswordFor = null;
@@ -636,8 +630,12 @@ function bindInteractions(app, handlers) {
 
   app.addEventListener("change", (event) => {
     const { target } = event;
-    if (target.matches("[data-sop-role-toggle], [data-admin-toggle]")) {
-      updateUserSopDirty(target.closest("[data-user-card]"));
+    if (target.matches("[data-sop-role-toggle]")) {
+      void changeUserSopRole(target);
+      return;
+    }
+    if (target.matches("[data-admin-toggle]")) {
+      void changeUserAdmin(target);
       return;
     }
     if (target.matches("#profile-avatar-input")) {
@@ -911,6 +909,22 @@ function bindInteractions(app, handlers) {
   });
 }
 
+// Concede o retira la función de revisor o publicador desde la tarjeta de una persona.
+async function changeUserSopRole(toggle) {
+  const card = toggle.closest("[data-user-card]");
+  const review = card.querySelector('[data-role="review"]').checked;
+  const publish = card.querySelector('[data-role="publish"]').checked;
+  const label = toggle.dataset.role === "review" ? "Revisor" : "Publicador";
+  card.querySelectorAll("[data-sop-role-toggle]").forEach((input) => { input.disabled = true; });
+  const result = await setLocalUserSopRoles(toggle.dataset.userId, { review, publish });
+  if (result === "ok") showToast(toggle.checked ? `${label} habilitado.` : `${label} retirado.`, "success");
+  else {
+    toggle.checked = !toggle.checked;
+    showToast(result === "forbidden" ? "Solo la cuenta 140784 puede asignar estas funciones." : "No se pudo cambiar la función; intenta de nuevo.", "warning");
+  }
+  render();
+}
+
 // Solo una ventana de "Funciones en la SOP" abierta a la vez; se cierra al tocar fuera o con Escape.
 function setUsersSopOpen(id) {
   state.usersSopOpen = id === null ? [] : [String(id)];
@@ -924,39 +938,18 @@ function setUsersSopOpen(id) {
   });
 }
 
-// Los switches de la tarjeta solo cambian la vista; se guardan con el botón Guardar.
-function updateUserSopDirty(card) {
-  if (!card) return;
-  const dirty = [...card.querySelectorAll("[data-sop-role-toggle], [data-admin-toggle]")].some((input) => input.checked !== input.defaultChecked);
-  card.querySelector("[data-sop-save]").hidden = !dirty;
-}
-
-function discardUserSopCard(card) {
-  card.querySelectorAll("[data-sop-role-toggle], [data-admin-toggle]").forEach((input) => { input.checked = input.defaultChecked; });
-  updateUserSopDirty(card);
-}
-
-const USER_SOP_SAVE_MESSAGES = {
-  "active-user": "No puedes quitarte a ti mismo el rol de administrador.",
-  "last-admin": "Debe quedar al menos un administrador activo.",
-  forbidden: "Solo la cuenta 140784 puede asignar estas funciones.",
-};
-
-// Guarda el rol de administrador y las funciones de SOP de la persona de una vez.
-async function saveUserSopCard(card) {
-  const adminInput = card.querySelector("[data-admin-toggle]");
-  const sopInputs = [...card.querySelectorAll("[data-sop-role-toggle]")];
-  const adminChanged = adminInput.checked !== adminInput.defaultChecked;
-  const sopChanged = sopInputs.some((input) => input.checked !== input.defaultChecked);
-  if (!adminChanged && !sopChanged) return;
-  const userId = card.dataset.userId;
-  const flag = (role) => card.querySelector(`[data-role="${role}"]`).checked;
-  card.querySelectorAll("input, [data-sop-save] button").forEach((control) => { control.disabled = true; });
-  let result = "ok";
-  if (adminChanged) result = await setLocalUserAdmin(userId, flag("admin"));
-  if (result === "ok" && sopChanged) result = await setLocalUserSopRoles(userId, { review: flag("review"), publish: flag("publish") });
-  if (result === "ok") showToast("Funciones guardadas.", "success");
-  else showToast(USER_SOP_SAVE_MESSAGES[result] ?? "No se pudo guardar; intenta de nuevo.", "warning");
+// Habilita o quita el rol de administrador desde la tarjeta de una persona.
+async function changeUserAdmin(toggle) {
+  const wanted = toggle.checked;
+  toggle.disabled = true;
+  const result = await setLocalUserAdmin(toggle.dataset.userId, wanted);
+  const messages = {
+    "active-user": "No puedes quitarte a ti mismo el rol de administrador.",
+    "last-admin": "Debe quedar al menos un administrador activo.",
+    forbidden: "Solo la cuenta 140784 puede asignar estas funciones.",
+  };
+  if (result === "ok") showToast(wanted ? "Administrador habilitado." : "Administrador retirado.", "success");
+  else showToast(messages[result] ?? "No se pudo cambiar el rol; intenta de nuevo.", "warning");
   render();
 }
 
