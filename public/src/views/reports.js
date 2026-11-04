@@ -1,5 +1,17 @@
 const REPORT_PAGE_SIZE = 25;
 
+// Reportes agrupa los datos relacionados en 7 columnas para que la tabla quepa completa.
+function renderReportRows(records, workItems = []) {
+  return records.map((record) => `<tr>
+    <td><span>${escapeHtml(record.displayDate ?? TODAY_DATE_LABEL)}</span><small>${escapeHtml(record.time)}</small></td>
+    <td><strong class="serial-cell">${escapeHtml(record.serial)}</strong>${isDemoRecord(record) ? '<small class="record-origin record-origin--demo">DEMO</small>' : ""}<small>Nodo ${escapeHtml(record.nodeNumber || "—")} · ${escapeHtml(record.nodePartNumber || "—")}</small></td>
+    <td>${escapeHtml(record.operation ?? record.category)}<small>${escapeHtml(record.category)} · hoja ${escapeHtml(record.sheet ?? "—")} · Rev. ${escapeHtml(record.sopRevision ?? "sin dato")}</small><small>${escapeHtml(record.repairType ?? "Sin tipo de reparación")}</small></td>
+    <td>${escapeHtml(record.componentPartNumber ?? "—")}<small>Serie ${escapeHtml(record.componentSerial ?? "—")}</small></td>
+    <td><span>${escapeHtml(record.operator)}</span><small>${escapeHtml(record.employeeNumber)} · ${escapeHtml(record.position ?? "Técnico de FA")}</small></td>
+    <td><span class="status-chip ${recordStatusClass(record.status)}"><span></span>${escapeHtml(record.status)}</span></td>${renderRecordEvidenceCell(record, workItems)}
+  </tr>`).join("");
+}
+
 function renderReportsView(allRecords, state, workItems) {
   const { reportFilters, includeDemoData } = state;
   const filtered = getReportRecords(allRecords, reportFilters, includeDemoData);
@@ -18,7 +30,7 @@ function renderReportsView(allRecords, state, workItems) {
   ];
   const categoryOptions = categories.map((category) => `<option value="${escapeHtml(category)}" ${reportFilters.category === category ? "selected" : ""}>${escapeHtml(category)}</option>`).join("");
   const employeeOptions = employees.map(([id, name]) => `<option value="${escapeHtml(id)}" ${reportFilters.employeeNumber === id ? "selected" : ""}>${escapeHtml(name)} · ${escapeHtml(id)}</option>`).join("");
-  const rows = visible.length ? renderSerialRows(visible, workItems) : '<tr><td class="empty-row" colspan="13">No hay registros en este periodo. Amplía las fechas o incluye demostraciones.</td></tr>';
+  const rows = visible.length ? renderReportRows(visible, workItems) : '<tr><td class="empty-row" colspan="7">No hay registros en este periodo. Amplía las fechas o incluye demostraciones.</td></tr>';
   const pageLabel = filtered.length ? `Registros ${((page - 1) * REPORT_PAGE_SIZE) + 1}–${Math.min(page * REPORT_PAGE_SIZE, filtered.length)} de ${filtered.length}` : "0 registros";
   const periodLabel = reportFilters.dateFrom || reportFilters.dateTo
     ? `${reportFilters.dateFrom || "inicio"} – ${reportFilters.dateTo || "hoy"}`
@@ -39,7 +51,7 @@ function renderReportsView(allRecords, state, workItems) {
     <p class="report-data-note">${includeDemoData ? "Incluye registros ilustrativos DEMO." : "Los registros ilustrativos DEMO están excluidos."} El turno se calcula desde la hora guardada; el CSV contiene el conjunto completo filtrado.</p>
     ${filtered.length ? `<div class="reports-chart-grid"><section class="report-chart-panel" aria-labelledby="report-chart-title"><h3 id="report-chart-title">Validaciones por tipo de SOP</h3><div class="chart-canvas-wrap"><div class="chart-bars" id="completion-chart" role="img" aria-label="Validaciones por tipo de SOP para ${escapeHtml(periodLabel)}"></div></div></section>${renderOperatorCounts(filtered, periodLabel)}</div>` : '<div class="report-empty"><strong>Sin actividad en este periodo</strong><p>Intenta con otras fechas o activa los datos demo para explorar el reporte.</p></div>'}
     <section class="report-table-panel" aria-labelledby="report-table-title"><div class="section-heading"><div><h3 id="report-table-title">Detalle de registros</h3><span>${pageLabel}</span></div><div><button class="button button--outlined" type="button" data-action="report-page" data-direction="previous" ${page <= 1 ? "disabled" : ""}>Anterior</button> <button class="button button--outlined" type="button" data-action="report-page" data-direction="next" ${page >= pageCount ? "disabled" : ""}>Siguiente</button></div></div>
-      <div class="table-scroll"><table><thead><tr><th>Fecha y hora</th><th>N° de serie del nodo</th><th>N° de parte del nodo</th><th>Tipo de SOP utilizada</th><th>Tipo de reparación</th><th>N° de parte del componente</th><th>N° de serie del componente</th><th>Hoja</th><th>Operador</th><th>N° empleado</th><th>Puesto</th><th>Estado</th><th>Evidencia</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="table-scroll"><table><thead><tr><th>Fecha y hora</th><th>Nodo y serie</th><th>SOP y hoja</th><th>Componente</th><th>Operador</th><th>Estado</th><th>Evidencia</th></tr></thead><tbody>${rows}</tbody></table></div>
     </section>
   </section>`;
 }
