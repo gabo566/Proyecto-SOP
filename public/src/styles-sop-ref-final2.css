@@ -146,3 +146,12 @@
 /* Punto medio: marcado pero discreto (borde 1.5 px, franja de 4 px y sombra ligera). */
 .sop-summary-card { border: 1.5px solid #6f8fc9; padding-left: 18px; box-shadow: inset 4px 0 0 #2653a6, 0 4px 12px rgb(38 83 166 / 18%); }
 .sop-safety-note { border: 1.5px solid #c9a24a; padding-left: 18px; box-shadow: inset 4px 0 0 #e49a1c, 0 4px 12px rgb(150 100 15 / 18%); }
+
+/* ---- Hoja terminada: el botón se vuelve verde con «¡Hoja completa!» y un pequeño pulso ---- */
+@keyframes sop-complete-pop { 0% { transform: scale(.94); } 55% { transform: scale(1.04); } 100% { transform: scale(1); } }
+.sop-action-bar .sop-action-confirm[data-complete="true"], .sop-action-bar .sop-action-confirm[data-complete="true"]:disabled {
+  color: #fff; background: linear-gradient(180deg, #4a9a3d, #377d2c); box-shadow: 0 0 0 3px rgb(74 154 61 / 25%), 0 4px 12px rgb(55 125 44 / 40%); cursor: default; opacity: 1;
+  animation: sop-complete-pop 360ms cubic-bezier(.23, 1, .32, 1);
+}
+.sop-action-bar .sop-action-confirm[data-complete="true"] .material-symbols-rounded { font-variation-settings: "FILL" 1; }
+@media (prefers-reduced-motion: reduce) { .sop-action-bar .sop-action-confirm[data-complete="true"] { animation: none; } }

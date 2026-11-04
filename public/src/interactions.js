@@ -925,8 +925,9 @@ function updateGuidedChecklistUI(procedure, state) {
   if (confirmButton) {
     const complete = isGuidedSopProcedureComplete(state.sopRun, procedure);
     confirmButton.disabled = complete || !canOperateGuidedSopRun();
+    confirmButton.dataset.complete = String(complete);
     const confirmLabel = confirmButton.querySelector("[data-confirm-label]");
-    if (confirmLabel) confirmLabel.textContent = complete ? "Hoja completa" : `Confirmar paso (${Math.min(currentCount + 1, procedure.steps.length)}/${procedure.steps.length})`;
+    if (confirmLabel) confirmLabel.textContent = complete ? "¡Hoja completa!" : `Confirmar paso (${Math.min(currentCount + 1, procedure.steps.length)}/${procedure.steps.length})`;
   }
   const continueButton = document.querySelector('[data-action="continue-sop-sheet"], [data-action="open-final-confirmation"]');
   if (continueButton) continueButton.disabled = !isGuidedSopProcedureComplete(state.sopRun, procedure) || !canOperateGuidedSopRun();

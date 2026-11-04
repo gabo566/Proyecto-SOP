@@ -80,7 +80,7 @@ function renderProcedurePanel(procedure, state) {
   const sopPercent = progress.total ? Math.round(progress.complete / progress.total * 100) : 0;
   const sheetBadge = restricted ? `HOJA ${escapeHtml(procedure.sheet)} · ${(run.currentIndex ?? 0) + 1} DE ${run.procedureIds.length}` : `HOJA ${escapeHtml(procedure.sheet)} DE ${escapeHtml(totalSheets)}`;
   const currentStepNumber = Math.min(checkedCount + 1, procedure.steps.length);
-  const confirmLabel = isComplete ? "Hoja completa" : `Confirmar paso (${currentStepNumber}/${procedure.steps.length})`;
+  const confirmLabel = isComplete ? "¡Hoja completa!" : `Confirmar paso (${currentStepNumber}/${procedure.steps.length})`;
   const safetyNote = procedure.steps.find((step) => step.sourceNote)?.sourceNote
     || "Verifica el P/N y la serie escaneados antes de intervenir el equipo y consulta a tu supervisor ante cualquier duda.";
   const sheetsChips = (run.procedureIds ?? []).map((id) => PROCEDURES.find((item) => item.id === id)).filter(Boolean)
@@ -156,7 +156,7 @@ function renderProcedurePanel(procedure, state) {
         ${canHandoffOperator ? `<button class="button sop-action-handoff guided-handoff-button" type="button" data-action="open-operator-handoff" data-focus-key="change-operator" ${state.evidenceBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.evidenceBusy ? "hourglass_top" : "swap_horiz"}</span>${state.evidenceBusy ? "Guardando avance…" : "Cambiar operador"}</button>` : ""}
       </div>
       <div class="sop-action-side sop-action-side--right">
-        <button class="button sop-action-confirm" type="button" data-action="confirm-current-step" data-focus-key="confirm-current-step" ${!canOperate || isComplete ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><span data-confirm-label>${confirmLabel}</span></button>
+        <button class="button sop-action-confirm" type="button" data-action="confirm-current-step" data-focus-key="confirm-current-step" data-complete="${isComplete}" ${!canOperate || isComplete ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><span data-confirm-label>${confirmLabel}</span></button>
         <button class="button sop-action-next guided-continue-button" type="button" data-action="${nextAction}" data-focus-key="continue-sop-sheet" ${!canOperate || run.stage !== "confirmation" && !isComplete ? "disabled" : ""}>${nextLabel}<span class="material-symbols-rounded" aria-hidden="true">${run.stage === "confirmation" ? "fact_check" : "arrow_forward"}</span></button>
       </div>
     </div>
