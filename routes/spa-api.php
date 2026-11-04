@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuditEventController;
+use App\Http\Controllers\CardEventController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EvidenceController;
 use App\Http\Controllers\ProfileController;
@@ -31,6 +32,8 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
     Route::delete('/profile/avatar', [ProfileController::class, 'destroyAvatar']);
     Route::get('/users/{user}/avatar', [ProfileController::class, 'showAvatar']);
 
+    Route::get('/card-events', [CardEventController::class, 'index']);
+    Route::post('/card-events', [CardEventController::class, 'store']);
     Route::get('/sop-versions', [SopVersionController::class, 'index']);
     Route::get('/sop-versions/{version}/pdf', [SopVersionController::class, 'pdf']);
     Route::get('/sop-catalog', [SopCatalogController::class, 'index']);
