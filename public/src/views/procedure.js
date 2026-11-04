@@ -38,15 +38,9 @@ function renderContextSheets(state, procedure) {
 }
 
 function renderStationSopContext(state, procedure) {
-  const assignment = getWorkStationAssignment(state.form.stationAssignment);
-  const user = getActiveLocalUser();
-  const document = state.sopRun?.document ?? SOP_DOCUMENT;
-  const stationLabel = assignment ? `${assignment.type} · ${assignment.label}` : "Estación sin asignar";
   return `<section class="station-sop-context" aria-label="Datos registrados para esta validación">
-    <div class="station-context-tile station-context-tile--station"><span class="material-symbols-rounded" aria-hidden="true">factory</span><span><small>Estación</small><strong>${escapeHtml(stationLabel)}</strong></span></div>
     <div class="station-context-tile station-context-tile--node"><span class="material-symbols-rounded" aria-hidden="true">dns</span><span><small>Nodo</small><strong>PN ${escapeHtml(state.form.nodePartNumber || "—")}</strong><small>Serie ${escapeHtml(state.form.serial || "—")}</small></span></div>
     <div class="station-context-tile station-context-tile--card"><span class="material-symbols-rounded" aria-hidden="true">memory</span><span><small>Tarjeta</small><strong>PN ${escapeHtml(state.form.componentPartNumber || "—")}</strong><small>Serie ${escapeHtml(state.form.componentSerial || "—")}</small></span></div>
-    <div class="station-context-tile station-context-tile--operator"><span class="material-symbols-rounded" aria-hidden="true">person</span><span><small>Operador responsable</small><strong>${escapeHtml(user.name)}</strong><small>No. empleado ${escapeHtml(user.employeeNumber)}</small></span></div>
     ${renderContextSheets(state, procedure)}
   </section>`;
 }
@@ -82,7 +76,16 @@ function renderProcedurePanel(procedure, state) {
   const sheetPercent = procedure.steps.length ? Math.round(checkedCount / procedure.steps.length * 100) : 0;
   const serialSummary = state.form.serial?.trim() ? `Serie ${escapeHtml(state.form.serial.trim())}` : "Serie pendiente";
 
+  const sopDocument = run.document ?? SOP_DOCUMENT;
+  const sopPercent = progress.total ? Math.round(progress.complete / progress.total * 100) : 0;
+  const sheetBadge = restricted ? `HOJA ${escapeHtml(procedure.sheet)} · ${(run.currentIndex ?? 0) + 1} DE ${run.procedureIds.length}` : `HOJA ${escapeHtml(procedure.sheet)} DE ${escapeHtml(totalSheets)}`;
+
   return `<section class="procedure-panel sop-execution-panel" aria-label="Seguimiento y validación de la SOP">
+    <header class="sop-run-header">
+      <div class="sop-run-title"><h2>SOP: ${escapeHtml(sopDocument.title)}</h2><span class="sop-run-version">${escapeHtml(sopDocument.id)} · Versión ${escapeHtml(sopDocument.revision)}</span></div>
+      <span class="sop-sheet-badge"><span class="material-symbols-rounded" aria-hidden="true">layers</span>${sheetBadge}</span>
+      <div class="sop-total-progress" role="group" aria-label="Progreso de la SOP"><span>Progreso de la SOP</span><div class="sop-total-progress-track"><span data-sop-progress-bar style="width:${sopPercent}%"></span></div><strong data-sop-progress-pct>${sopPercent}%</strong></div>
+    </header>
     ${renderOperatorFlowProgress(run.stage === "confirmation" ? 3 : 2)}
     ${renderStationSopContext(state, procedure)}
     ${ownerMessage}
@@ -111,18 +114,20 @@ function renderProcedurePanel(procedure, state) {
         <div class="sop-run-progress" role="group" aria-label="Progreso de esta hoja"><div class="sop-run-progress-track"><span style="width:${sheetPercent}%"></span></div><strong>${sheetPercent}%</strong></div>
         <div class="guided-checklist-list sop-sheet-step-list" role="group" aria-label="Pasos de la hoja ${escapeHtml(procedure.sheet)}">${renderGuidedValidationSteps(procedure, state, !canOperate, false)}</div>
         <p class="form-error sop-run-error" id="sop-run-error" role="alert" aria-live="polite" ${state.formError ? "" : "hidden"}>${escapeHtml(state.formError)}</p>
-        <div class="guided-checklist-footer">
-          <small class="guided-checklist-note">${isComplete ? "¡Hoja completa! Ya puedes continuar." : `Toca cada paso al terminarlo · faltan ${procedure.steps.length - checkedCount}`}</small>
-          <div class="guided-sheet-actions">
-            ${!isFirstPage ? `<button class="button button--secondary guided-previous-button" type="button" data-action="previous-sop-sheet" data-focus-key="previous-sop-sheet" ${canOperate ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Anterior</button>` : ""}
-            <button class="button button--primary guided-continue-button" type="button" data-action="${nextAction}" data-focus-key="continue-sop-sheet" ${!canOperate || run.stage !== "confirmation" && !isComplete ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${run.stage === "confirmation" ? "fact_check" : "arrow_forward"}</span>${nextLabel}</button>
-          </div>
-        </div>
-        <div class="guided-work-utility-actions">
-          ${canHandoffOperator ? `<button class="button button--outlined guided-handoff-button" type="button" data-action="open-operator-handoff" data-focus-key="change-operator" ${state.evidenceBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.evidenceBusy ? "hourglass_top" : "swap_horiz"}</span>${state.evidenceBusy ? "Guardando avance…" : "Cambiar operador"}</button>` : ""}
-          <button class="button button--secondary guided-return-selection" type="button" data-action="return-to-sop-selection" ${canOperate ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Regresar a selección de SOP</button>
-        </div>
       </section>
+    </div>
+    <div class="sop-action-bar">
+      <div class="guided-work-utility-actions">
+        ${canHandoffOperator ? `<button class="button button--outlined guided-handoff-button" type="button" data-action="open-operator-handoff" data-focus-key="change-operator" ${state.evidenceBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.evidenceBusy ? "hourglass_top" : "swap_horiz"}</span>${state.evidenceBusy ? "Guardando avance…" : "Cambiar operador"}</button>` : ""}
+        <button class="button button--secondary guided-return-selection" type="button" data-action="return-to-sop-selection" ${canOperate ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Regresar a selección de SOP</button>
+      </div>
+      <div class="guided-checklist-footer">
+        <small class="guided-checklist-note">${isComplete ? "¡Hoja completa! Ya puedes continuar." : `Toca cada paso al terminarlo · faltan ${procedure.steps.length - checkedCount}`}</small>
+        <div class="guided-sheet-actions">
+          ${!isFirstPage ? `<button class="button button--secondary guided-previous-button" type="button" data-action="previous-sop-sheet" data-focus-key="previous-sop-sheet" ${canOperate ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Anterior</button>` : ""}
+          <button class="button button--primary guided-continue-button" type="button" data-action="${nextAction}" data-focus-key="continue-sop-sheet" ${!canOperate || run.stage !== "confirmation" && !isComplete ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${run.stage === "confirmation" ? "fact_check" : "arrow_forward"}</span>${nextLabel}</button>
+        </div>
+      </div>
     </div>
   </section>`;
 }

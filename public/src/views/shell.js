@@ -32,20 +32,25 @@ function renderSidebar(state) {
 
 function renderTopbar(state = {}) {
   const user = getActiveLocalUser();
+  const section = NAV_ITEMS.find((item) => item.id === state.activeSection) ?? NAV_ITEMS[0];
+  const assignment = getWorkStationAssignment(state.form?.stationAssignment);
+  const stationChip = assignment
+    ? `<div class="station-chip" aria-label="Estación asignada"><span class="material-symbols-rounded" aria-hidden="true">desktop_windows</span><span class="station-chip-copy"><small>Estación</small><strong>${escapeHtml(assignment.label)}</strong></span></div>`
+    : "";
   return `<header class="topbar" id="top">
     <button class="icon-button menu-toggle" type="button" data-action="open-menu" data-focus-key="menu-open" aria-label="Abrir menú">
       <span class="material-symbols-rounded" aria-hidden="true">menu</span>
     </button>
     <div class="topbar-title">
-      <span class="topbar-title-icon"><span class="material-symbols-rounded" aria-hidden="true">description</span></span>
-      <div class="topbar-title-copy"><h1>${escapeHtml(SOP_DOCUMENT.title)}</h1><span class="topbar-kicker">SOP actual · ${escapeHtml(SOP_DOCUMENT.id)} · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}</span></div>
+      <div class="topbar-title-copy"><h1>${escapeHtml(section.label)}</h1><span class="topbar-kicker">${escapeHtml(SOP_DOCUMENT.title)} · ${escapeHtml(SOP_DOCUMENT.id)} · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}</span></div>
     </div>
     <div class="topbar-user-panel">
     <div class="topbar-profile">
       ${renderProfileMenu(user)}
     </div>
     <div class="topbar-meta">
-      <div class="shift-chip" aria-label="Turno actual"><span class="material-symbols-rounded" aria-hidden="true">groups</span><span id="current-shift-label">${getCurrentShiftLabel()}</span></div>
+      ${stationChip}
+      <div class="shift-chip" aria-label="Turno actual"><span class="material-symbols-rounded" aria-hidden="true">schedule</span><span id="current-shift-label">${getCurrentShiftLabel()}</span></div>
       <button class="icon-button help-button" type="button" data-action="open-help" data-focus-key="help-open" aria-label="Ayuda sobre el almacenamiento de datos" title="Ayuda"><span class="material-symbols-rounded" aria-hidden="true">help</span></button>
     </div>
     </div>

@@ -28,14 +28,21 @@ function renderComponentFields(form, workDraft = null) {
     <label class="validation-field">N° de serie del componente · opcional<input name="componentSerial" ${workDraft ? "data-work-draft-field=\"componentSerial\"" : "data-form-field=\"componentSerial\""} value="${escapeHtml(serial ?? "")}" placeholder="Serial del componente" /></label>`;
 }
 
+const GUIDED_STEP_STATUS_LABELS = { done: "Completado", current: "En curso", pending: "Pendiente" };
+
 function renderGuidedValidationSteps(procedure, state, disabled = false, showReferenceImages = true) {
-  return procedure.steps.map((step) => {
-    const checked = getGuidedSopCheckedSteps(state.sopRun, procedure.id).includes(String(step.number));
+  const doneSteps = new Set(getGuidedSopCheckedSteps(state.sopRun, procedure.id));
+  const currentStep = procedure.steps.find((step) => !doneSteps.has(String(step.number)));
+  return procedure.steps.map((step, index) => {
+    const checked = doneSteps.has(String(step.number));
+    const status = checked ? "done" : step === currentStep ? "current" : "pending";
     const audit = getLatestLocalStepEvent(procedure.id, step.number);
     const auditLabel = checked && audit ? `<small class="step-audit-label">Marcó ${escapeHtml(audit.actor.name)} · ${escapeHtml(new Intl.DateTimeFormat("es-MX", { dateStyle: "short", timeStyle: "short" }).format(new Date(audit.at)))}</small>` : "";
     return `<div class="guided-check-item ${checked ? "guided-check-item--checked" : ""}">
+      <span class="guided-check-index" aria-hidden="true">${index + 1}/${procedure.steps.length}</span>
       <input id="validation-step-${escapeHtml(step.number)}" type="checkbox" data-step="${escapeHtml(step.number)}" data-focus-key="step-${escapeHtml(step.number)}" aria-label="Realicé el paso ${escapeHtml(step.number)}: ${escapeHtml(step.text)}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} />
       <div class="guided-check-details"><label for="validation-step-${escapeHtml(step.number)}" class="guided-check-copy"><strong>Paso ${escapeHtml(step.number)}</strong><span>${escapeHtml(step.text)}</span>${step.sourceNote ? `<small class="validation-source-note">${escapeHtml(step.sourceNote)}</small>` : ""}${auditLabel}</label>${showReferenceImages && step.images?.length ? renderStepImages(step, procedure.sheet) : ""}</div>
+      <span class="guided-check-status guided-check-status--${status}" aria-hidden="true">${GUIDED_STEP_STATUS_LABELS[status]}</span>
     </div>`;
   }).join("");
 }

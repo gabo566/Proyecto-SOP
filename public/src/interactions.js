@@ -869,6 +869,15 @@ function updateGuidedChecklistUI(procedure, state) {
     const checkbox = row.querySelector("[data-step]");
     row.classList.toggle("guided-check-item--checked", Boolean(checkbox?.checked));
   }
+  const currentRow = [...document.querySelectorAll(".guided-check-item")].find((row) => !row.classList.contains("guided-check-item--checked"));
+  for (const row of document.querySelectorAll(".guided-check-item")) {
+    const status = row.classList.contains("guided-check-item--checked") ? "done" : row === currentRow ? "current" : "pending";
+    const pill = row.querySelector(".guided-check-status");
+    if (pill) {
+      pill.className = `guided-check-status guided-check-status--${status}`;
+      pill.textContent = GUIDED_STEP_STATUS_LABELS[status];
+    }
+  }
   const currentCount = procedure.steps.filter((step) => checked.has(String(step.number))).length;
   const currentCountLabel = document.querySelector(".guided-checklist-heading-count");
   if (currentCountLabel) currentCountLabel.textContent = `${currentCount}/${procedure.steps.length}`;
@@ -882,6 +891,11 @@ function updateGuidedChecklistUI(procedure, state) {
     ? "¡Hoja completa! Ya puedes continuar."
     : `Toca cada paso al terminarlo · faltan ${procedure.steps.length - currentCount}`;
   const progress = getGuidedSopProgress(state.sopRun, SOP_SHEETS);
+  const sopPercent = progress.total ? Math.round(progress.complete / progress.total * 100) : 0;
+  const sopBar = document.querySelector("[data-sop-progress-bar]");
+  const sopPct = document.querySelector("[data-sop-progress-pct]");
+  if (sopBar) sopBar.style.width = `${sopPercent}%`;
+  if (sopPct) sopPct.textContent = `${sopPercent}%`;
   const progressCopy = document.querySelector(".guided-progress-copy");
   if (progressCopy) {
     progressCopy.textContent = `${progress.complete} / ${progress.total} SOP`;

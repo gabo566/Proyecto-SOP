@@ -1,0 +1,203 @@
+/* C-067 · Seguimiento SOP con la composición de la referencia: barra clara con chips de operador/estación/turno,
+   encabezado «SOP · HOJA N DE M · progreso», pasos numerados con estado y barra de acciones inferior.
+   Paleta de la referencia: azul marino, azul de acción, verde de confirmación y ámbar de aviso.
+   Se carga después de styles-md3.css y solo reordena/recolorea; no cambia lógica. */
+:root {
+  --ref-navy: #1b2e52; --ref-navy-2: #26416f; --ref-blue: #2058b5; --ref-blue-deep: #18468f; --ref-blue-soft: #e3edfb;
+  --ref-green: #2f8f3c; --ref-green-deep: #25752f; --ref-green-soft: #e2f4e2; --ref-amber: #f5b13d; --ref-amber-soft: #fff4d9;
+  --ref-ink: #14223d; --ref-muted: #5b6b84; --ref-line: #d5dfec; --ref-bg: #f3f6fb;
+}
+body { background: var(--ref-bg); }
+.sidebar { background: linear-gradient(180deg, var(--ref-navy), #14233f); }
+.nav-item:hover { background: rgb(255 255 255 / 9%); }
+.nav-item--active, .nav-item--active:hover { background: var(--ref-blue); box-shadow: 0 2px 10px rgb(32 88 181 / 45%); }
+.nav-item:focus-visible { outline-color: #a9c7f5; }
+
+.topbar {
+  display: flex; align-items: center; gap: 16px; min-height: 68px; margin: 0 0 12px; padding: 10px 20px;
+  border: 0; border-bottom: 1px solid var(--ref-line); border-radius: 0 0 18px 18px; background: #fff;
+  box-shadow: 0 2px 10px rgb(27 46 82 / 8%);
+}
+.topbar .topbar-title { flex: 1 1 auto; min-width: 0; justify-content: flex-start; text-align: left; padding: 0; border: 0; background: none; }
+.topbar .topbar-title-copy { justify-items: start; gap: 2px; text-align: left; }
+.topbar .topbar-title h1 { color: var(--ref-navy); font-size: clamp(20px, 1.8vw, 26px); font-weight: 800; letter-spacing: -.01em; text-shadow: none; -webkit-text-stroke: 0; }
+.topbar .topbar-kicker { display: block; max-width: 100%; padding: 0; border: 0; background: none; color: var(--ref-muted); font-size: 12px; font-weight: 600; letter-spacing: 0; text-shadow: none; -webkit-text-stroke: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar .topbar-user-panel {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 0; padding: 4px; border: 1px solid var(--ref-line); border-radius: 14px;
+  background: #fff; box-shadow: none; justify-self: auto;
+}
+.topbar .topbar-user-panel:hover { border-color: #b9c9de; box-shadow: none; }
+.topbar .topbar-user-panel .profile-chip { min-height: 40px; padding: 3px 10px 3px 4px; border-radius: 10px; }
+.topbar .topbar-user-panel .profile-chip:hover, .topbar .topbar-user-panel .profile-menu[open] .profile-chip { background: var(--ref-blue-soft); }
+.topbar .topbar-user-panel .profile-avatar { width: 32px; height: 32px; font-size: 12px; background: var(--ref-blue); border-color: transparent; }
+.topbar .topbar-user-panel .profile-copy { justify-items: start; text-align: left; gap: 0; }
+.topbar .topbar-user-panel .profile-copy strong { color: var(--ref-ink); font-size: 13px; font-weight: 700; text-align: left; }
+.topbar .topbar-user-panel .profile-copy small { color: var(--ref-muted); font-size: 11px; font-weight: 600; text-align: left; }
+.topbar .topbar-user-panel .profile-menu-chevron { color: var(--ref-muted); font-size: 18px; }
+.topbar .topbar-user-panel .topbar-meta { display: flex; align-items: center; gap: 0; margin: 0 0 0 4px; padding: 0; border: 0; }
+.topbar .station-chip, .topbar .topbar-user-panel .shift-chip { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border: 0; border-left: 1px solid var(--ref-line); border-radius: 0; background: none; color: var(--ref-ink); font-size: 13px; font-weight: 700; text-shadow: none; }
+.topbar .station-chip .material-symbols-rounded, .topbar .topbar-user-panel .shift-chip .material-symbols-rounded { color: var(--ref-blue); font-size: 20px; }
+.topbar .station-chip-copy { display: grid; line-height: 1.15; }
+.topbar .station-chip-copy small { color: var(--ref-muted); font-size: 10px; font-weight: 600; letter-spacing: .02em; }
+.topbar .station-chip-copy strong { color: var(--ref-ink); font-size: 13px; font-weight: 800; }
+.topbar .topbar-user-panel .help-button { width: 34px; height: 34px; margin-left: 4px; color: var(--ref-blue); background: var(--ref-blue-soft); box-shadow: none; }
+.topbar .topbar-user-panel .help-button:hover { background: #cfe0f8; }
+.topbar .topbar-user-panel .help-button .material-symbols-rounded { font-size: 20px; }
+.topbar .menu-toggle { color: var(--ref-navy); }
+
+.sop-execution-panel {
+  --md-primary: var(--ref-blue); --md-primary-dark: var(--ref-blue-deep); --md-primary-container: var(--ref-blue-soft); --md-on-primary-container: #102a57;
+  --md-ok: var(--ref-green); --md-ok-container: var(--ref-green-soft); --md-accent: var(--ref-blue); --md-accent-deep: var(--ref-blue-deep); --md-accent-soft: #dbe7fb;
+  --md-surface-tonal: var(--ref-bg); --md-outline: #8a9ab3; --md-outline-variant: var(--ref-line);
+  --md-shadow-1: 0 1px 2px rgb(27 46 82 / 10%), 0 4px 14px rgb(27 46 82 / 7%);
+  gap: 12px;
+}
+.sop-run-header { display: flex; align-items: center; flex-wrap: wrap; gap: 14px 18px; padding: 2px 4px; }
+.sop-run-title { flex: 1 1 320px; min-width: 0; display: grid; gap: 6px; }
+.sop-run-title h2 { margin: 0; color: var(--ref-ink); font-size: clamp(18px, 1.7vw, 24px); font-weight: 800; letter-spacing: -.01em; line-height: 1.2; }
+.sop-run-version { width: max-content; max-width: 100%; padding: 3px 10px; border-radius: 8px; color: var(--ref-muted); background: #e6ecf5; font-size: 12px; font-weight: 700; }
+.sop-sheet-badge { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 18px; border-radius: 10px; color: #fff; background: var(--ref-blue); font-size: 15px; font-weight: 800; letter-spacing: .02em; white-space: nowrap; box-shadow: 0 2px 8px rgb(32 88 181 / 32%); }
+.sop-sheet-badge .material-symbols-rounded { font-size: 20px; }
+.sop-total-progress { flex: 0 1 300px; min-width: 220px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 10px; }
+.sop-total-progress > span { grid-column: 1 / -1; color: var(--ref-ink); font-size: 12px; font-weight: 700; }
+.sop-total-progress-track { height: 10px; border-radius: 999px; background: #dfe6f1; overflow: hidden; }
+.sop-total-progress-track > span { display: block; height: 100%; border-radius: inherit; background: var(--ref-green); transition: width 240ms cubic-bezier(.23, 1, .32, 1); }
+.sop-total-progress > strong { color: var(--ref-ink); font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+.sop-execution-panel > .operator-flow-progress { padding: 6px 16px; border-radius: 14px; background: #fff; box-shadow: none; border: 1px solid var(--ref-line); }
+.sop-execution-panel .operator-flow-step > span { width: 26px; height: 26px; font-size: 13px; background: #e6ecf5; color: var(--ref-muted); }
+.sop-execution-panel .operator-flow-step--active > span { color: #fff; background: var(--ref-blue); box-shadow: 0 0 0 3px var(--ref-blue-soft); }
+.sop-execution-panel .operator-flow-step--complete > span { color: #fff; background: var(--ref-green); }
+.sop-execution-panel .operator-flow-step strong { font-size: 12px; color: var(--ref-ink); }
+.sop-execution-panel .operator-flow-progress > i { height: 2px; margin-top: 12px; background: var(--ref-line); }
+
+/* Datos de la hoja: franja compacta, iconos de 30 px y texto en una sola línea. */
+.sop-execution-panel .station-sop-context { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr); gap: 0; border: 1px solid var(--ref-line); border-radius: 14px; background: #fff; box-shadow: none; overflow: hidden; }
+.sop-execution-panel .station-context-tile { align-items: center; gap: 10px; padding: 8px 14px; min-width: 0; }
+.sop-execution-panel .station-context-tile + .station-context-tile { border-left: 1px solid var(--ref-line); }
+.sop-execution-panel .station-context-tile > .material-symbols-rounded { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 9px; font-size: 18px; }
+.sop-execution-panel .station-context-tile > span:last-child { min-width: 0; }
+.sop-execution-panel .station-context-tile small { display: block; color: var(--ref-muted); font-size: 11px; font-weight: 600; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sop-execution-panel .station-context-tile strong { display: block; color: var(--ref-ink); font-size: 13px; font-weight: 800; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sop-execution-panel .station-context-tile--node > .material-symbols-rounded { color: var(--ref-blue); background: var(--ref-blue-soft); }
+.sop-execution-panel .station-context-tile--card > .material-symbols-rounded { color: #6b3fa0; background: #efe7f9; }
+.sop-execution-panel .station-context-tile--sheets > .material-symbols-rounded { color: var(--ref-green-deep); background: var(--ref-green-soft); }
+.sop-execution-panel .station-context-sheet-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 0; padding: 0; list-style: none; }
+.sop-execution-panel .station-context-sheet-list li { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 10px; border: 1px solid var(--ref-line); border-radius: 8px; background: var(--ref-bg); font-size: 12px; }
+.sop-execution-panel .station-context-sheet-list li.is-current { border-color: var(--ref-blue); background: var(--ref-blue-soft); }
+.sop-execution-panel .station-context-sheet-list li b { color: var(--ref-ink); font-size: 12px; white-space: nowrap; }
+.sop-execution-panel .station-context-sheet-list li span { min-width: 0; color: var(--ref-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Hoja y lista de pasos. */
+.sop-execution-panel .sop-page-checklist-layout, .sop-execution-panel .sop-page-checklist-layout[data-page-zoom] { grid-template-columns: minmax(0, 1.9fr) minmax(360px, 1fr); gap: 14px; }
+.sop-execution-panel .sop-page-checklist-layout > .guided-sop-page, .sop-execution-panel .sop-page-checklist-layout > .guided-checklist-panel,
+.sop-execution-panel .sop-page-checklist-layout[data-page-zoom] > .guided-sop-page, .sop-execution-panel .sop-page-checklist-layout[data-page-zoom] > .guided-checklist-panel {
+  height: clamp(460px, 70vh, 780px); min-height: 0; padding: 14px; border: 1px solid var(--ref-line); border-radius: 16px; background: #fff; box-shadow: none;
+}
+.sop-execution-panel .guided-page-heading > .material-symbols-rounded { width: 34px; height: 34px; border-radius: 10px; font-size: 20px; color: var(--ref-blue); background: var(--ref-blue-soft); }
+.sop-execution-panel .guided-page-heading strong { color: var(--ref-ink); font-size: 17px; }
+.sop-execution-panel .guided-page-heading strong small { color: var(--ref-muted); font-size: 12px; }
+.sop-execution-panel .guided-checklist-titlebar h2 { color: var(--ref-ink); font-size: 20px; }
+.sop-execution-panel .guided-checklist-titlebar .eyebrow { color: var(--ref-blue); }
+.sop-execution-panel .guided-checklist-heading-count { color: #102a57; background: var(--ref-blue-soft); }
+.sop-execution-panel .sop-run-progress-track { height: 8px; background: #dfe6f1; }
+.sop-execution-panel .sop-run-progress-track > span { background: var(--ref-green); }
+
+.sop-execution-panel .guided-check-item {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px 12px; padding: 12px 14px;
+  border: 1px solid var(--ref-line); border-radius: 12px; background: #fff;
+  transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+.sop-execution-panel .guided-check-item:hover { border-color: var(--ref-blue); }
+.sop-execution-panel .guided-check-index { grid-column: 1; grid-row: 1; display: grid; place-items: center; min-width: 38px; height: 38px; padding: 0 6px; border-radius: 999px; color: var(--ref-muted); background: #e6ecf5; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.sop-execution-panel .guided-check-details { grid-column: 2; grid-row: 1; min-width: 0; }
+.sop-execution-panel .guided-check-status { grid-column: 3; grid-row: 1; justify-self: end; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; color: var(--ref-muted); background: #eef2f8; }
+.sop-execution-panel .guided-check-item > input[type="checkbox"] { grid-column: 4; grid-row: 1; width: 24px; height: 24px; accent-color: var(--ref-green); }
+.sop-execution-panel .guided-check-status--current { color: #7a4b00; background: var(--ref-amber-soft); box-shadow: inset 0 0 0 1px #f0d38f; }
+.sop-execution-panel .guided-check-status--done { color: var(--ref-green-deep); background: var(--ref-green-soft); }
+.sop-execution-panel .guided-check-item:has(.guided-check-status--current) { border-color: var(--ref-blue); background: #f5f9ff; box-shadow: 0 0 0 1px var(--ref-blue) inset; }
+.sop-execution-panel .guided-check-item:has(.guided-check-status--current) .guided-check-index { color: #fff; background: var(--ref-blue); }
+.sop-execution-panel .guided-check-item--checked { border-color: #b9dfbd; background: #f4fbf4; box-shadow: none; }
+.sop-execution-panel .guided-check-item--checked .guided-check-index { color: #fff; background: var(--ref-green); }
+.sop-execution-panel .guided-check-copy strong { color: var(--ref-ink); font-size: 14px; }
+.sop-execution-panel .guided-check-copy span { color: var(--ref-muted); font-size: 13px; }
+
+/* Barra de acciones inferior. */
+.sop-action-bar { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 10px 16px; padding: 10px 12px; border: 1px solid var(--ref-line); border-radius: 14px; background: #fff; }
+.sop-action-bar .guided-work-utility-actions { flex: 0 1 auto; flex-wrap: wrap; gap: 8px; }
+.sop-action-bar .guided-work-utility-actions .button { min-height: 44px; border-radius: 10px; font-size: 13px; }
+.sop-action-bar .guided-checklist-footer { flex: 1 1 auto; display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px 16px; padding: 0; border: 0; background: none; }
+.sop-action-bar .guided-checklist-note { color: var(--ref-muted); font-size: 12px; font-weight: 600; }
+.sop-action-bar .guided-sheet-actions { display: flex; gap: 10px; }
+.sop-action-bar .guided-sheet-actions .button { min-height: 46px; padding: 0 22px; border-radius: 10px; font-size: 15px; font-weight: 800; }
+.sop-action-bar .guided-continue-button { background: var(--ref-green); color: #fff; box-shadow: 0 2px 8px rgb(47 143 60 / 32%); }
+.sop-action-bar .guided-continue-button:hover:not(:disabled) { background: var(--ref-green-deep); }
+.sop-action-bar .guided-continue-button:disabled { background: #cdd7e4; color: #6d7c93; box-shadow: none; }
+.sop-action-bar .guided-previous-button { color: var(--ref-blue); border: 1.5px solid var(--ref-blue); background: #fff; }
+.sop-action-bar .button { transition: transform 160ms cubic-bezier(.23, 1, .32, 1), background-color 140ms ease; }
+.sop-action-bar .button:active:not(:disabled) { transform: scale(.97); }
+
+@media (max-width: 1100px) {
+  .sop-execution-panel .sop-page-checklist-layout > .guided-sop-page, .sop-execution-panel .sop-page-checklist-layout > .guided-checklist-panel { height: auto; }
+  .sop-execution-panel .guided-checklist-list { max-height: 60vh; }
+  .sop-execution-panel .station-sop-context { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sop-execution-panel .station-context-tile--sheets { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--ref-line); }
+}
+@media (max-width: 900px) {
+  .topbar { flex-wrap: wrap; padding: 8px 14px; border-radius: 0 0 14px 14px; }
+  .topbar .topbar-title { flex-basis: calc(100% - 56px); }
+  .topbar .topbar-user-panel { flex: 1 1 100%; justify-content: space-between; }
+  .topbar .topbar-user-panel .profile-copy small { display: none; }
+}
+@media (max-width: 650px) {
+  .sop-run-header { gap: 10px; }
+  .sop-sheet-badge { min-height: 36px; padding: 0 14px; font-size: 13px; }
+  .sop-total-progress { flex-basis: 100%; }
+  .sop-execution-panel .station-sop-context { grid-template-columns: minmax(0, 1fr); }
+  .sop-execution-panel .station-context-tile + .station-context-tile { border-left: 0; border-top: 1px solid var(--ref-line); }
+  .sop-execution-panel .guided-check-item { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .sop-execution-panel .guided-check-status { display: none; }
+  .sop-execution-panel .guided-check-item > input[type="checkbox"] { grid-column: 3; }
+  .sop-action-bar { padding: 8px; }
+  .sop-action-bar .guided-checklist-footer, .sop-action-bar .guided-sheet-actions { width: 100%; }
+  .sop-action-bar .guided-sheet-actions .button { flex: 1 1 0; }
+  .sop-action-bar .guided-work-utility-actions { width: 100%; }
+  .sop-action-bar .guided-work-utility-actions .button { flex: 1 1 0; }
+}
+@media (prefers-reduced-motion: reduce) { .sop-total-progress-track > span, .sop-action-bar .button, .sop-execution-panel .guided-check-item { transition: none; } }
+
+/* Ajustes tras revisión visual */
+.sop-execution-panel .guided-checklist-heading-count { width: auto; height: auto; min-width: 0; padding: 4px 12px; border-radius: 999px; color: #102a57; background: var(--ref-blue-soft); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; box-shadow: none; display: inline-flex; align-items: center; }
+.sop-execution-panel .station-context-tile--sheets > span:last-child { flex: 1 1 auto; width: 100%; }
+.sop-execution-panel .station-context-sheet-list { min-width: 0; width: 100%; }
+.sop-execution-panel .station-context-sheet-list li { min-width: 0; overflow: hidden; }
+.sop-execution-panel .guided-checklist-panel .guided-checklist-heading-count { color: var(--ref-green-deep); background: var(--ref-green-soft); }
+.sop-execution-panel .guided-checklist-panel:has(.guided-check-item:not(.guided-check-item--checked)) .guided-checklist-heading-count { color: #102a57; background: var(--ref-blue-soft); box-shadow: none; }
+.topbar .topbar-user-panel .profile-chip, .topbar .topbar-user-panel .profile-chip * , .topbar .station-chip * { text-shadow: none; -webkit-text-stroke: 0; paint-order: normal; }
+
+/* Casilla de cada paso, barra de desplazamiento y foco con la paleta azul/verde. */
+.sop-execution-panel .guided-check-item > input { width: 26px; height: 26px; border: 2px solid #9fb2cc; border-radius: 8px; background-color: #fff; }
+.sop-execution-panel .guided-check-item:has(.guided-check-status--current) > input:not(:checked) { border-color: var(--ref-blue); }
+.sop-execution-panel .guided-check-item > input:checked { border-color: var(--ref-green); background-color: var(--ref-green); background-size: 80%; background-position: center; background-repeat: no-repeat; }
+.sop-execution-panel .guided-check-item > input:focus-visible { outline: 3px solid rgb(32 88 181 / 40%); outline-offset: 2px; }
+.sop-execution-panel .guided-check-item { padding: 12px 14px; border-width: 1px; border-radius: 12px; }
+.sop-execution-panel .guided-check-item--checked { border-color: #b9dfbd; background: #f4fbf4; }
+.sop-execution-panel .guided-check-item:hover { box-shadow: none; }
+.sop-execution-panel .guided-checklist-list { gap: 10px; scrollbar-color: #9fb2cc #eef2f8; }
+.sop-execution-panel .guided-checklist-list::-webkit-scrollbar-track { background: #eef2f8; }
+.sop-execution-panel .guided-checklist-list::-webkit-scrollbar-thumb { background: #9fb2cc; border-color: #eef2f8; }
+.sop-execution-panel .sop-run-progress > strong { color: var(--ref-green-deep); font-size: 15px; }
+.sop-execution-panel .sop-run-progress-track > span { background: var(--ref-green); }
+.sop-execution-panel .guided-check-copy strong { background: var(--ref-navy); }
+.sop-execution-panel .guided-check-item--checked .guided-check-copy strong { background: var(--ref-green-deep); }
+
+@media (max-width: 1100px) {
+  .sop-execution-panel .sop-page-checklist-layout > .guided-sop-page, .sop-execution-panel .sop-page-checklist-layout > .guided-checklist-panel,
+  .sop-execution-panel .sop-page-checklist-layout[data-page-zoom] > .guided-sop-page, .sop-execution-panel .sop-page-checklist-layout[data-page-zoom] > .guided-checklist-panel { height: auto; min-height: 0; max-height: none; }
+}
+@media (max-width: 1100px) {
+  .sop-execution-panel .sop-page-checklist-layout, .sop-execution-panel .sop-page-checklist-layout[data-page-zoom] { grid-template-columns: minmax(0, 1fr); }
+}
+.sop-execution-panel .sop-page-checklist-layout .guided-check-item, .sop-execution-panel .sop-page-checklist-layout .guided-check-item:hover { border: 1px solid var(--ref-line); border-radius: 12px; }
+.sop-execution-panel .sop-page-checklist-layout .guided-check-item:has(.guided-check-status--current) { border-color: var(--ref-blue); }
+.sop-execution-panel .sop-page-checklist-layout .guided-check-item--checked { border-color: #b9dfbd; }
