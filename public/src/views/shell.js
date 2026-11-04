@@ -12,7 +12,7 @@ function renderSidebar(state) {
   const role = user.role;
   const visibleItems = NAV_ITEMS.filter((item) => item.id !== "users" || role === "admin")
     .filter((item) => item.id !== "reports" || ["supervisor", "admin"].includes(role))
-    .filter((item) => item.id !== "sop-admin" || canManageSopVersions(user));
+    .filter((item) => item.id !== "sop-admin" || canAccessSopAdmin(user));
   const navItems = visibleItems.map((item) => `
     <button class="nav-item ${state.activeSection === item.id ? "nav-item--active" : ""}"
       type="button" data-action="navigate" data-nav-id="${item.id}" data-focus-key="nav-${item.id}"

@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Permission;
 use App\Models\SopVersion;
+use App\Models\User;
 use App\Services\SopVersionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -59,6 +61,48 @@ class SopVersionController extends Controller
         );
 
         return response()->json(['ok' => true, 'version' => $saved->toClientArray()]);
+    }
+
+    public function review(Request $request, SopVersion $version): JsonResponse
+    {
+        $data = $request->validate([
+            'decision' => ['required', 'string', 'in:approve,reject'],
+            'note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $result = $this->versions->review($version, $request->user(), $data['decision'], $data['note'] ?? null);
+
+        return $this->workflowResponse($result);
+    }
+
+    public function publish(Request $request, SopVersion $version): JsonResponse
+    {
+        return $this->workflowResponse($this->versions->publish($version, $request->user()));
+    }
+
+    /** Quién puede revisar y quién publicar, para avisar al editor al enviar una revisión. */
+    public function roles(): JsonResponse
+    {
+        $holders = fn (string $key) => User::with(['role.permissions', 'directPermissions'])
+            ->where('is_active', true)->orderBy('name')->get()
+            ->filter(fn (User $user) => $user->hasPermissionTo($key))
+            ->map(fn (User $user) => ['id' => $user->id, 'name' => $user->name, 'employeeNumber' => $user->employee_number])
+            ->values();
+
+        return response()->json([
+            'ok' => true,
+            'reviewers' => $holders(Permission::SOP_REVIEW),
+            'publishers' => $holders(Permission::SOP_PUBLISH),
+        ]);
+    }
+
+    private function workflowResponse(string|SopVersion $result): JsonResponse
+    {
+        if (is_string($result)) {
+            return response()->json(['ok' => false, 'code' => $result], $result === 'same-person' ? 403 : 422);
+        }
+
+        return response()->json(['ok' => true, 'version' => $result->toClientArray()]);
     }
 
     public function destroy(SopVersion $version): JsonResponse

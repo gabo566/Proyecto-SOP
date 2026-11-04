@@ -129,7 +129,7 @@ function bindInteractions(app, handlers) {
     const role = getActiveLocalUser().role;
     if ((item.id === "reports" && !["supervisor", "admin"].includes(role))
       || (item.id === "users" && role !== "admin")
-      || (item.id === "sop-admin" && !canManageSopVersions())) return;
+      || (item.id === "sop-admin" && !canAccessSopAdmin())) return;
     state.navOpen = false;
     if (item.action === "reports") {
       openRecords(action.dataset.focusKey);
@@ -434,6 +434,22 @@ function bindInteractions(app, handlers) {
     const action = event.target.closest("[data-action]");
     if (!action || !app.contains(action)) return;
     switch (action.dataset.action) {
+      case "users-filter":
+        state.usersFilter = action.dataset.filter;
+        applyUsersFilter(app.querySelector("#users-panel"), state.usersFilter, state.usersSearch);
+        break;
+      case "users-new-toggle":
+        state.usersNewOpen = !state.usersNewOpen;
+        state.usersPasswordFor = null;
+        render();
+        if (state.usersNewOpen) app.querySelector('#local-user-form [name="userName"]')?.focus();
+        break;
+      case "users-password-toggle":
+        state.usersPasswordFor = String(state.usersPasswordFor) === String(action.dataset.userId) ? null : action.dataset.userId;
+        state.usersNewOpen = false;
+        render();
+        if (state.usersPasswordFor) app.querySelector('#local-password-form [name="newPassword"]')?.focus();
+        break;
       case "toggle-password-visibility": {
         const field = action.closest(".password-field")?.querySelector("input");
         if (!field) break;
@@ -483,7 +499,7 @@ function bindInteractions(app, handlers) {
       }
       case "navigate": handleNavigation(action); break;
       case "open-sop-admin-from-intake":
-        if (!canManageSopVersions()) break;
+        if (!canAccessSopAdmin()) break;
         state.activeSection = "sop-admin";
         render();
         break;
@@ -597,6 +613,10 @@ function bindInteractions(app, handlers) {
 
   app.addEventListener("change", (event) => {
     const { target } = event;
+    if (target.matches("[data-sop-role-toggle]")) {
+      void changeUserSopRole(target);
+      return;
+    }
     if (target.matches("#profile-avatar-input")) {
       void changeOwnAvatar(target);
       return;
@@ -706,6 +726,15 @@ function bindInteractions(app, handlers) {
   });
 
   app.addEventListener("input", (event) => {
+    if (event.target.matches("[data-users-search]")) {
+      state.usersSearch = event.target.value;
+      applyUsersFilter(app.querySelector("#users-panel"), state.usersFilter ?? "all", state.usersSearch);
+      return;
+    }
+    if (event.target.matches("[data-password-strength], [data-password-confirm]")) {
+      updatePasswordStrength(event.target.closest("form").querySelector("[data-password-strength]"));
+      return;
+    }
     if (event.target.matches("[data-sheet-observation]")) {
       state.sheetObservations = { ...state.sheetObservations, [event.target.dataset.sheetObservation]: event.target.value };
       return;
@@ -857,6 +886,22 @@ function bindInteractions(app, handlers) {
       await changeLocalUserPassword(new FormData(event.target));
     }
   });
+}
+
+// Concede o retira la función de revisor o publicador desde la tarjeta de una persona.
+async function changeUserSopRole(toggle) {
+  const card = toggle.closest("[data-user-card]");
+  const review = card.querySelector('[data-role="review"]').checked;
+  const publish = card.querySelector('[data-role="publish"]').checked;
+  const label = toggle.dataset.role === "review" ? "Revisor" : "Publicador";
+  card.querySelectorAll("[data-sop-role-toggle]").forEach((input) => { input.disabled = true; });
+  const result = await setLocalUserSopRoles(toggle.dataset.userId, { review, publish });
+  if (result === "ok") showToast(toggle.checked ? `${label} habilitado.` : `${label} retirado.`, "success");
+  else {
+    toggle.checked = !toggle.checked;
+    showToast(result === "forbidden" ? "Solo la cuenta 140784 puede asignar estas funciones." : "No se pudo cambiar la función; intenta de nuevo.", "warning");
+  }
+  render();
 }
 
 // Mantiene a la vista el paso en curso (el primero sin marcar) dentro de la lista de pasos,

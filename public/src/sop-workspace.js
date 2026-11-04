@@ -69,6 +69,10 @@ function buildSopWorkspaceShell() {
     <div class="sop-flow-editor-head">
       <div><h2 class="sop-flow-title">${escapeHtml(draft.document.title)}${draft.document.revision ? ` · Rev. ${escapeHtml(draft.document.revision)}` : ""}</h2><p class="sop-flow-sub" data-ws-summary></p></div>
       <div class="sop-flow-editor-actions">
+        <div class="sop-ws-menu"><button class="sop-flow-btn sop-flow-btn--ghost sop-flow-btn--danger" type="button" data-ws-action="cancel-edit" aria-haspopup="dialog" aria-expanded="false"><span class="material-symbols-rounded" aria-hidden="true">close</span>Cancelar edición</button>
+          <div class="sop-ws-menu-list sop-ws-confirm" data-ws-cancel-confirm hidden role="alertdialog" aria-label="Confirmar cancelación">
+            <strong>¿Cancelar la edición?</strong><p data-ws-cancel-text></p>
+            <div class="sop-ws-confirm-actions"><button type="button" class="sop-flow-btn sop-flow-btn--ghost" data-ws-action="cancel-keep">Seguir editando</button><button type="button" class="sop-flow-btn sop-flow-btn--red" data-ws-action="cancel-confirm">Sí, cancelar</button></div></div></div>
         <button class="sop-flow-btn sop-flow-btn--ghost sop-flow-btn--icon" type="button" data-ws-action="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer"><span class="material-symbols-rounded" aria-hidden="true">undo</span></button>
         <button class="sop-flow-btn sop-flow-btn--ghost sop-flow-btn--icon" type="button" data-ws-action="redo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer"><span class="material-symbols-rounded" aria-hidden="true">redo</span></button>
         <div class="sop-ws-menu"><button class="sop-flow-btn sop-flow-btn--ghost" type="button" data-ws-action="toggle-export" aria-haspopup="true" aria-expanded="false"><span class="material-symbols-rounded" aria-hidden="true">download</span>Exportar</button>
@@ -726,6 +730,23 @@ function toggleSopWsExportMenu(open) {
   const button = editor.querySelector('[data-ws-action="toggle-export"]');
   menu.hidden = !open;
   button.setAttribute("aria-expanded", String(open));
+  if (open) toggleSopWsCancelConfirm(false);
+}
+
+function toggleSopWsCancelConfirm(open) {
+  const editor = sopWs?.root?.closest(".sop-flow-editor");
+  const box = editor?.querySelector("[data-ws-cancel-confirm]");
+  if (!box) return;
+  if (open) {
+    const changes = collectSopChanges(sopWsDraft()).length;
+    box.querySelector("[data-ws-cancel-text]").textContent = changes
+      ? `Se perderán ${changes} ${changes === 1 ? "cambio" : "cambios"} que aún no se han enviado a revisión.`
+      : "No hay cambios por perder; volverás al catálogo de SOP.";
+    toggleSopWsExportMenu(false);
+  }
+  box.hidden = !open;
+  editor.querySelector('[data-ws-action="cancel-edit"]').setAttribute("aria-expanded", String(open));
+  if (open) box.querySelector('[data-ws-action="cancel-keep"]')?.focus();
 }
 
 function bindSopWorkspaceGlobals() {
@@ -757,6 +778,7 @@ function bindSopWorkspaceGlobals() {
     if (event.key === "Escape") {
       if (sopWs.selectedId || sopWs.textEdit) { sopWsSelect(null); return; }
       toggleSopWsExportMenu(false);
+      toggleSopWsCancelConfirm(false);
       return;
     }
     const tool = SOP_WS_TOOLS.find((item) => item.key.toLowerCase() === event.key.toLowerCase());
@@ -783,8 +805,7 @@ function bindSopWorkspace(root) {
   const editor = root.closest(".sop-flow-editor");
 
   editor.addEventListener("click", (event) => {
-    const menu = editor.querySelector("[data-ws-export-menu]");
-    if (!menu.hidden && !event.target.closest(".sop-ws-menu")) toggleSopWsExportMenu(false);
+    if (!event.target.closest(".sop-ws-menu")) { toggleSopWsExportMenu(false); toggleSopWsCancelConfirm(false); }
     const tool = event.target.closest("[data-ws-tool]");
     if (tool) { sopWsSetTool(tool.dataset.wsTool); return; }
     const tab = event.target.closest("[data-ws-tab]");
@@ -1001,6 +1022,9 @@ function handleSopWsAction(action) {
   const name = action.dataset.wsAction;
   const ws = sopWs;
   if (name === "go-review") { goSopFlowStage(3); return; }
+  if (name === "cancel-edit") { toggleSopWsCancelConfirm(ws.root.closest(".sop-flow-editor").querySelector("[data-ws-cancel-confirm]").hidden); return; }
+  if (name === "cancel-keep") { toggleSopWsCancelConfirm(false); return; }
+  if (name === "cancel-confirm") { cancelSopRevisionDraft(); return; }
   if (name === "undo" || name === "redo") { sopWsStep(name); return; }
   if (name === "step-prev") { sopWsGoStep(-1); return; }
   if (name === "step-next") { sopWsGoStep(1); return; }

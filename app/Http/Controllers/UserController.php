@@ -71,6 +71,18 @@ class UserController extends Controller
         return $result === 'ok' ? response()->json(['ok' => true]) : $this->failure($result);
     }
 
+    public function updateSopRoles(Request $request, User $user): JsonResponse
+    {
+        $data = $request->validate([
+            'review' => ['required', 'boolean'],
+            'publish' => ['required', 'boolean'],
+        ]);
+
+        $updated = $this->access->setSopRoles($user, (bool) $data['review'], (bool) $data['publish']);
+
+        return response()->json(['ok' => true, 'user' => $updated->toClientArray()]);
+    }
+
     private function failure(string $code): JsonResponse
     {
         return response()->json(['ok' => false, 'code' => $code], self::FAILURE_STATUS[$code] ?? 422);

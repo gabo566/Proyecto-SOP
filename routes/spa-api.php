@@ -34,6 +34,7 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
     Route::get('/sop-versions', [SopVersionController::class, 'index']);
     Route::get('/sop-versions/{version}/pdf', [SopVersionController::class, 'pdf']);
     Route::get('/sop-catalog', [SopCatalogController::class, 'index']);
+    Route::get('/sop-roles', [SopVersionController::class, 'roles']);
     Route::get('/sop-source', [SopSourceController::class, 'show']);
     Route::get('/sop-source/file', [SopSourceController::class, 'file']);
 
@@ -47,11 +48,16 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
     Route::get('/audit-events', [AuditEventController::class, 'index']);
     Route::post('/audit-events', [AuditEventController::class, 'store']);
 
+    Route::post('/sop-versions/{version}/review', [SopVersionController::class, 'review'])->middleware('permission:sop.review');
+    Route::post('/sop-versions/{version}/publish', [SopVersionController::class, 'publish'])->middleware('permission:sop.publish');
+
     Route::middleware('permission:sop.manage')->group(function (): void {
         Route::post('/sop-versions', [SopVersionController::class, 'store']);
         Route::delete('/sop-versions/{version}', [SopVersionController::class, 'destroy']);
         Route::put('/sop-catalog', [SopCatalogController::class, 'update']);
         Route::post('/sop-source', [SopSourceController::class, 'store']);
+        // Solo quien administra la SOP concede las funciones de revisor y publicador.
+        Route::patch('/users/{user}/sop-roles', [UserController::class, 'updateSopRoles']);
     });
 
     Route::middleware('permission:users.manage')->group(function (): void {

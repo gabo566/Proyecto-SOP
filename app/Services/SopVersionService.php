@@ -20,6 +20,7 @@ class SopVersionService
     {
         $record = SopVersion::find($version['id']) ?? new SopVersion(['id' => $version['id']]);
         $previousPath = $record->pdf_path;
+        $isNew = ! $record->exists;
 
         $record->fill([
             'document' => $version['document'],
@@ -27,6 +28,17 @@ class SopVersionService
             'created_by' => $record->created_by ?? $actor->id,
             'created_by_name' => $record->created_by_name ?? ($version['createdBy'] ?? $actor->name),
         ]);
+
+        // Una revisión nueva nace «en revisión»: no puede habilitarse hasta que otra persona la apruebe y una tercera la publique.
+        if ($isNew) {
+            $record->fill([
+                'status' => SopVersion::STATUS_PENDING,
+                'submitted_by' => $actor->id,
+                'submitted_by_name' => $actor->name,
+                'submitted_at' => now(),
+                'change_summary' => is_array($version['changeSummary'] ?? null) ? $version['changeSummary'] : null,
+            ]);
+        }
 
         if ($pdf) {
             $record->pdf_path = $this->storePdf($record->id, $pdf);
@@ -48,6 +60,63 @@ class SopVersionService
         }
 
         return $record;
+    }
+
+    /**
+     * Aprobación o devolución por un revisor. Nunca puede ser quien envió la revisión.
+     *
+     * @return string|SopVersion código de error o la revisión actualizada
+     */
+    public function review(SopVersion $version, User $actor, string $decision, ?string $note): string|SopVersion
+    {
+        if ($version->status !== SopVersion::STATUS_PENDING) {
+            return 'not-pending';
+        }
+
+        if ($version->submitted_by === $actor->id) {
+            return 'same-person';
+        }
+
+        $note = trim((string) $note);
+
+        if ($decision === 'reject' && $note === '') {
+            return 'note-required';
+        }
+
+        $version->fill([
+            'status' => $decision === 'approve' ? SopVersion::STATUS_APPROVED : SopVersion::STATUS_REJECTED,
+            'reviewed_by' => $actor->id,
+            'reviewed_by_name' => $actor->name,
+            'reviewed_at' => now(),
+            'review_note' => $note !== '' ? $note : null,
+        ])->save();
+
+        return $version;
+    }
+
+    /**
+     * Publicación de una revisión aprobada. Debe hacerla una tercera persona: ni quien la editó ni quien la revisó.
+     *
+     * @return string|SopVersion código de error o la revisión actualizada
+     */
+    public function publish(SopVersion $version, User $actor): string|SopVersion
+    {
+        if ($version->status !== SopVersion::STATUS_APPROVED) {
+            return 'not-approved';
+        }
+
+        if ($version->submitted_by === $actor->id || $version->reviewed_by === $actor->id) {
+            return 'same-person';
+        }
+
+        $version->fill([
+            'status' => SopVersion::STATUS_PUBLISHED,
+            'published_by' => $actor->id,
+            'published_by_name' => $actor->name,
+            'published_at' => now(),
+        ])->save();
+
+        return $version;
     }
 
     public function delete(SopVersion $version): void

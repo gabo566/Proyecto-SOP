@@ -82,9 +82,15 @@ function renderSopFlowReview(state, draft, error) {
   const rowsHtml = visible.map((row) => `<tr><td><b>${escapeHtml(row.sheet)}</b></td><td>${escapeHtml(row.type)}${row.step ? `<small> · paso ${escapeHtml(row.step)}</small>` : ""}</td><td class="${row.before ? "sop-flow-del" : ""}">${row.before ? escapeHtml(row.before) : "—"}</td><td class="${row.after ? "sop-flow-add" : ""}">${row.after ? escapeHtml(row.after) : "—"}</td></tr>`).join("");
   const check = (ok, title, detail, warn = false) => `<div class="sop-flow-check sop-flow-check--${ok ? "ok" : warn ? "warn" : "bad"}"><span class="material-symbols-rounded" aria-hidden="true">${ok ? "check_circle" : warn ? "error" : "cancel"}</span><span><b>${title}</b><br><small>${detail}</small></span></div>`;
   const stationLabel = draft.document.stationMode === "custom" ? draft.document.stationName : formatWorkStationAssignment(draft.document.stationAssignment);
+  const coverage = describeSopRoleCoverage(state.sopRoles, getActiveLocalUser().id);
+  const rolesCheck = coverage.loading
+    ? check(false, "Quién la revisa y publica", "Consultando las funciones asignadas…", true)
+    : coverage.ready
+      ? check(true, "Quién la revisa y publica", `${coverage.reviewers.length} ${coverage.reviewers.length === 1 ? "revisor" : "revisores"} · ${coverage.publishers.length} ${coverage.publishers.length === 1 ? "publicador" : "publicadores"} disponibles (distintos de ti)`)
+      : check(false, "Quién la revisa y publica", "Todavía no hay un revisor y un publicador distintos. La cuenta 140784 los asigna en Crear usuarios; puedes enviarla y quedará en espera.", true);
   return `<div class="sop-flow-stack">
     <section class="sop-flow-card sop-flow-card--head"><div><h2 class="sop-flow-title">${revisionOk ? `Revisión ${escapeHtml(draft.document.revision)} lista para revisar` : "Falta el número de revisión"}</h2><p class="sop-flow-sub">${escapeHtml(draft.document.title)}${stationOk ? ` · Estación ${escapeHtml(stationLabel)}` : ""}</p></div>
-      <span class="sop-flow-chip sop-flow-chip--warn"><span class="material-symbols-rounded" aria-hidden="true">warning</span>Se publicará deshabilitada hasta que la actives</span></section>
+      <span class="sop-flow-chip sop-flow-chip--warn"><span class="material-symbols-rounded" aria-hidden="true">groups</span>Otra persona la revisa y una tercera la publica</span></section>
     ${error}
     <div class="sop-flow-kpis"><div class="sop-flow-kpi"><span>Cambios en total</span><strong>${summary.rows.length}</strong></div><div class="sop-flow-kpi"><span>Textos y números de pasos</span><strong>${summary.stepRows}</strong></div><div class="sop-flow-kpi"><span>Marcas sobre las hojas</span><strong>${summary.markRows}</strong></div><div class="sop-flow-kpi"><span>Hojas revisadas</span><strong>${summary.reviewed} <small>de ${summary.total}</small></strong></div></div>
     <div class="sop-flow-split">
@@ -94,14 +100,15 @@ function renderSopFlowReview(state, draft, error) {
         <section class="sop-flow-card"><h3 class="sop-flow-h3">Antes de publicar</h3>
           ${check(revisionOk, "Número de revisión", revisionOk ? `Rev. ${escapeHtml(draft.document.revision)}` : "Captúralo en la etapa 1")}
           ${check(stationOk, "Estación asignada", stationOk ? escapeHtml(stationLabel) : "Elígela en la etapa 1")}
+          ${rolesCheck}
           ${check(pending === 0, pending === 0 ? "Todas las hojas revisadas" : `${pending} ${pending === 1 ? "hoja sin marcar" : "hojas sin marcar"} como revisada${pending === 1 ? "" : "s"}`, pending === 0 ? "Listo para publicar" : "Puedes publicar así o volver a revisarlas", true)}</section>
         <section class="sop-flow-card"><h3 class="sop-flow-h3">Exportar</h3>
           <button type="button" class="sop-flow-export" data-action="sop-export" data-kind="pdf" data-scope="changed"><span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>PDF con anotaciones<small>hojas con cambios</small><span class="material-symbols-rounded sop-flow-export-end" aria-hidden="true">download</span></button>
           <button type="button" class="sop-flow-export" data-action="sop-export" data-kind="csv"><span class="material-symbols-rounded" aria-hidden="true">table_view</span>Resumen de cambios<small>CSV</small><span class="material-symbols-rounded sop-flow-export-end" aria-hidden="true">download</span></button>
           <button type="button" class="sop-flow-export" data-action="sop-export" data-kind="print"><span class="material-symbols-rounded" aria-hidden="true">print</span>Resumen para imprimir<span class="material-symbols-rounded sop-flow-export-end" aria-hidden="true">open_in_new</span></button></section></div></div>
     <div class="sop-flow-actions"><button class="sop-flow-btn sop-flow-btn--ghost" type="button" data-action="sop-flow-go" data-stage="2"><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Volver a editar</button>
-      <div class="sop-flow-actions-end"><button class="sop-flow-btn sop-flow-btn--ghost" type="button" data-action="cancel-sop-version-draft" ${state.sopVersionBusy ? "disabled" : ""}>Cancelar revisión</button>
-        <button class="sop-flow-btn sop-flow-btn--green" type="button" data-action="publish-sop-version" ${state.sopVersionBusy || !revisionOk || !stationOk ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.sopVersionBusy ? "hourglass_top" : "rocket_launch"}</span>${state.sopVersionBusy ? "Publicando…" : `Publicar${revisionOk ? ` Rev. ${escapeHtml(draft.document.revision)}` : ""}`}</button></div></div>
+      <div class="sop-flow-actions-end"><button class="sop-flow-btn sop-flow-btn--ghost" type="button" data-action="cancel-sop-version-draft" ${state.sopVersionBusy ? "disabled" : ""}>Cancelar edición</button>
+        <button class="sop-flow-btn sop-flow-btn--green" type="button" data-action="publish-sop-version" ${state.sopVersionBusy || !revisionOk || !stationOk ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.sopVersionBusy ? "hourglass_top" : "send"}</span>${state.sopVersionBusy ? "Enviando…" : `Enviar a revisión${revisionOk ? ` · Rev. ${escapeHtml(draft.document.revision)}` : ""}`}</button></div></div>
   </div>`;
 }
 
@@ -160,6 +167,28 @@ function goSopFlowStage(stage) {
   state.sopDraftError = "";
   state.sopDraftNotice = "";
   state.sopDraftStage = stage;
+  if (stage === 3) {
+    state.sopRoles = null;
+    loadSopRoles(state).then(() => { if (state.sopDraft && state.sopDraftStage === 3) env.render(); });
+  }
+  env.render();
+  window.scrollTo({ top: 0 });
+}
+
+// Cancelar la edición desde cualquier etapa (la etapa 2 pide confirmación antes).
+function cancelSopRevisionDraft() {
+  const env = sopFlowEnv;
+  const state = env?.state;
+  if (!state?.sopDraft) return;
+  state.sopDraft = null;
+  state.sopDraftStage = 1;
+  state.sopFlowShowAll = false;
+  state.sopRoles = null;
+  state.sopDraftError = "";
+  state.sopDraftNotice = "";
+  state.sopUploadFile = null;
+  state.sopUploadFileName = "";
+  env.showToast("Edición cancelada; no se guardó ningún cambio.");
   env.render();
   window.scrollTo({ top: 0 });
 }

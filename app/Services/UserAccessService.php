@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -69,6 +70,24 @@ class UserAccessService
         $target->update(['password' => trim($password)]);
 
         return 'ok';
+    }
+
+    /**
+     * Concede o retira las funciones de revisor y publicador de SOP (permisos directos de la persona).
+     */
+    public function setSopRoles(User $target, bool $review, bool $publish): User
+    {
+        $ids = Permission::whereIn('key', [Permission::SOP_REVIEW, Permission::SOP_PUBLISH])->pluck('id', 'key');
+        $target->directPermissions()->detach($ids->values());
+
+        $grant = collect([Permission::SOP_REVIEW => $review, Permission::SOP_PUBLISH => $publish])
+            ->filter()->keys()->map(fn (string $key) => $ids[$key])->all();
+
+        if ($grant) {
+            $target->directPermissions()->attach($grant);
+        }
+
+        return $target->load(['role.permissions', 'directPermissions']);
     }
 
     public function setActive(User $actor, User $target, bool $active): string

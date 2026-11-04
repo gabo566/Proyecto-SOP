@@ -155,7 +155,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   const user = getAuthenticatedLocalUser();
   const canBrowseAdminSection = user?.role === "admin"
     && ["production", "traceability", "reports", "users"].includes(state.activeSection);
-  const canManageSops = state.activeSection === "sop-admin" && canManageSopVersions(user);
+  const canManageSops = state.activeSection === "sop-admin" && canAccessSopAdmin(user);
   if (!state.operatorFlowReady && !canBrowseAdminSection && !canManageSops) {
     normalizeStationIntakeAssignment(state);
     app.innerHTML = `${user?.role === "admin"
@@ -168,7 +168,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     return;
   }
   ensureGuidedSopRun();
-  if (state.activeSection === "sop-admin" && !canManageSopVersions()) state.activeSection = "overview";
+  if (state.activeSection === "sop-admin" && !canAccessSopAdmin()) state.activeSection = "overview";
   try { sessionStorage.setItem(ACTIVE_SECTION_KEY, state.activeSection); } catch { /* sessionStorage no disponible */ }
   const previousFocus = focusKey === undefined ? getFocusState() : { key: focusKey, start: null, end: null };
   const allRecords = getRecords();
@@ -185,7 +185,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     : state.activeSection === "reports"
     ? renderReportsView(allRecords, state, state.workItems)
     : state.activeSection === "users"
-    ? renderLocalUsersPanel()
+    ? renderLocalUsersPanel({ filter: state.usersFilter, search: state.usersSearch, newOpen: state.usersNewOpen, passwordFor: state.usersPasswordFor })
     : state.activeSection === "sop-admin"
     ? renderSopVersionManager(state)
     : renderSummaryMetrics(todayRecords, state);
@@ -620,8 +620,18 @@ bindInteractions(app, {
       role: String(formData.get("userRole") ?? ""),
       password: String(formData.get("userPassword") ?? ""),
     });
-    if (result === "ok") showToast("Usuario creado.", "warning");
-    else showToast(result === "employee" ? "Ese número de empleado ya está registrado." : result === "password" ? "La contraseña debe tener al menos 4 caracteres." : "No se pudo crear el perfil.", "warning");
+    if (result === "ok") {
+      const wantsReview = formData.get("sopReview") === "on";
+      const wantsPublish = formData.get("sopPublish") === "on";
+      let rolesNote = "";
+      if ((wantsReview || wantsPublish) && canManageSopVersions()) {
+        const created = listLocalUsers().find((user) => user.employeeNumber === String(formData.get("employeeNumber") ?? "").trim());
+        const rolesResult = created ? await setLocalUserSopRoles(created.id, { review: wantsReview, publish: wantsPublish }) : "error";
+        if (rolesResult !== "ok") rolesNote = " No se pudieron asignar sus funciones de SOP; hazlo desde su tarjeta.";
+      }
+      state.usersNewOpen = false;
+      showToast(`Usuario creado.${rolesNote}`, rolesNote ? "warning" : "success");
+    } else showToast(result === "employee" ? "Ese número de empleado ya está registrado." : result === "password" ? "La contraseña debe tener al menos 4 caracteres." : "No se pudo crear el perfil.", "warning");
     render();
   },
   changeLocalUserPassword: async (formData) => {
@@ -629,7 +639,7 @@ bindInteractions(app, {
       String(formData.get("passwordUserId") ?? ""),
       String(formData.get("newPassword") ?? ""),
     );
-    if (result === "ok") showToast("Contraseña actualizada.", "success");
+    if (result === "ok") { state.usersPasswordFor = null; showToast("Contraseña actualizada.", "success"); }
     else showToast(result === "password" ? "La contraseña debe tener al menos 4 caracteres." : "No se pudo cambiar la contraseña.", "warning");
     render();
   },

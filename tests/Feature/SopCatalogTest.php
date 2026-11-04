@@ -148,6 +148,8 @@ class SopCatalogTest extends TestCase
     {
         $this->actingAs($this->manager());
         $this->save($this->versionPayload(), UploadedFile::fake()->createWithContent('a.pdf', '%PDF-1.4'))->assertOk();
+        // Solo una revisión publicada puede habilitarse (ver SopReviewWorkflowTest).
+        SopVersion::find('sop-version-1')->update(['status' => SopVersion::STATUS_PUBLISHED]);
         $this->putJson('/api/sop-catalog', ['catalog' => ['sop-version-1' => ['stationAssignment' => 'RWK:RWK', 'enabled' => true]]])->assertOk();
 
         $this->deleteJson('/api/sop-versions/sop-version-1')->assertOk();
