@@ -2046,3 +2046,38 @@ details.sop-version-procedure.is-sheet-saved > summary > span { color: #146c3a; 
 .station-disassembly-check { position: absolute; top: 8px; right: 8px; }
 .station-disassembly-check .material-symbols-rounded { font-size: 24px; }
 .station-disassembly-sheet--on .station-disassembly-icon .material-symbols-rounded { color: #fff; }
+
+/* C-051: encabezado «Registrar validación» redondeado, en rojo de marca y con elevación Material Design 3. */
+.station-intake-banner {
+  margin: 6px 0 4px;
+  min-height: 112px;
+  padding: 16px 28px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 36px;
+  background:
+    radial-gradient(circle at 88% 12%, rgb(255 255 255 / 22%) 0, rgb(255 255 255 / 0%) 42%),
+    linear-gradient(120deg, #7d1216 0%, #a92328 48%, #cf3a3e 100%);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 30%), 0 6px 16px 4px rgb(0 0 0 / 14%), 0 14px 28px rgb(169 35 40 / 38%);
+}
+.station-intake-banner::before, .station-intake-banner::after { border: 2px solid rgb(255 255 255 / 20%); background: none; }
+.station-intake-banner-brand {
+  border-radius: 24px;
+  padding: 8px 18px;
+  background: #172635;
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 14%), 0 4px 12px rgb(0 0 0 / 32%);
+}
+.station-intake-banner-icon {
+  width: 60px; height: 60px; flex-basis: 60px;
+  border: 0; border-radius: 20px;
+  background: #fff; color: #a92328;
+  box-shadow: 0 3px 10px rgb(0 0 0 / 28%);
+}
+.station-intake-banner-icon .material-symbols-rounded { font-size: 36px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 40; color: #a92328; }
+.station-intake-banner h1, .station-intake-banner p { -webkit-text-stroke: 0; color: #fff; text-shadow: 0 2px 6px rgb(60 4 6 / 45%); }
+.station-intake-banner h1 { font-size: clamp(28px, 3vw, 40px); font-weight: 800; letter-spacing: -.01em; }
+@media (max-width: 700px) {
+  .station-intake-banner { border-radius: 28px; padding: 12px 16px; min-height: 0; margin-inline: 0; }
+  .station-intake-banner-icon { width: 46px; height: 46px; flex-basis: 46px; border-radius: 15px; }
+  .station-intake-banner-icon .material-symbols-rounded { font-size: 28px; }
+}

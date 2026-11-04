@@ -465,6 +465,12 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Cambio (solo estilos):** `src/styles-md3.css` (bloque «C-050»): tarjeta centrada con icono rojo de contorno de 36 px sobre «Hoja N», etiqueta de pasos, descripción debajo y marca de selección en la esquina; la tarjeta elegida pasa a azul oscuro con icono blanco. `index.html` (`?v=md3-c050`). Los iconos y su asignación por palabras clave no cambian.
 - **Estado:** rama `propuesta/iconos-iniciales`, **sin unir a `main`**; a la espera de confirmación. **Revertir:** `git revert` o no unir la rama.
 
+### C-051 (2026-11-03) — Encabezado «Registrar validación» redondeado y en rojo (Material Design 3)
+
+- **Solicitud:** redondear el recuadro del encabezado, usar el rojo de marca y hacerlo más llamativo con Material Design 3.
+- **Cambios (solo estilos):** `src/styles-md3.css` (bloque «C-051»): recuadro con esquinas de 36 px (28 px en móvil) en lugar de solo las inferiores, degradado rojo `#7d1216 → #a92328 → #cf3a3e` con brillo radial, elevación MD3 de tres capas, anillos decorativos translúcidos, logo dentro de una cápsula azul marino (el arco rojo del logo no se ve sobre fondo rojo) e icono en un contenedor blanco de 60 px con símbolo rojo relleno; se quita el contorno del texto. `index.html` (`?v=md3-c051`).
+- **Comprobado:** escritorio y 375 px de ancho. **Revertir:** quitar el bloque «C-051».
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.
