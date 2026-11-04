@@ -415,7 +415,7 @@ function bindInteractions(app, handlers) {
       case "open-menu": state.navOpen = true; render(); break;
       case "close-menu": state.navOpen = false; render(); break;
       case "brand-home": state.navOpen = false; render(); break;
-      case "logout-local-user": endLocalUserSession(); break;
+      case "logout-local-user": void endLocalUserSession(); break;
       case "open-help":
         state.dialogTriggerFocusKey = action.dataset.focusKey || "help-open";
         state.helpDialogOpen = true;
@@ -665,7 +665,7 @@ function bindInteractions(app, handlers) {
     }
   });
 
-  app.addEventListener("submit", (event) => {
+  app.addEventListener("submit", async (event) => {
     if (event.target.matches("#station-intake-form")) {
       event.preventDefault();
       runWithTransition(() => continueStationIntake());
@@ -675,9 +675,12 @@ function bindInteractions(app, handlers) {
       event.preventDefault();
       const formData = new FormData(event.target);
       state.loginUsername = String(formData.get("username") ?? "").trim();
-      const user = authenticateLocalUser(state.loginUsername, String(formData.get("password") ?? ""));
+      const user = await authenticateLocalUser(state.loginUsername, String(formData.get("password") ?? ""));
       if (!user) {
-        state.loginError = "Usuario o contraseña incorrectos, o cuenta inactiva.";
+        state.loginError = {
+          throttled: "Demasiados intentos. Espera un minuto antes de volver a intentar.",
+          network: "No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+        }[sopSession.loginFailure] ?? "Usuario o contraseña incorrectos, o cuenta inactiva.";
         render();
         return;
       }
@@ -709,7 +712,7 @@ function bindInteractions(app, handlers) {
     } else if (event.target.matches("#operator-handoff-form")) {
       event.preventDefault();
       const formData = new FormData(event.target);
-      const result = handoffWorkOperator(String(formData.get("operatorUsername") ?? "").trim(), String(formData.get("operatorPassword") ?? ""));
+      const result = await handoffWorkOperator(String(formData.get("operatorUsername") ?? "").trim(), String(formData.get("operatorPassword") ?? ""));
       const errors = {
         "not-active-work": "No hay un trabajo SOP activo que se pueda transferir.",
         "not-current-operator": "Solo el operador actualmente asignado puede entregar este trabajo.",
@@ -743,11 +746,11 @@ function bindInteractions(app, handlers) {
     if (event.target.matches("#local-user-form")) {
       event.preventDefault();
       if (getActiveLocalUser().role !== "admin") return;
-      createLocalUser(new FormData(event.target));
+      await createLocalUser(new FormData(event.target));
     } else if (event.target.matches("#local-password-form")) {
       event.preventDefault();
       if (getActiveLocalUser().role !== "admin") return;
-      changeLocalUserPassword(new FormData(event.target));
+      await changeLocalUserPassword(new FormData(event.target));
     }
   });
 }

@@ -577,12 +577,12 @@ bindInteractions(app, {
   persistWorkState: workflow.persistProgress,
   parkActiveWorkForSopChange: workflow.parkActiveWorkForSopChange,
   authenticateLocalUser,
-  endLocalUserSession: () => {
+  endLocalUserSession: async () => {
     if (state.evidenceBusy) {
       showToast("Espera a que termine el guardado de evidencia antes de cerrar sesión.", "warning");
       return;
     }
-    endLocalUserSession();
+    await endLocalUserSession();
     state.loginError = "";
     state.loginUsername = "";
     state.activeSection = "overview";
@@ -601,12 +601,12 @@ bindInteractions(app, {
     state.zoomedEvidence = null;
     render();
   },
-  createLocalUser: (formData) => {
+  createLocalUser: async (formData) => {
     if (String(formData.get("userPassword") ?? "") !== String(formData.get("userPasswordConfirm") ?? "")) {
       showToast("Las contraseñas no coinciden.", "warning");
       return;
     }
-    const result = addLocalUser({
+    const result = await addLocalUser({
       name: String(formData.get("userName") ?? ""),
       employeeNumber: String(formData.get("employeeNumber") ?? ""),
       position: String(formData.get("userPosition") ?? ""),
@@ -614,21 +614,21 @@ bindInteractions(app, {
       role: String(formData.get("userRole") ?? ""),
       password: String(formData.get("userPassword") ?? ""),
     });
-    if (result === "ok") showToast("Usuario agregado a esta demostración.", "warning");
+    if (result === "ok") showToast("Usuario creado.", "warning");
     else showToast(result === "employee" ? "Ese número de empleado ya está registrado." : result === "password" ? "La contraseña debe tener al menos 4 caracteres." : "No se pudo crear el perfil.", "warning");
     render();
   },
-  changeLocalUserPassword: (formData) => {
-    const result = changeLocalUserPassword(
+  changeLocalUserPassword: async (formData) => {
+    const result = await changeLocalUserPassword(
       String(formData.get("passwordUserId") ?? ""),
       String(formData.get("newPassword") ?? ""),
     );
-    if (result === "ok") showToast("Contraseña actualizada en este navegador.", "success");
+    if (result === "ok") showToast("Contraseña actualizada.", "success");
     else showToast(result === "password" ? "La contraseña debe tener al menos 4 caracteres." : "No se pudo cambiar la contraseña.", "warning");
     render();
   },
-  toggleLocalUser: (id, active) => {
-    const result = setLocalUserActive(id, active);
+  toggleLocalUser: async (id, active) => {
+    const result = await setLocalUserActive(id, active);
     showToast(result === "ok" ? `Acceso ${active ? "reactivado" : "desactivado"}.` : result === "last-admin" ? "Debe quedar al menos un administrador activo." : result === "active-user" ? "No puedes desactivar la cuenta con la que tienes la sesión abierta." : result === "forbidden" ? "Solo un administrador puede cambiar el acceso de los usuarios." : "No se encontró esa cuenta.", "warning");
     render();
   },
@@ -656,9 +656,15 @@ bindSopVersionInteractions(app, { state, render, showToast });
 
 startCurrentShiftClock();
 document.documentElement.classList.add("app-boot");
+document.addEventListener("sop:session-expired", (event) => {
+  state.loginError = event.detail?.code === "inactive" ? "Tu cuenta fue desactivada." : "Tu sesión terminó. Inicia sesión de nuevo.";
+  render();
+});
+loadLocalSession().then(() => {
 render({ initial: true });
 window.setTimeout(() => document.documentElement.classList.remove("app-boot"), 600);
-restoreCurrentSopVersion(state).then(async () => {
+return restoreCurrentSopVersion(state);
+}).then(async () => {
   if (state.sopVersionMeta?.builtIn) {
     await restoreStoredSopSource(state);
   }

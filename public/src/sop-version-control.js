@@ -385,7 +385,7 @@ function openStationNameDialog(type, initialName, onSave) {
 }
 
 function canManageSopVersions(user = getActiveLocalUser()) {
-  return String(user?.employeeNumber ?? "") === "140784" && user?.role === "admin";
+  return canUserDo("sop.manage", user);
 }
 
 function openSopVersionDatabase() {

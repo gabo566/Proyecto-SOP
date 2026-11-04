@@ -1,0 +1,4 @@
+[
+  { "name": "Nombre Apellido", "employeeNumber": "100001", "password": "cambiar-esta-contraseña", "position": "Ing FA", "email": "persona@example.local", "role": "admin", "permissions": ["sop.manage"] },
+  { "name": "Operador Ejemplo", "employeeNumber": "100002", "password": "cambiar-esta-contraseña", "position": "Técnico de FA", "role": "operator" }
+]

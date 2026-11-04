@@ -1,6 +1,3 @@
-const LOCAL_USERS_KEY = "sop-operador-local-users-v1";
-const ACTIVE_LOCAL_USER_KEY = "sop-operador-active-user-v1";
-const LOCAL_AUTH_SESSION_KEY = "sop-operador-auth-session-v1";
 const LOCAL_AUDIT_KEY = "sop-operador-audit-trail-v1";
 const LOCAL_USER_ROLES = {
   operator: "Operador",
@@ -8,134 +5,120 @@ const LOCAL_USER_ROLES = {
   admin: "Administrador",
 };
 
-const INITIAL_LOCAL_USERS = [
-  { id: "demo-operator", name: "Operador Demo", username: "140785", password: "0785", employeeNumber: "140785", position: "Técnico de FA", email: "operador.demo@example.local", role: "operator", active: true, demo: true },
-  { id: "demo-supervisor", name: "Gabriel Medina Ramirez", username: "140784", password: "0784", employeeNumber: "140784", position: "Ing FA JR", email: "supervisor.demo@example.local", role: "admin", active: true, demo: true },
-  { id: "demo-admin", name: "Brandon Garcia Olguin", username: "140783", password: "0783", employeeNumber: "140783", position: "Ing FA JR", email: "admin.demo@example.local", role: "admin", active: true, demo: true },
-  { id: "demo-debugger-140860", name: "Tania Azucena Zafra Santos", username: "140860", password: "0860", employeeNumber: "140860", position: "DEBUGGER SR", email: "debugger.140860@example.local", role: "operator", active: true, demo: true },
-  { id: "demo-debugger-140123", name: "Miguel Angel Ruvalcaba Marron", username: "140123", password: "0123", employeeNumber: "140123", position: "DEBUGGER SR", email: "debugger.140123@example.local", role: "operator", active: true, demo: true },
-  { id: "demo-debugger-141090", name: "Julio Cesar Rojo Rodriguez", username: "141090", password: "1090", employeeNumber: "141090", position: "DEBUGGER SR", email: "debugger.141090@example.local", role: "operator", active: true, demo: true },
-  { id: "demo-debugger-121907", name: "Jesus Humberto Ortega Mejia", username: "121907", password: "1907", employeeNumber: "121907", position: "DEBUGGER SR", email: "debugger.121907@example.local", role: "operator", active: true, demo: true },
-];
+// Placeholder para el código que pregunta por el usuario antes de iniciar sesión.
+const GUEST_USER = { id: "", name: "Invitado", username: "", employeeNumber: "", position: "Técnico de FA", email: "", role: "operator", active: true, permissions: [] };
 
-function readLocalUsers() {
-  try {
-    const users = JSON.parse(localStorage.getItem(LOCAL_USERS_KEY) || "null");
-    if (!Array.isArray(users) || !users.length) return structuredClone(INITIAL_LOCAL_USERS);
-    const migratedUsers = users.map((user) => {
-      const seeded = INITIAL_LOCAL_USERS.find((item) => item.id === user.id);
-      return seeded
-        ? { ...seeded, ...user, name: seeded.name, position: seeded.position, username: seeded.username, password: user.password || seeded.password, employeeNumber: seeded.employeeNumber, role: seeded.role, demo: true }
-        : { ...user, username: user.username || user.employeeNumber, password: user.password || "" };
-    });
-    INITIAL_LOCAL_USERS.forEach((seeded) => {
-      if (!migratedUsers.some((user) => user.id === seeded.id)) migratedUsers.push(structuredClone(seeded));
-    });
-    return migratedUsers;
-  } catch {
-    return structuredClone(INITIAL_LOCAL_USERS);
+// La sesión vive en el servidor (cookie). Aquí solo se cachea al usuario
+// autenticado y, si administra cuentas, la lista, para que el render siga siendo síncrono.
+const sopSession = { user: null, users: [], loginFailure: "" };
+
+document.addEventListener("sop:session-expired", () => {
+  sopSession.user = null;
+  sopSession.users = [];
+});
+
+async function refreshLocalUsers() {
+  const user = sopSession.user;
+  if (!user) {
+    sopSession.users = [];
+    return;
   }
+  sopSession.users = [user];
+  if (!user.permissions.includes("users.manage")) return;
+  const result = await sopApi("GET", "/api/users");
+  if (result.ok) sopSession.users = result.data.users;
+}
+
+async function loadLocalSession() {
+  const result = await sopApi("GET", "/api/me");
+  sopSession.user = result.ok ? result.data.user : null;
+  await refreshLocalUsers();
+  return sopSession.user;
 }
 
 function listLocalUsers() {
-  return readLocalUsers();
+  return sopSession.users;
 }
 
 function getActiveLocalUser() {
-  const users = readLocalUsers();
-  const id = localStorage.getItem(ACTIVE_LOCAL_USER_KEY);
-  return users.find((user) => user.id === id && user.active) ?? users.find((user) => user.active) ?? INITIAL_LOCAL_USERS[0];
+  return sopSession.user ?? GUEST_USER;
 }
 
 function getAuthenticatedLocalUser() {
-  if (sessionStorage.getItem(LOCAL_AUTH_SESSION_KEY) !== "1") return null;
-  const id = localStorage.getItem(ACTIVE_LOCAL_USER_KEY);
-  const user = listLocalUsers().find((item) => item.id === id && item.active) ?? null;
-  if (!user) sessionStorage.removeItem(LOCAL_AUTH_SESSION_KEY);
-  return user;
+  return sopSession.user;
 }
 
 function getLocalUserSnapshot(user = getActiveLocalUser()) {
   return { id: user.id, name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", role: user.role };
 }
 
-function verifyLocalUserCredentials(username, password) {
-  const normalizedUsername = String(username ?? "").trim();
-  const suppliedPassword = String(password ?? "");
-  return listLocalUsers().find((item) => item.active && item.username === normalizedUsername && item.password === suppliedPassword) ?? null;
+function canUserDo(permission, user = getActiveLocalUser()) {
+  return Boolean(user?.permissions?.includes(permission));
 }
 
-function authenticateLocalUser(username, password) {
-  const user = verifyLocalUserCredentials(username, password);
-  if (!user) return null;
-  localStorage.setItem(ACTIVE_LOCAL_USER_KEY, user.id);
-  sessionStorage.setItem(LOCAL_AUTH_SESSION_KEY, "1");
-  return user;
+// Comprueba credenciales de otra persona sin cambiar la sesión actual (cambio de operador).
+async function verifyLocalUserCredentials(username, password) {
+  const result = await sopApi("POST", "/api/users/verify", { employeeNumber: String(username ?? "").trim(), password: String(password ?? "") });
+  return result.ok ? result.data.user : null;
 }
 
-function endLocalUserSession() {
-  const user = getAuthenticatedLocalUser();
+async function authenticateLocalUser(username, password) {
+  sopSession.loginFailure = "";
+  const result = await sopApi("POST", "/api/login", { employeeNumber: String(username ?? "").trim(), password: String(password ?? "") });
+  if (!result.ok) {
+    sopSession.loginFailure = result.status === 429 ? "throttled" : result.status === 0 ? "network" : "invalid";
+    return null;
+  }
+  sopSession.user = result.data.user;
+  await refreshLocalUsers();
+  return sopSession.user;
+}
+
+async function endLocalUserSession() {
+  const user = sopSession.user;
   if (user) recordLocalAuditEvent("local_logout", { targetUserName: user.name });
-  sessionStorage.removeItem(LOCAL_AUTH_SESSION_KEY);
-  localStorage.removeItem(ACTIVE_LOCAL_USER_KEY);
+  await sopApi("POST", "/api/logout");
+  sopSession.user = null;
+  sopSession.users = [];
 }
 
-function persistLocalUsers(users) {
-  localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(users));
+// Los tres métodos devuelven el mismo código de texto que usaba el prototipo local.
+function failureCode(result) {
+  return result.data?.code ?? (result.status === 404 ? "missing" : result.status === 403 ? "forbidden" : "error");
 }
 
-function addLocalUser({ name, employeeNumber, email, role, password, position }) {
+async function addLocalUser({ name, employeeNumber, email, role, password, position }) {
   if (getActiveLocalUser().role !== "admin") return "forbidden";
-  const users = listLocalUsers();
-  const normalizedEmail = String(email ?? "").trim().toLocaleLowerCase("es-MX");
-  const normalizedEmployee = employeeNumber.trim().toLocaleLowerCase("es-MX");
-  if (users.some((user) => user.employeeNumber.toLocaleLowerCase("es-MX") === normalizedEmployee)) return "employee";
-  if (normalizedEmail && users.some((user) => (user.email || "").toLocaleLowerCase("es-MX") === normalizedEmail)) return "email";
-  if (password.trim().length < 4) return "password";
-  if (!LOCAL_USER_ROLES[role]) return "role";
-  const user = {
-    id: `local-user-${crypto.randomUUID()}`,
+  const result = await sopApi("POST", "/api/users", {
     name: name.trim(),
-    username: employeeNumber.trim(),
-    password: password.trim(),
     employeeNumber: employeeNumber.trim(),
     position: position.trim(),
-    email: String(email ?? "").trim(),
+    email: String(email ?? "").trim() || null,
     role,
-    active: true,
-    demo: false,
-    createdAt: new Date().toISOString(),
-  };
-  users.push(user);
-  persistLocalUsers(users);
-  recordLocalAuditEvent("demo_user_created", { targetUserId: user.id, targetUserName: user.name, targetRole: user.role });
+    password: password.trim(),
+  });
+  if (!result.ok) return failureCode(result);
+  await refreshLocalUsers();
+  recordLocalAuditEvent("demo_user_created", { targetUserId: result.data.user.id, targetUserName: result.data.user.name, targetRole: result.data.user.role });
   return "ok";
 }
 
-function changeLocalUserPassword(userId, password) {
+async function changeLocalUserPassword(userId, password) {
   if (getActiveLocalUser().role !== "admin") return "forbidden";
-  const normalizedPassword = String(password ?? "").trim();
-  if (normalizedPassword.length < 4) return "password";
-  const users = listLocalUsers();
-  const target = users.find((user) => user.id === userId);
-  if (!target) return "missing";
-  target.password = normalizedPassword;
-  persistLocalUsers(users);
-  recordLocalAuditEvent("local_user_password_changed", { targetUserId: target.id, targetUserName: target.name, targetRole: target.role });
+  const target = listLocalUsers().find((user) => String(user.id) === String(userId));
+  const result = await sopApi("PATCH", `/api/users/${encodeURIComponent(userId)}/password`, { password: String(password ?? "").trim() });
+  if (!result.ok) return failureCode(result);
+  recordLocalAuditEvent("local_user_password_changed", { targetUserId: userId, targetUserName: target?.name, targetRole: target?.role });
   return "ok";
 }
 
-function setLocalUserActive(id, active) {
+async function setLocalUserActive(id, active) {
   if (getActiveLocalUser().role !== "admin") return "forbidden";
-  const users = listLocalUsers();
-  const target = users.find((user) => user.id === id);
-  if (!target) return "missing";
-  if (!active && getActiveLocalUser().id === id) return "active-user";
-  const activeAdmins = users.filter((user) => user.active && user.role === "admin");
-  if (!active && target.active && target.role === "admin" && activeAdmins.length <= 1) return "last-admin";
-  target.active = active;
-  persistLocalUsers(users);
-  recordLocalAuditEvent(active ? "demo_user_activated" : "demo_user_deactivated", { targetUserId: target.id, targetUserName: target.name, targetRole: target.role });
+  const target = listLocalUsers().find((user) => String(user.id) === String(id));
+  const result = await sopApi("PATCH", `/api/users/${encodeURIComponent(id)}/active`, { active });
+  if (!result.ok) return failureCode(result);
+  await refreshLocalUsers();
+  recordLocalAuditEvent(active ? "demo_user_activated" : "demo_user_deactivated", { targetUserId: id, targetUserName: target?.name, targetRole: target?.role });
   return "ok";
 }
 
@@ -174,8 +157,8 @@ function renderLocalUsersPanel() {
   const users = listLocalUsers();
   const rows = users.map((user) => `<tr><td><strong>${escapeHtml(user.name)}</strong></td><td>${escapeHtml(user.employeeNumber)}</td><td>${escapeHtml(user.position || "Técnico de FA")}</td><td>${escapeHtml(LOCAL_USER_ROLES[user.role] ?? user.role)}</td><td><span class="local-user-status ${user.active ? "is-active" : ""}">${user.active ? "Activo" : "Desactivado"}</span></td><td><button class="text-button" type="button" data-action="toggle-local-user" data-user-id="${escapeHtml(user.id)}" data-active="${user.active ? "false" : "true"}">${user.active ? "Desactivar acceso" : "Reactivar acceso"}</button></td></tr>`).join("");
   const passwordOptions = users.map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.name)} · ${escapeHtml(user.employeeNumber)}${user.active ? "" : " · Desactivado"}</option>`).join("");
-  return `<section class="users-panel" id="users-panel"><div class="section-heading"><div><p class="eyebrow">Administración de cuentas locales</p><h2>Crear usuarios</h2></div><span>${users.filter((user) => user.active).length} activos</span></div>
-    <div class="local-prototype-notice" role="note">Los perfiles y roles se simulan en este navegador. No validan identidad ni protegen datos; no uses información real.</div>
+  return `<section class="users-panel" id="users-panel"><div class="section-heading"><div><p class="eyebrow">Administración de cuentas</p><h2>Crear usuarios</h2></div><span>${users.filter((user) => user.active).length} activos</span></div>
+    <div class="local-prototype-notice" role="note">Las cuentas se guardan en el servidor y las contraseñas se almacenan cifradas. Solo las personas con permiso de administración pueden verlas y cambiarlas.</div>
     <form class="local-user-form" id="local-user-form"><label>Nombre completo<input name="userName" required maxlength="100" autocomplete="off" /></label><label>N.º de empleado<input name="employeeNumber" required maxlength="40" autocomplete="username" /></label><label>Puesto<input name="userPosition" required maxlength="80" autocomplete="organization-title" /></label><label>Contraseña inicial<span class="password-field"><input name="userPassword" type="password" required minlength="4" maxlength="80" autocomplete="new-password" /><button class="password-eye" type="button" data-action="toggle-password-visibility" aria-label="Mostrar contraseña" aria-pressed="false"><span class="material-symbols-rounded" aria-hidden="true">visibility</span></button></span></label><label>Confirmar contraseña<span class="password-field"><input name="userPasswordConfirm" type="password" required minlength="4" maxlength="80" autocomplete="new-password" /><button class="password-eye" type="button" data-action="toggle-password-visibility" aria-label="Mostrar contraseña" aria-pressed="false"><span class="material-symbols-rounded" aria-hidden="true">visibility</span></button></span></label><label>Tipo de usuario<select name="userRole"><option value="operator">Usuario común</option><option value="admin">Administrador</option></select></label><button class="button button--primary" type="submit">Crear usuario</button></form>
     <form class="local-password-form" id="local-password-form"><label>Cuenta<select name="passwordUserId" required>${passwordOptions}</select></label><label>Nueva contraseña<input name="newPassword" type="password" required minlength="4" maxlength="80" autocomplete="new-password" /></label><button class="button button--secondary" type="submit">Cambiar contraseña</button><small>La contraseña anterior no se muestra. Usa al menos 4 caracteres.</small></form>
     <div class="table-scroll"><table><thead><tr><th>Nombre</th><th>N° empleado</th><th>Puesto</th><th>Tipo de usuario</th><th>Estado</th><th>Acción</th></tr></thead><tbody>${rows}</tbody></table></div></section>

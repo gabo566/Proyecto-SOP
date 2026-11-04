@@ -76,12 +76,12 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
     return true;
   }
 
-  function handoffOperator(username, password) {
+  async function handoffOperator(username, password) {
     const item = state.workItems.find((workItem) => workItem.id === state.activeWorkId);
     if (!isActiveHandoffWorkItem(item)) return "not-active-work";
     if (!state.sopStorageReady) return "sop-loading";
     if (!state.sopRun || !canOperateGuidedSopRun()) return "not-current-operator";
-    const nextUser = verifyLocalUserCredentials(username, password);
+    const nextUser = await verifyLocalUserCredentials(username, password);
     if (!nextUser) return "invalid-credentials";
     const currentUser = getActiveLocalUser();
     if (nextUser.employeeNumber === currentUser.employeeNumber) return "same-operator";
@@ -126,7 +126,7 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
       return "save-failed";
     }
 
-    const authenticatedUser = authenticateLocalUser(username, password);
+    const authenticatedUser = await authenticateLocalUser(username, password);
     if (!authenticatedUser) {
       state.workItems[itemIndex] = previousItem;
       state.sopRun = previousRun;

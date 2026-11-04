@@ -25,3 +25,6 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Cuentas iniciales con contraseñas (usar demo-users.example.json como plantilla)
+/database/seeders/data/demo-users.json

@@ -15,6 +15,8 @@ $spa = static fn () => response()->file(resource_path('spa/index.html'), [
 
 Route::get('/', $spa);
 
+Route::prefix('api')->group(base_path('routes/spa-api.php'));
+
 // Mismo criterio que worker/index.js: una navegación HTML desconocida vuelve
 // al shell; /api/* y los recursos que no son HTML responden 404 reales.
 Route::fallback(function (Request $request) use ($spa) {
