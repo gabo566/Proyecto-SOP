@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuditEventController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EvidenceController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecordController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\SopCatalogController;
@@ -23,6 +24,12 @@ Route::get('/me', [AuthController::class, 'me']);
 Route::middleware(['auth', 'account.active'])->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/users/verify', [AuthController::class, 'verify'])->middleware('throttle:login');
+
+    Route::patch('/profile', [ProfileController::class, 'update']);
+    Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->middleware('throttle:5,1');
+    Route::post('/profile/avatar', [ProfileController::class, 'storeAvatar']);
+    Route::delete('/profile/avatar', [ProfileController::class, 'destroyAvatar']);
+    Route::get('/users/{user}/avatar', [ProfileController::class, 'showAvatar']);
 
     Route::get('/sop-versions', [SopVersionController::class, 'index']);
     Route::get('/sop-versions/{version}/pdf', [SopVersionController::class, 'pdf']);

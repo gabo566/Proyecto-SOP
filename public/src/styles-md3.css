@@ -2330,3 +2330,67 @@ html[data-nav-dir="soft"]::view-transition-new(page-content) { animation: c062-f
   .work-item-history { flex: 1 1 100%; }
   .work-item-history[open] ol { position: static; width: auto; max-width: 100%; margin-top: 8px; box-shadow: none; }
 }
+
+/* C-065 · Mi perfil: foto en el chip, opción en el menú y diálogo de datos propios.
+   Mismos controles que el formulario de usuarios (campos de 46 px, botones .button). */
+.profile-avatar { display: grid; place-items: center; flex: none; overflow: hidden; border-radius: 50%; }
+.profile-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.profile-avatar.has-photo { background: #fff; }
+.profile-avatar--large { width: 72px; height: 72px; border: 0; color: #fff; background: #315773; font-size: 24px; font-weight: 700; }
+.profile-action { color: #244b69; }
+.profile-action:hover { background: #edf3f9; }
+
+.profile-dialog { width: min(640px, calc(100vw - 28px)); max-height: min(90dvh, 840px); padding: 0; overflow: auto; border: 1px solid var(--outline); border-radius: 16px; color: var(--ink); background: #fff; box-shadow: 0 24px 60px rgb(20 34 49 / 28%); }
+.profile-dialog::backdrop { background: rgb(20 34 49 / 56%); backdrop-filter: blur(2px); }
+.profile-dialog > .dialog-header { padding: 20px 22px 6px; }
+.profile-dialog .dialog-header h2 { margin: 0; font-size: 21px; letter-spacing: -.25px; }
+.profile-dialog .dialog-header p { max-width: 46ch; margin: 5px 0 0; color: #4c6278; font-size: 13px; line-height: 1.5; }
+.profile-body { display: grid; gap: 18px; padding: 14px 22px 24px; }
+
+.profile-identity { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.profile-identity-copy { position: relative; display: grid; gap: 2px; min-width: 0; }
+.profile-identity-copy strong { overflow-wrap: anywhere; font-size: 17px; line-height: 1.25; }
+.profile-identity-copy > span { color: #4c6278; font-size: 13px; }
+.profile-photo-actions { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 6px; }
+.profile-photo-actions .text-button { min-height: 32px; padding: 0; font-size: 13px; font-weight: 700; }
+.text-button--danger { color: #a31519; }
+.profile-avatar-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.profile-photo-error:not([hidden]) { margin: -8px 0 0; }
+
+.profile-form { display: grid; gap: 14px; }
+.profile-form h3 { margin: 0; font-size: 15px; }
+.profile-form--password { padding: 18px; border-radius: 14px; background: #f7f9fc; }
+.profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
+.profile-form--password .profile-grid { grid-template-columns: minmax(0, 1fr); }
+.profile-form label { display: grid; gap: 5px; color: #4c6278; font-size: 13px; font-weight: 600; }
+.profile-form input, .profile-form select { width: 100%; min-height: 46px; padding: 0 12px; border: 1px solid #c7d3e0; border-radius: 11px; color: #22384d; background: #fff; font: inherit; font-size: 14px; font-weight: 400; transition: border-color 140ms ease; }
+.profile-form .password-field input { padding-right: 46px; }
+.profile-form input:focus-visible, .profile-form select:focus-visible { border-color: #315773; outline: 3px solid rgb(49 87 115 / 26%); outline-offset: 0; }
+.profile-form input:user-invalid { border-color: #a92328; }
+.profile-actions { display: flex; justify-content: flex-end; }
+.profile-actions .button { min-height: 44px; padding: 0 20px; border-radius: 12px; font-size: 14px; transition: transform 160ms var(--md-ease, ease-out), background-color 140ms ease; }
+.profile-actions .button:active { transform: scale(.97); }
+.profile-form .form-error { margin: 0; font-size: 13px; line-height: 1.4; }
+
+@media (max-width: 560px) {
+  .profile-dialog { width: calc(100vw - 18px); max-height: calc(100dvh - 20px); border-radius: 14px; }
+  .profile-dialog > .dialog-header { padding: 16px 16px 4px; }
+  .profile-body { padding: 12px 16px 18px; }
+  .profile-grid { grid-template-columns: minmax(0, 1fr); }
+  .profile-form--password { padding: 14px; }
+  .profile-actions .button { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .profile-actions .button, .profile-form input, .profile-form select { transition: none; } }
+
+/* C-065 · el menú de usuario también vive sobre el banner de selección de estación. */
+.station-intake-screen { position: relative; }
+.station-intake-user { position: absolute; top: 46px; right: 42px; z-index: 12; }
+.station-intake-user .profile-dropdown { right: 0; }
+@media (max-width: 900px) { .station-intake-user { top: 14px; right: 16px; } }
+@media (max-width: 650px) {
+  .station-intake-user { top: 12px; right: 12px; left: auto; width: auto; }
+  .station-intake-user .profile-menu { width: auto; }
+  .station-intake-user .profile-chip { width: auto; padding: 3px; border-radius: 50%; }
+  .station-intake-user .profile-copy, .station-intake-user .profile-menu-chevron { display: none; }
+  .station-intake-user .profile-avatar { width: 38px; height: 38px; }
+}

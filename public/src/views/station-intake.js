@@ -71,6 +71,7 @@ function renderStationIntake(state) {
       : '<span class="station-choice-status station-choice-status--disabled">Sin SOP habilitadas por Administración</span>';
 
   return `<div class="station-intake-screen" aria-labelledby="station-intake-title">
+    <div class="station-intake-user">${renderProfileMenu(getActiveLocalUser())}</div>
     <section class="station-intake-banner" aria-label="Registrar validación">
       <a class="station-intake-banner-brand" href="#top" aria-label="Ingrasys">
         <img src="./public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" />

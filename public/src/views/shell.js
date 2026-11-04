@@ -42,14 +42,7 @@ function renderTopbar(state = {}) {
     </div>
     <div class="topbar-user-panel">
     <div class="topbar-profile">
-      <details class="profile-menu">
-        <summary class="profile-chip" aria-label="Opciones de ${escapeHtml(user.name)}">
-          <span class="profile-avatar">${escapeHtml(user.name.slice(0, 2).toLocaleUpperCase("es-MX"))}</span>
-        <span class="profile-copy"><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.position || "Técnico de FA")}</small></span>
-          <span class="material-symbols-rounded profile-menu-chevron" aria-hidden="true">expand_more</span>
-        </summary>
-        <div class="profile-dropdown"><span class="profile-dropdown-role">${escapeHtml(LOCAL_USER_ROLES[user.role])}</span><button class="profile-logout" type="button" data-action="logout-local-user"><span class="material-symbols-rounded" aria-hidden="true">logout</span>Cerrar sesión</button></div>
-      </details>
+      ${renderProfileMenu(user)}
     </div>
     <div class="topbar-meta">
       <div class="shift-chip" aria-label="Turno actual"><span class="material-symbols-rounded" aria-hidden="true">groups</span><span id="current-shift-label">${getCurrentShiftLabel()}</span></div>

@@ -1,4 +1,4 @@
-# Detiene lo que haya levantado iniciar-servidor.ps1 (ventanas, Laravel :4174 y
+﻿# Detiene lo que haya levantado iniciar-servidor.ps1 (ventanas, Laravel :4174 y
 # Vite :5173/:5174) y lo vuelve a lanzar en esta misma ventana. Solo toca esos
 # procesos: no afecta a otros proyectos (p. ej. Burn Track en :4173).
 

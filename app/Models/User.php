@@ -12,7 +12,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
 
-#[Fillable(['employee_number', 'name', 'position', 'email', 'password', 'role_id', 'is_active'])]
+#[Fillable(['employee_number', 'name', 'position', 'email', 'phone', 'shift', 'area', 'avatar_path', 'password', 'role_id', 'is_active'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -70,6 +70,13 @@ class User extends Authenticatable
             'employeeNumber' => $this->employee_number,
             'position' => $this->position,
             'email' => $this->email ?? '',
+            'phone' => $this->phone ?? '',
+            'shift' => $this->shift ?? '',
+            'area' => $this->area ?? '',
+            // El número de versión evita que el navegador muestre la foto anterior.
+            'avatarUrl' => $this->avatar_path
+                ? "/api/users/{$this->id}/avatar?v={$this->updated_at?->timestamp}"
+                : '',
             'role' => $this->role->key,
             'active' => $this->is_active,
             'permissions' => $this->permissionKeys()->all(),

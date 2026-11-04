@@ -1,4 +1,4 @@
-# Inicia Laravel (http://localhost:4174) y Vite (http://localhost:5173) en esta
+﻿# Inicia Laravel (http://localhost:4174) y Vite (http://localhost:5173) en esta
 # misma ventana de PowerShell. Cerrar la ventana o pulsar Ctrl+C detiene ambos.
 #
 # Laravel se lanza con el servidor integrado de PHP y los límites de subida

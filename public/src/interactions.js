@@ -57,6 +57,72 @@ function bindInteractions(app, handlers) {
       .finally(() => { delete document.documentElement.dataset.navDir; });
   }
 
+  // ---- Mi perfil: los errores se escriben en el diálogo abierto para no perder lo tecleado.
+  function showProfileMessage(id, message) {
+    const element = document.querySelector(`#${id}`);
+    if (!element) return;
+    element.textContent = message;
+    element.hidden = !message;
+  }
+
+  async function submitProfileForm(form) {
+    showProfileMessage("profile-error", "");
+    const data = new FormData(form);
+    const text = (name) => String(data.get(name) ?? "").trim();
+    const result = await saveLocalProfile({ email: text("email"), phone: text("phone"), position: text("position"), area: text("area"), shift: text("shift") });
+    if (!result.ok) {
+      showProfileMessage("profile-error", result.message);
+      return;
+    }
+    recordLocalAuditEvent("profile_updated", {});
+    showToast("Perfil actualizado.");
+    document.querySelector("#profile-dialog")?.close();
+  }
+
+  async function submitPasswordForm(form) {
+    showProfileMessage("profile-password-error", "");
+    const data = new FormData(form);
+    const next = String(data.get("password") ?? "");
+    if (next !== String(data.get("passwordConfirm") ?? "")) {
+      showProfileMessage("profile-password-error", "Las contraseñas nuevas no coinciden.");
+      return;
+    }
+    const result = await changeOwnPassword(String(data.get("currentPassword") ?? ""), next);
+    if (!result.ok) {
+      showProfileMessage("profile-password-error", result.message);
+      return;
+    }
+    recordLocalAuditEvent("own_password_changed", {});
+    form.reset();
+    showToast("Contraseña actualizada.");
+  }
+
+  async function changeOwnAvatar(input) {
+    const file = input.files?.[0];
+    input.value = "";
+    showProfileMessage("profile-photo-error", "");
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 2 * 1024 * 1024) {
+      showProfileMessage("profile-photo-error", file.size > 2 * 1024 * 1024 ? "La foto debe pesar 2 MB o menos." : "Usa una foto JPG, PNG o WebP.");
+      return;
+    }
+    const result = await uploadProfileAvatar(file);
+    if (!result.ok) {
+      showProfileMessage("profile-photo-error", result.message);
+      return;
+    }
+    render();
+  }
+
+  async function removeOwnAvatar() {
+    const result = await removeProfileAvatar();
+    if (!result.ok) {
+      showProfileMessage("profile-photo-error", result.message);
+      return;
+    }
+    render();
+  }
+
   function handleNavigation(action) {
     const item = navItems.find((navItem) => navItem.id === action.dataset.navId);
     if (!item) return;
@@ -354,6 +420,7 @@ function bindInteractions(app, handlers) {
         else if (event.target.id === "operator-handoff-dialog") event.target.close();
         else if (event.target.id === "evidence-review-dialog") closeEvidenceReview();
         else if (event.target.id === "help-dialog") event.target.close();
+        else if (event.target.id === "profile-dialog") event.target.close();
         else closeDialog("recordsDialogOpen");
       }
       return;
@@ -424,6 +491,15 @@ function bindInteractions(app, handlers) {
         render({ focusDialog: true });
         break;
       case "close-help": document.querySelector("#help-dialog")?.close(); break;
+      case "open-profile":
+        document.querySelector(".profile-menu")?.removeAttribute("open");
+        state.dialogTriggerFocusKey = "profile-open";
+        state.profileDialogOpen = true;
+        render({ focusDialog: true });
+        break;
+      case "close-profile": document.querySelector("#profile-dialog")?.close(); break;
+      case "choose-profile-avatar": document.querySelector("#profile-avatar-input")?.click(); break;
+      case "remove-profile-avatar": void removeOwnAvatar(); break;
       case "previous-procedure": moveProcedure(-1); break;
       case "next-procedure": moveProcedure(1); break;
       case "sop-page-zoom-out": setSopPageZoom(state.sopPageZoom - 10); break;
@@ -514,6 +590,10 @@ function bindInteractions(app, handlers) {
 
   app.addEventListener("change", (event) => {
     const { target } = event;
+    if (target.matches("#profile-avatar-input")) {
+      void changeOwnAvatar(target);
+      return;
+    }
     if (target.matches("[data-scan-field]")) {
       commitScanField(target, false);
       return;
@@ -671,6 +751,16 @@ function bindInteractions(app, handlers) {
     if (event.target.matches("#station-intake-form")) {
       event.preventDefault();
       runWithTransition(() => continueStationIntake());
+      return;
+    }
+    if (event.target.matches("#profile-form")) {
+      event.preventDefault();
+      await submitProfileForm(event.target);
+      return;
+    }
+    if (event.target.matches("#profile-password-form")) {
+      event.preventDefault();
+      await submitPasswordForm(event.target);
       return;
     }
     if (event.target.matches("#local-login-form")) {

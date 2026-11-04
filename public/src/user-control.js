@@ -124,6 +124,51 @@ async function setLocalUserActive(id, active) {
   return "ok";
 }
 
+// ---- perfil propio ------------------------------------------------------
+function profileFailureMessage(result, fallback) {
+  const code = result.data?.code;
+  if (code === "wrong-password") return "La contraseña actual no es correcta.";
+  if (code === "same-password") return "La contraseña nueva debe ser distinta de la actual.";
+  if (result.status === 429) return "Demasiados intentos. Espera un minuto antes de volver a intentar.";
+  if (result.status === 0) return "No se pudo conectar con el servidor. Revisa la conexión.";
+  if (result.status === 413) return "La foto es demasiado grande para el servidor.";
+  const validation = result.data?.errors ? Object.values(result.data.errors).flat()[0] : "";
+  return validation || fallback;
+}
+
+function applyProfileUser(user) {
+  sopSession.user = user;
+  sopSession.users = sopSession.users.map((item) => (String(item.id) === String(user.id) ? user : item));
+}
+
+async function saveLocalProfile(fields) {
+  const result = await sopApi("PATCH", "/api/profile", fields);
+  if (!result.ok) return { ok: false, message: profileFailureMessage(result, "No se pudo guardar el perfil.") };
+  applyProfileUser(result.data.user);
+  return { ok: true };
+}
+
+async function changeOwnPassword(currentPassword, password) {
+  const result = await sopApi("PATCH", "/api/profile/password", { currentPassword, password });
+  return result.ok ? { ok: true } : { ok: false, message: profileFailureMessage(result, "No se pudo cambiar la contraseña.") };
+}
+
+async function uploadProfileAvatar(file) {
+  const body = new FormData();
+  body.set("avatar", file, file.name || "foto");
+  const result = await sopApi("POST", "/api/profile/avatar", body);
+  if (!result.ok) return { ok: false, message: profileFailureMessage(result, "No se pudo guardar la foto.") };
+  applyProfileUser(result.data.user);
+  return { ok: true };
+}
+
+async function removeProfileAvatar() {
+  const result = await sopApi("DELETE", "/api/profile/avatar");
+  if (!result.ok) return { ok: false, message: profileFailureMessage(result, "No se pudo quitar la foto.") };
+  applyProfileUser(result.data.user);
+  return { ok: true };
+}
+
 function readLocalAuditTrail() {
   return serverSync.audit;
 }
@@ -178,6 +223,8 @@ function renderLocalAuditTable() {
     local_login: "Ingresó al sistema",
     local_logout: "Cerró sesión",
     local_user_password_changed: "Cambió la contraseña de un usuario",
+    own_password_changed: "Cambió su contraseña",
+    profile_updated: "Actualizó su perfil",
     demo_user_created: "Creó usuario de demostración",
     demo_user_activated: "Activó usuario de demostración",
     demo_user_deactivated: "Desactivó usuario de demostración",

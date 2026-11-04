@@ -8,6 +8,10 @@ function getFocusState() {
 }
 
 function restoreFocus(previousFocus, { focusDialog, initial }, state) {
+  if (focusDialog && state.profileDialogOpen) {
+    document.querySelector("#profile-form [name='email']")?.focus();
+    return;
+  }
   if (focusDialog && state.helpDialogOpen) {
     document.querySelector('[data-focus-key="help-close"]')?.focus();
     return;

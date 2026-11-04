@@ -38,6 +38,7 @@ const state = {
   reviewNote: "",
   recordsDialogOpen: false,
   helpDialogOpen: false,
+  profileDialogOpen: false,
   activeSection: readSavedSection(),
   includeDemoData: false,
   reportFilters: { dateFrom: "", dateTo: "", shift: "all", category: "all", employeeNumber: "all" },
@@ -156,9 +157,13 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   const canManageSops = state.activeSection === "sop-admin" && canManageSopVersions(user);
   if (!state.operatorFlowReady && !canBrowseAdminSection && !canManageSops) {
     normalizeStationIntakeAssignment(state);
-    app.innerHTML = user?.role === "admin"
+    app.innerHTML = `${user?.role === "admin"
       ? `${renderSidebar(state)}<main class="main-area">${renderStationIntake(state)}</main>`
-      : renderStationIntake(state);
+      : renderStationIntake(state)}${renderProfileDialog(state)}${renderToast()}`;
+    // Quien entra por la selección de estación también llega a su perfil desde el menú del banner.
+    const intakeProfileDialog = document.querySelector("#profile-dialog");
+    intakeProfileDialog.addEventListener("close", () => handleNativeDialogClose("profileDialogOpen"));
+    openDialog("profile", state.profileDialogOpen, intakeProfileDialog);
     return;
   }
   ensureGuidedSopRun();
@@ -185,7 +190,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     : renderSummaryMetrics(todayRecords, state);
   app.innerHTML = `${renderSidebar(state)}<main class="main-area" id="main-content">
     ${renderTopbar(state)}<div class="dashboard-content">${dashboard}${renderFooter()}</div></main>
-    ${renderOperatorValidationDialog(getProcedure(), state)}${renderRecordsDialog(records, state.recordsQuery, state.workItems)}${renderWorkItemDialog(state)}${renderEvidenceReviewDialog(state)}${renderEvidenceImageDialog(state)}${renderStepImageDialog()}${renderHelpDialog()}${renderOperatorHandoffDialog(state)}
+    ${renderOperatorValidationDialog(getProcedure(), state)}${renderRecordsDialog(records, state.recordsQuery, state.workItems)}${renderWorkItemDialog(state)}${renderEvidenceReviewDialog(state)}${renderEvidenceImageDialog(state)}${renderStepImageDialog()}${renderHelpDialog()}${renderProfileDialog(state)}${renderOperatorHandoffDialog(state)}
     ${renderToast()}`;
 
   renderSopPagePreview();
@@ -207,6 +212,8 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   });
   const helpDialog = document.querySelector("#help-dialog");
   helpDialog.addEventListener("close", () => handleNativeDialogClose("helpDialogOpen"));
+  const profileDialog = document.querySelector("#profile-dialog");
+  profileDialog.addEventListener("close", () => handleNativeDialogClose("profileDialogOpen"));
 
   openDialog("records", state.recordsDialogOpen, recordsDialog);
   openDialog("validation", state.validationDialogOpen, validationDialog);
@@ -215,6 +222,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   openDialog("evidence-review", state.evidenceReviewDialogOpen, evidenceReviewDialog);
   openDialog("evidence-image", state.evidenceImageDialogOpen, evidenceImageDialog);
   openDialog("help", state.helpDialogOpen, helpDialog);
+  openDialog("profile", state.profileDialogOpen, profileDialog);
   restoreFocus(previousFocus, { focusDialog, initial }, state);
   const reportRecords = state.activeSection === "reports"
     ? getReportRecords(allRecords, state.reportFilters, state.includeDemoData)
@@ -587,6 +595,7 @@ bindInteractions(app, {
     state.workDialogOpen = false;
     state.recordsDialogOpen = false;
     state.helpDialogOpen = false;
+    state.profileDialogOpen = false;
     state.evidenceReviewDialogOpen = false;
     state.evidenceImageDialogOpen = false;
     state.zoomedEvidence = null;
