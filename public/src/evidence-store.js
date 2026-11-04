@@ -1,28 +1,8 @@
-const EVIDENCE_DATABASE = "sop-operador-evidence-v1";
-const EVIDENCE_STORE = "files";
-const SOP_SOURCE_STORE = "sop-source";
-const ACTIVE_SOP_SOURCE_ID = "active-sop-pdf";
 const MAX_EVIDENCE_FILES = 5;
 const MAX_EVIDENCE_FILE_MB = 8;
 const MAX_EVIDENCE_FILE_BYTES = MAX_EVIDENCE_FILE_MB * 1024 * 1024;
 const EVIDENCE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const EVIDENCE_FILE_ACCEPT = [...EVIDENCE_MIME_TYPES].join(",");
-
-function openEvidenceDatabase() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(EVIDENCE_DATABASE, 2);
-    request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains(EVIDENCE_STORE)) {
-        request.result.createObjectStore(EVIDENCE_STORE, { keyPath: "id" });
-      }
-      if (!request.result.objectStoreNames.contains(SOP_SOURCE_STORE)) {
-        request.result.createObjectStore(SOP_SOURCE_STORE, { keyPath: "id" });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
 
 async function storeSopSourcePdf(file) {
   const filenameIsPdf = String(file?.name ?? "").toLocaleLowerCase("es-MX").endsWith(".pdf");
@@ -46,34 +26,34 @@ async function loadSopSourcePdf() {
   return result.ok ? result.data.source : null;
 }
 
+// Las fotos de evidencia viven en el servidor (storage/app/evidence); en los
+// documentos del trabajo solo queda su metadato { id, name, type, size, ... }.
 async function storeEvidenceFile(id, file) {
-  const database = await openEvidenceDatabase();
-  return new Promise((resolve, reject) => {
-    const transaction = database.transaction(EVIDENCE_STORE, "readwrite");
-    transaction.objectStore(EVIDENCE_STORE).put({ id, blob: file, name: file.name, type: file.type, size: file.size });
-    transaction.oncomplete = () => { database.close(); resolve(); };
-    transaction.onerror = () => { database.close(); reject(transaction.error); };
-    transaction.onabort = () => { database.close(); reject(transaction.error); };
-  });
+  const body = new FormData();
+  body.set("id", id);
+  body.set("file", file, file.name || "evidencia");
+  const result = await sopApi("POST", "/api/evidence", body);
+  if (!result.ok) {
+    const validation = result.data?.errors ? Object.values(result.data.errors).flat()[0] : "";
+    throw new Error(result.status === 413 ? "La foto es demasiado grande para el servidor."
+      : result.status === 403 ? "Tu cuenta no puede reemplazar esa foto."
+      : validation || "No se pudo guardar la foto en el servidor.");
+  }
 }
 
+// Devuelve { id, blob, name, type, size } o null si la foto no existe o no hay acceso.
 async function loadEvidenceFile(id) {
-  const database = await openEvidenceDatabase();
-  return new Promise((resolve, reject) => {
-    const transaction = database.transaction(EVIDENCE_STORE, "readonly");
-    const request = transaction.objectStore(EVIDENCE_STORE).get(id);
-    request.onsuccess = () => { database.close(); resolve(request.result ?? null); };
-    request.onerror = () => { database.close(); reject(request.error); };
-  });
+  try {
+    const response = await fetch(`/api/evidence/${encodeURIComponent(id)}`, { credentials: "same-origin", headers: { Accept: "image/*" } });
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return { id, blob, name: id, type: blob.type, size: blob.size };
+  } catch {
+    return null;
+  }
 }
 
 async function deleteEvidenceFile(id) {
-  const database = await openEvidenceDatabase();
-  return new Promise((resolve, reject) => {
-    const transaction = database.transaction(EVIDENCE_STORE, "readwrite");
-    transaction.objectStore(EVIDENCE_STORE).delete(id);
-    transaction.oncomplete = () => { database.close(); resolve(); };
-    transaction.onerror = () => { database.close(); reject(transaction.error); };
-    transaction.onabort = () => { database.close(); reject(transaction.error); };
-  });
+  const result = await sopApi("DELETE", `/api/evidence/${encodeURIComponent(id)}`);
+  if (!result.ok && result.status !== 404) throw new Error("No se pudo borrar la foto en el servidor.");
 }

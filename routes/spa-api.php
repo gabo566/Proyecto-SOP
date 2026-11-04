@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuditEventController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\EvidenceController;
 use App\Http\Controllers\RecordController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\SopCatalogController;
@@ -33,6 +34,9 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
     Route::put('/work-items/{id}', [WorkItemController::class, 'update']);
     Route::get('/records', [RecordController::class, 'index']);
     Route::put('/records/{id}', [RecordController::class, 'update']);
+    Route::post('/evidence', [EvidenceController::class, 'store']);
+    Route::get('/evidence/{id}', [EvidenceController::class, 'show']);
+    Route::delete('/evidence/{id}', [EvidenceController::class, 'destroy']);
     Route::get('/audit-events', [AuditEventController::class, 'index']);
     Route::post('/audit-events', [AuditEventController::class, 'store']);
 

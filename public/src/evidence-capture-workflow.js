@@ -31,7 +31,7 @@ function createEvidenceCaptureWorkflow(state, { render, getTimestamp }) {
     } catch {
       await Promise.all(additions.map((file) => deleteEvidenceFile(file.id).catch(() => {})));
       state.evidenceBusy = false;
-      onError("No se pudo guardar la evidencia en este navegador.");
+      onError("No se pudo guardar la evidencia en el servidor. Revisa la conexión e inténtalo de nuevo.");
       render();
     }
   }
@@ -81,7 +81,7 @@ function createEvidenceCaptureWorkflow(state, { render, getTimestamp }) {
     state.evidenceManageMode = false;
     state.reviewReadOnly = true;
     state.reviewObservation = record.evidenceObservation ?? "";
-    state.reviewError = loaded.every(Boolean) ? "" : "Una o más fotos no están disponibles en este navegador.";
+    state.reviewError = loaded.every(Boolean) ? "" : "Una o más fotos no están disponibles.";
     state.evidenceReviewDialogOpen = true;
     render();
   }

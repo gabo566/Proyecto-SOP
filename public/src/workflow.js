@@ -277,7 +277,7 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
       appendEvent(item, isRework ? "Retrabajo requerido" : "Detenida", `${reasonLabel}: ${note}`);
       if (!persistWorkItems(state.workItems)) {
         state.workItems = readWorkItems();
-        state.workError = "No se pudo guardar. Revisa el almacenamiento local del navegador.";
+        state.workError = "No se pudo guardar el trabajo. Inicia sesión de nuevo e inténtalo otra vez.";
       } else {
         recordLocalAuditEvent(isRework ? "rework_required" : "work_paused", {
           serial: item.serial,
@@ -354,7 +354,7 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
     if (!persistWorkItems(state.workItems)) {
       state.workItems[itemIndex] = previousItem;
       Object.assign(state, previousState);
-      showToast("No se pudo registrar la reanudación en este navegador.", "warning");
+      showToast("No se pudo registrar la reanudación. Inicia sesión de nuevo e inténtalo otra vez.", "warning");
       return;
     }
     recordLocalAuditEvent("work_resumed", {

@@ -42,7 +42,7 @@ function createEvidenceWorkflow(state, { render, showToast, persistSavedRecords,
         additions.push({ id, name: file.name, type: file.type, size: file.size, addedAt: getTimestamp(), addedBy });
       }
       item.evidenceFiles = [...currentFiles, ...additions];
-      if (!persistWorkItems(state.workItems)) throw new Error("local-storage");
+      if (!persistWorkItems(state.workItems)) throw new Error("save-failed");
       recordLocalAuditEvent("evidence_added", { serial: item.serial, nodeNumber: item.nodeNumber, procedureId: item.procedureId, procedureTitle: item.procedureTitle, workItemId: item.id, details: `${files.length} foto(s) de retrabajo` });
       state.evidenceBusy = false;
       render();
@@ -50,7 +50,7 @@ function createEvidenceWorkflow(state, { render, showToast, persistSavedRecords,
       Object.assign(item, itemSnapshot);
       await Promise.all(additions.map((file) => deleteEvidenceFile(file.id).catch(() => {})));
       state.evidenceBusy = false;
-      state.evidenceError = "No se pudo guardar la evidencia en este navegador.";
+      state.evidenceError = "No se pudo guardar la evidencia en el servidor. Revisa la conexión e inténtalo de nuevo.";
       render();
     }
   }
@@ -105,7 +105,7 @@ function createEvidenceWorkflow(state, { render, showToast, persistSavedRecords,
     state.reviewReadOnly = manage || preview || !canReview;
     state.reviewNote = "";
     state.reviewObservation = evidenceSubmission.observations ?? "";
-    state.reviewError = loadedFiles.every(Boolean) ? "" : "Una o más fotos no están disponibles en este navegador.";
+    state.reviewError = loadedFiles.every(Boolean) ? "" : "Una o más fotos no están disponibles.";
     state.evidenceReviewDialogOpen = true;
     render();
   }
