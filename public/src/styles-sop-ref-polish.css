@@ -1,0 +1,62 @@
+/* C-070 · Pulido fino del boceto: controles de zoom visibles sobre la hoja, texto del operador sin sombra,
+   nota de seguridad más pequeña con los colores y la tipografía del boceto y botones de selección/operador
+   integrados junto a «Confirmar paso». Se carga después de styles-sop-ref-fit.css. */
+
+/* ---- Operador y fecha: texto nítido, sin sombra ---- */
+.topbar .topbar-user-panel, .topbar .topbar-user-panel * { text-shadow: none !important; -webkit-text-stroke: 0 !important; filter: none !important; }
+.topbar .topbar-id-pill .profile-copy small { color: #1c2b4d; font-weight: 700; }
+.topbar .topbar-id-pill .profile-copy strong { color: #1c2b4d; font-weight: 500; }
+.topbar .topbar-id-pill .station-chip-copy small { color: #1c2b4d; font-weight: 700; }
+.topbar .topbar-id-pill .station-chip-copy strong { color: #1c2b4d; font-weight: 700; }
+.topbar .topbar-id-pill .station-chip-copy em { color: #4a5a78; }
+.topbar .topbar-user-panel .shift-chip-copy strong { font-weight: 600; }
+
+/* ---- Controles de zoom de la hoja: en la misma fila que la etiqueta, sin tapar ni ocultarse ---- */
+.sop-execution-panel .guided-page-toolbar { flex-wrap: nowrap; align-items: center; gap: 8px; height: auto; min-height: 0; }
+.sop-execution-panel .guided-page-toolbar .guided-page-heading { flex: 1 1 0; min-width: 0; }
+.sop-execution-panel .guided-page-toolbar .sop-page-zoom-controls { flex: 0 0 auto; display: flex; align-items: center; flex-wrap: nowrap; gap: 6px; margin: 0; padding: 0; background: none; border: 0; }
+.sop-execution-panel .guided-page-toolbar .icon-button { width: 32px; height: 32px; }
+.sop-execution-panel .guided-page-toolbar output { min-width: 40px; text-align: center; font-size: 12px; }
+.sop-execution-panel .guided-focus-zoom-button { min-height: 32px; padding: 0 10px; font-size: 12px; white-space: nowrap; }
+.sop-execution-panel .guided-focus-zoom-button .material-symbols-rounded { font-size: 18px; }
+.sop-execution-panel .guided-page-open-pdf { flex: 0 0 auto; }
+@media (max-width: 1250px) { .sop-execution-panel .guided-focus-zoom-button { font-size: 0; gap: 0; padding: 0 8px; } }
+@media (max-width: 650px) {
+  .sop-execution-panel .guided-page-toolbar { flex-wrap: wrap; }
+  .sop-execution-panel .guided-page-toolbar .guided-page-heading { flex-basis: 100%; }
+  .sop-execution-panel .guided-focus-zoom-button { font-size: 12px; gap: 6px; padding: 0 10px; }
+}
+
+/* ---- Nota de seguridad: colores y tipografía del boceto, recuadro más pequeño ---- */
+.sop-safety-note { align-self: stretch; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid #efdcaa; border-radius: 8px; background: #fdf3d6; }
+.sop-safety-icon { font-size: 26px; color: #c88a10; }
+.sop-safety-note strong { color: #2a2a2a; font-size: 12px; font-weight: 700; line-height: 1.25; }
+.sop-safety-note p { margin: 1px 0 0; color: #3b3b3b; font-size: 10.5px; font-weight: 400; line-height: 1.35; }
+
+/* ---- Barra de acciones: Anterior · Regresar · CONFIRMAR · Cambiar operador · Siguiente ---- */
+.sop-action-bar { display: grid; grid-template-columns: 1fr minmax(220px, 280px) 1fr; align-items: center; gap: 10px; }
+.sop-action-side { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sop-action-side--left { justify-content: flex-start; }
+.sop-action-side--right { justify-content: flex-end; }
+.sop-action-bar .sop-action-side .button { width: auto; flex: 0 1 auto; white-space: nowrap; }
+.sop-action-bar .sop-action-confirm { width: 100%; }
+.sop-action-bar .sop-action-return { color: var(--ref-navy); background: #e9eef6; box-shadow: inset 0 0 0 1.5px #b9c7dc; }
+.sop-action-bar .sop-action-return:hover:not(:disabled) { background: #dbe5f3; }
+.sop-action-bar .sop-action-handoff { color: #7a4b00; background: #fff0c2; box-shadow: inset 0 0 0 1.5px #f0d48a; }
+.sop-action-bar .sop-action-handoff:hover:not(:disabled) { background: #ffe7a3; }
+.sop-action-bar .sop-action-return, .sop-action-bar .sop-action-handoff { min-height: 42px; padding: 0 14px; font-size: 12.5px; }
+.sop-action-bar .sop-action-return:disabled, .sop-action-bar .sop-action-handoff:disabled { color: #6d7c93; background: #d6deea; box-shadow: none; }
+
+@media (max-width: 1250px) {
+  .sop-action-bar { grid-template-columns: minmax(0, 1fr); }
+  .sop-action-bar .sop-action-confirm { grid-row: 1; max-width: none; }
+  .sop-action-side { flex-wrap: wrap; justify-content: stretch; }
+  .sop-action-side .button { flex: 1 1 140px; }
+}
+@media (max-width: 650px) {
+  .sop-action-bar .sop-action-side .button { flex-basis: calc(50% - 4px); white-space: normal; }
+}
+@media (max-width: 650px) {
+  .sop-execution-panel .guided-page-toolbar .sop-page-zoom-controls { flex: 1 1 100%; flex-wrap: wrap; }
+  .sop-execution-panel .guided-focus-zoom-button { flex: 1 1 auto; }
+}

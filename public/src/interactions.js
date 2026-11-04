@@ -650,7 +650,7 @@ function bindInteractions(app, handlers) {
       });
       persistWorkState();
       updateGuidedChecklistUI(getProcedure(), state);
-      if (target.checked) scrollToNextPendingStep(target);
+      revealCurrentGuidedStep();
     } else if (target.dataset.formField === "declaration") {
       state.form.declaration = target.checked;
       target.removeAttribute("aria-invalid");
@@ -851,6 +851,19 @@ function bindInteractions(app, handlers) {
       await changeLocalUserPassword(new FormData(event.target));
     }
   });
+}
+
+// Mantiene a la vista el paso en curso (el primero sin marcar) dentro de la lista de pasos,
+// para que el operador no tenga que bajar con la barra de desplazamiento.
+function revealCurrentGuidedStep(smooth = true) {
+  const list = document.querySelector(".guided-checklist-list");
+  const current = list?.querySelector(".guided-check-item:not(.guided-check-item--checked)");
+  if (!list || !current) return;
+  const listBounds = list.getBoundingClientRect();
+  const currentBounds = current.getBoundingClientRect();
+  if (currentBounds.top >= listBounds.top + 4 && currentBounds.bottom <= listBounds.bottom - 4) return;
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  list.scrollTo({ top: list.scrollTop + (currentBounds.top - listBounds.top) - 8, behavior: smooth && !reduceMotion ? "smooth" : "auto" });
 }
 
 function scrollToNextPendingStep(checkbox) {

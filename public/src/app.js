@@ -225,6 +225,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   openDialog("help", state.helpDialogOpen, helpDialog);
   openDialog("profile", state.profileDialogOpen, profileDialog);
   restoreFocus(previousFocus, { focusDialog, initial }, state);
+  revealCurrentGuidedStep(false);
   const reportRecords = state.activeSection === "reports"
     ? getReportRecords(allRecords, state.reportFilters, state.includeDemoData)
     : todayRecords;
