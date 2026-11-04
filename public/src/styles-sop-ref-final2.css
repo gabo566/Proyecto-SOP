@@ -15,3 +15,10 @@
 
 /* Nota de seguridad: borde ámbar + sombra cálida. */
 .sop-safety-note { border: 1.5px solid #e3c26a; box-shadow: 0 4px 14px rgb(176 126 20 / 22%); }
+
+/* Progreso de la SOP: etiqueta, barra y porcentaje más grandes y barra más ancha. */
+.sop-total-progress { flex: 0 1 430px; min-width: 300px; gap: 6px 14px; }
+.sop-total-progress > span { font-size: 13.5px; font-weight: 800; }
+.sop-total-progress-track { height: 16px; }
+.sop-total-progress > strong { font-size: 24px; line-height: 1; }
+@media (max-width: 650px) { .sop-total-progress { flex-basis: 100%; min-width: 0; } .sop-total-progress-track { height: 14px; } }
