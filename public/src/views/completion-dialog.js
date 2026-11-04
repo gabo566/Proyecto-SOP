@@ -71,6 +71,8 @@ function renderGuidedFinalConfirmation(procedure, state) {
   const operation = document.title || procedure.title || "procedimiento SOP";
   const station = formatWorkStationAssignment(state.form.stationAssignment) || "Sin estación";
   const accepted = Boolean(state.form.declaration);
+  const isReplacement = state.form.actionType === "replacement";
+  const damage = state.form.validationResult === "damage";
   const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
   const progress = getGuidedSopProgress(run, SOP_SHEETS);
   const originalOperator = run.startedBy ?? state.form;
@@ -90,12 +92,20 @@ function renderGuidedFinalConfirmation(procedure, state) {
       <div class="confirm-tile"><span class="confirm-tile-icon material-symbols-rounded" aria-hidden="true">checklist</span><div class="confirm-tile-copy"><span>Avance validado</span><strong>${run.procedureIds.length} hojas</strong><small>${progress.complete} pasos</small></div></div>
       <div class="confirm-tile"><span class="confirm-tile-icon material-symbols-rounded" aria-hidden="true">badge</span><div class="confirm-tile-copy"><span>${operatorChanged ? "Operadores" : "Operador responsable"}</span><strong>${escapeHtml(originalOperator.name)} · ${escapeHtml(originalOperator.employeeNumber)}</strong><small>${operatorChanged ? `Continúa y finaliza: ${escapeHtml(currentOperator.name)} · ${escapeHtml(currentOperator.employeeNumber)}` : escapeHtml(currentOperator.position || "Técnico de FA")}</small></div></div>
     </div>
+    ${isReplacement ? "" : `<fieldset class="validation-result"><legend>Resultado de la validación</legend>
+      <label class="validation-result-option ${damage ? "" : "is-on"}"><input type="radio" name="validationResult" value="ok" ${damage ? "" : "checked"} /><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><span><strong>No hubo daño</strong><small>La tarjeta pasa la validación.</small></span></label>
+      <label class="validation-result-option validation-result-option--damage ${damage ? "is-on" : ""}"><input type="radio" name="validationResult" value="damage" ${damage ? "checked" : ""} /><span class="material-symbols-rounded" aria-hidden="true">warning</span><span><strong>Reportar hubo daño</strong><small>Describe el daño y adjunta una foto. Después registras el reemplazo.</small></span></label>
+      <div id="validation-damage-report" ${damage ? "" : "hidden"}>
+        <label class="validation-field">Describe el daño<textarea name="damageNote" data-form-field="damageNote" rows="2" maxlength="1000" placeholder="Ej. conector MCIO doblado en la esquina">${escapeHtml(state.form.damageNote ?? "")}</textarea></label>
+        ${renderReworkEvidenceSection(null, state)}
+      </div>
+    </fieldset>`}
     <label class="declaration-check guided-final-declaration"><input type="checkbox" name="declaration" data-form-field="declaration" ${accepted ? "checked" : ""} ${state.formError.includes("Confirm") ? 'aria-describedby="completion-form-error" aria-invalid="true"' : ""} />
       <span class="confirm-check-box" aria-hidden="true"><span class="material-symbols-rounded">check</span></span>
       <span class="confirm-check-text">Confirmo que realicé todos los pasos de esta SOP para el nodo y la tarjeta identificados, y que reportaré cualquier daño o desviación para recibir la retroalimentación correspondiente.</span>
     </label>
     <p class="guided-final-hint" role="status"><span class="material-symbols-rounded" aria-hidden="true">lock</span><span class="hint-pending">Marca la confirmación para habilitar el guardado del registro.</span><span class="hint-ready">Todo listo: ya puedes guardar el registro.</span></p>
-    <div class="guided-final-actions"><button class="button button--secondary" type="button" data-action="previous-sop-sheet"><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Volver a la última hoja</button><button class="button button--primary validation-submit" type="submit" ${accepted ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">task_alt</span>Finalizar y guardar registro</button></div>
+    <div class="guided-final-actions"><button class="button button--secondary" type="button" data-action="previous-sop-sheet"><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Volver a la última hoja</button><button class="button button--primary validation-submit" type="submit" ${accepted ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">task_alt</span>${isReplacement ? "Finalizar reemplazo" : "Finalizar validación"}</button></div>
     <p class="validation-note">El registro conservará los datos del nodo y la tarjeta, la SOP y revisión, los pasos confirmados, operadores y fecha.</p>
   </section>`;
 }

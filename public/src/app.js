@@ -420,6 +420,10 @@ function handleCompletionSubmit(event) {
     showFormError("Captura el número de serie del nodo.", formElement.querySelector('[name="serial"]'));
     return;
   }
+  if (state.form.actionType !== "replacement" && state.form.validationResult === "damage" && !String(state.form.damageNote ?? "").trim()) {
+    showFormError("Describe el daño antes de guardar.", formElement.querySelector('[name="damageNote"]'));
+    return;
+  }
   const incompleteField = formElement.querySelector(".validation-field input[required]:invalid");
   if (incompleteField) {
     const fieldLabel = incompleteField.closest(".validation-field")?.firstChild?.textContent.trim() || "obligatorio";
@@ -512,6 +516,9 @@ function saveCompletion() {
     recordType: state.form.actionType === "replacement" ? "Reemplazo de tarjeta" : "Validación del operador",
     actionType: state.form.actionType === "replacement" ? "replacement" : "validation",
     removedComponentSerial: state.form.removedComponentSerial?.trim() ?? "",
+    validationResult: state.form.actionType === "replacement" ? "" : (state.form.validationResult === "damage" ? "damage" : "ok"),
+    damageNote: state.form.validationResult === "damage" ? String(state.form.damageNote ?? "").trim() : "",
+    linkedValidationId: state.form.actionType === "replacement" ? String(state.form.validationId ?? "") : "",
     declared: true,
     observations: run.procedureIds.map((id) => ({ procedureId: id, text: String(state.sheetObservations?.[id] ?? "").trim() })).filter((item) => item.text),
     evidenceFiles: [...state.validationEvidenceFiles],
@@ -519,7 +526,13 @@ function saveCompletion() {
   };
   workflow.prepareCompletionRecord(record);
   const next = [record, ...state.savedRecords];
-  recordCardEvent(record);
+  recordCardEvent(record).then((eventId) => {
+    if (!eventId || record.validationResult !== "damage") return;
+    state.form.actionType = "replacement";
+    state.form.validationId = String(eventId);
+    state.form.validationResult = "ok";
+    showToast("Validación con daño guardada. Ahora registra el reemplazo de la tarjeta.", "warning");
+  });
   if (!persistSavedRecords(next)) {
     showToast("No se pudo guardar la validación. Inicia sesión de nuevo e inténtalo otra vez.", "warning");
     return;

@@ -447,6 +447,14 @@ function bindInteractions(app, handlers) {
       case "delete-local-user":
         void deleteUserFromCard(action.dataset.userId);
         break;
+      case "toggle-disassembly-panel":
+        state.disassemblyOpen = !state.disassemblyOpen;
+        render();
+        break;
+      case "close-disassembly-panel":
+        state.disassemblyOpen = false;
+        render();
+        break;
       case "users-new-toggle":
         state.usersNewOpen = !state.usersNewOpen;
         state.usersPasswordFor = null;
@@ -711,6 +719,11 @@ function bindInteractions(app, handlers) {
       persistWorkState();
       updateGuidedChecklistUI(getProcedure(), state);
       revealCurrentGuidedStep();
+    } else if (target.name === "validationResult") {
+      state.form.validationResult = target.value;
+      document.querySelector("#validation-damage-report")?.toggleAttribute("hidden", target.value !== "damage");
+      document.querySelectorAll(".validation-result-option").forEach((option) => option.classList.toggle("is-on", option.querySelector("input")?.checked));
+      clearFormError();
     } else if (target.dataset.formField === "declaration") {
       state.form.declaration = target.checked;
       target.removeAttribute("aria-invalid");

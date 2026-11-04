@@ -21,13 +21,16 @@ function renderStationPills(assignments, current, label) {
   }).join("")}</span>`;
 }
 
-function renderDisassemblyChoice(choice, filter = "") {
+function renderDisassemblyChoice(choice, filter = "", panelOpen = false) {
   if (!choice.options.length) return "";
   const selectedIds = new Set(choice.selected.map((option) => option.id));
   const query = normalizeDisassemblySearch(filter).trim();
   const totalSteps = choice.selected.reduce((total, option) => total + option.steps, 0);
-  return `<fieldset class="station-disassembly" aria-labelledby="station-disassembly-title"><legend id="station-disassembly-title"><span class="material-symbols-rounded" aria-hidden="true">build_circle</span>¿Qué hojas del desensamble vas a realizar?</legend>
-    <p>Elige una o varias hojas. Solo verás en la SOP las hojas que selecciones.</p>
+  const summary = choice.selected.length ? `${choice.selected.length} ${choice.selected.length === 1 ? "hoja" : "hojas"} · ${totalSteps} pasos` : "Elige las hojas que vas a realizar";
+  const trigger = `<button type="button" class="station-disassembly-trigger ${panelOpen ? "is-open" : ""}" data-action="toggle-disassembly-panel" aria-expanded="${panelOpen}" aria-controls="station-disassembly-panel"><span class="material-symbols-rounded" aria-hidden="true">build_circle</span><span class="station-disassembly-trigger-copy"><strong>¿Qué hojas del desensamble vas a realizar?</strong><small>${summary}</small></span><span class="material-symbols-rounded" aria-hidden="true">${panelOpen ? "expand_less" : "expand_more"}</span></button>`;
+  if (!panelOpen) return `<div class="station-disassembly-wrap">${trigger}</div>`;
+  return `<div class="station-disassembly-wrap">${trigger}<fieldset class="station-disassembly station-disassembly--pop" id="station-disassembly-panel" aria-labelledby="station-disassembly-title"><legend id="station-disassembly-title">Hojas del desensamble</legend>
+    <p>Elige una o varias. Solo verás en la SOP las hojas que selecciones.</p>
     <div class="station-disassembly-bar">
       <label class="station-disassembly-search"><span class="material-symbols-rounded" aria-hidden="true">search</span><input type="search" data-disassembly-filter value="${escapeHtml(filter)}" placeholder="Buscar: BF3, busbar, hoja 35…" autocomplete="off" aria-label="Buscar hoja" /></label>
       <button type="button" class="station-disassembly-tool" data-action="select-all-disassembly-sheets" data-focus-key="disassembly-all"><span class="material-symbols-rounded" aria-hidden="true">select_all</span>Todas (${choice.options.length})</button>
@@ -38,7 +41,8 @@ function renderDisassemblyChoice(choice, filter = "") {
       const selected = selectedIds.has(option.id);
       const search = normalizeDisassemblySearch(`${option.label} ${option.description}`);
       return `<button type="button" class="station-disassembly-sheet ${selected ? "station-disassembly-sheet--on" : ""}" data-action="toggle-disassembly-sheet" data-sheet-id="${escapeHtml(option.id)}" data-focus-key="disassembly-${index}" data-search="${escapeHtml(search)}" aria-pressed="${selected}" ${query && !search.includes(query) ? "hidden" : ""}><span class="station-disassembly-icon station-disassembly-icon--${option.tone}" aria-hidden="true"><span class="material-symbols-rounded">${option.icon}</span></span><span class="station-disassembly-body"><span class="station-disassembly-sheet-head"><strong>${escapeHtml(option.label)}</strong><small>${option.steps} ${option.steps === 1 ? "paso" : "pasos"}</small></span><span class="station-disassembly-sheet-text">${escapeHtml(option.description)}</span></span><span class="station-disassembly-check" aria-hidden="true"><span class="material-symbols-rounded">${selected ? "check_circle" : "radio_button_unchecked"}</span></span></button>`;
-    }).join("")}</div></fieldset>`;
+    }).join("")}</div>
+    <div class="station-disassembly-done"><button type="button" class="button button--primary" data-action="close-disassembly-panel">Listo</button></div></fieldset></div>`;
 }
 
 function renderStationIntake(state) {
@@ -46,6 +50,7 @@ function renderStationIntake(state) {
   const currentAssignment = getWorkStationAssignment(state.form.stationAssignment);
   const assignment = currentAssignment ?? getWorkStationAssignment("MFG:TDR");
   const selectedType = assignment?.type ?? "MFG";
+  if (selectedType !== "RWK") state.form.actionType = "validation";
   const activeVersion = findSopVersionForStation(state, assignment?.value, state.form.sopVersionId);
   const enabledMfgAssignments = getEnabledWorkStationAssignments(state, "MFG");
   const enabledRwkAssignments = getEnabledWorkStationAssignments(state, "RWK");
@@ -101,15 +106,15 @@ function renderStationIntake(state) {
             ${rwkSelected || !enabledRwkAssignments.length ? rwkStatus : stationHint}
           </label>
         </fieldset>
-        ${renderDisassemblyChoice(disassemblyChoice, state.disassemblyFilter ?? "")}
+        ${renderDisassemblyChoice(disassemblyChoice, state.disassemblyFilter ?? "", Boolean(state.disassemblyOpen))}
       </section>
       <section class="station-asset-section" aria-labelledby="station-asset-title">
         <div class="station-section-title"><span class="station-section-num" aria-hidden="true">2</span><div><h2 id="station-asset-title">Captura los datos del equipo</h2><p>Escanea en orden: PN del nodo, serie del nodo, PN de la tarjeta y serie de la tarjeta. El cursor pasa solo al siguiente campo.</p></div></div>
-        <fieldset class="station-action-choice" aria-label="Qué vas a realizar">
+        ${selectedType === "RWK" ? `<fieldset class="station-action-choice" aria-label="Qué vas a realizar">
           <legend>¿Qué vas a realizar?</legend>
           <label class="station-action-option ${(state.form.actionType ?? "validation") === "validation" ? "station-action-option--selected" : ""}"><input type="radio" name="actionType" value="validation" data-action-type ${(state.form.actionType ?? "validation") === "validation" ? "checked" : ""} /><span class="material-symbols-rounded" aria-hidden="true">fact_check</span><span><strong>Validar una tarjeta</strong><small>Se guarda como validación.</small></span></label>
           <label class="station-action-option ${state.form.actionType === "replacement" ? "station-action-option--selected" : ""}"><input type="radio" name="actionType" value="replacement" data-action-type ${state.form.actionType === "replacement" ? "checked" : ""} /><span class="material-symbols-rounded" aria-hidden="true">swap_horiz</span><span><strong>Reemplazar una tarjeta</strong><small>Se guarda como reemplazo.</small></span></label>
-        </fieldset>
+        </fieldset>` : ""}
         <div class="station-asset-grid">
           <label class="station-scan-field"><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">memory</span>PN del nodo <em aria-hidden="true">*</em></span><input data-form-field="nodePartNumber" data-scan-field data-focus-key="intake-node-part" value="${escapeHtml(state.form.nodePartNumber ?? "")}" placeholder="Escanea el PN del nodo" required maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" aria-describedby="scan-error-nodePartNumber" aria-invalid="${state.scanErrors?.nodePartNumber ? "true" : "false"}"  /><small class="station-scan-error" id="scan-error-nodePartNumber" data-scan-error="nodePartNumber" role="alert" ${state.scanErrors?.nodePartNumber ? "" : "hidden"}>${escapeHtml(state.scanErrors?.nodePartNumber ?? "")}</small></label>
           <label class="station-scan-field"><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">qr_code_2</span>Serie del nodo <em aria-hidden="true">*</em></span><input data-form-field="serial" data-scan-field data-focus-key="intake-node-serial" value="${escapeHtml(state.form.serial ?? "")}" placeholder="Escanea la serie del nodo" required maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" aria-describedby="scan-error-serial" aria-invalid="${state.scanErrors?.serial ? "true" : "false"}" inputmode="numeric" pattern="\d{13}" /><small class="station-scan-error" id="scan-error-serial" data-scan-error="serial" role="alert" ${state.scanErrors?.serial ? "" : "hidden"}>${escapeHtml(state.scanErrors?.serial ?? "")}</small></label>
@@ -144,10 +149,24 @@ async function recordCardEvent(record) {
     cardType,
     cardPartNumber: record.componentPartNumber,
     cardSerial: record.componentSerial,
-    result: isReplacement ? undefined : "ok",
-    reason: isReplacement ? "direct" : undefined,
+    result: isReplacement ? undefined : (record.validationResult || "ok"),
+    note: record.damageNote || undefined,
+    validationId: record.linkedValidationId ? Number(record.linkedValidationId) : undefined,
+    reason: isReplacement ? (record.linkedValidationId ? "damage" : "direct") : undefined,
     removedSerial: record.removedComponentSerial || undefined,
     sheets: (record.validatedSheets ?? []).map((item) => String(item.sheet)),
   });
-  return result.ok;
+  return result.ok ? result.data.event.id : null;
 }
+
+// El panel de hojas del desensamble se cierra al tocar fuera de él o con Escape.
+document.addEventListener("click", (event) => {
+  if (!state.disassemblyOpen || event.target.closest(".station-disassembly-wrap")) return;
+  state.disassemblyOpen = false;
+  render();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !state.disassemblyOpen) return;
+  state.disassemblyOpen = false;
+  render();
+});

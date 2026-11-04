@@ -69,3 +69,14 @@
 .station-action-option--selected { border-color: #b3261e; background: #fff3f2; box-shadow: 0 0 0 4px rgb(179 38 30 / 10%); }
 .station-action-option--selected > .material-symbols-rounded { color: #fff; background: #b3261e; }
 .station-action-option:focus-within { outline: 3px solid rgb(38 83 166 / 45%); outline-offset: 2px; }
+
+/* Hojas del desensamble: botón que abre un panel flotante, para no ocupar espacio en la captura */
+.station-disassembly-wrap { position: relative; margin: 10px 0 14px; }
+.station-disassembly-trigger { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 2px solid #c7d3e3; border-radius: 14px; background: #fff; text-align: left; cursor: pointer; }
+.station-disassembly-trigger:hover, .station-disassembly-trigger.is-open { border-color: #2653a6; background: #f5f9ff; }
+.station-disassembly-trigger > .material-symbols-rounded:first-child { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; color: #2653a6; background: #e1edfb; font-size: 22px; }
+.station-disassembly-trigger > .material-symbols-rounded:last-child { margin-left: auto; color: #5f6b7f; font-size: 24px; }
+.station-disassembly-trigger-copy strong { display: block; color: #14223d; font-size: 16px; }
+.station-disassembly-trigger-copy small { display: block; color: #5f6b7f; font-size: 13px; }
+.station-disassembly--pop { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 40; max-height: 70vh; overflow: auto; margin: 0; padding: 16px; border: 1px solid #c7d3e3; border-radius: 16px; background: #fff; box-shadow: 0 18px 40px rgb(20 34 61 / 22%); }
+.station-disassembly-done { display: flex; justify-content: flex-end; padding-top: 12px; border-top: 1px solid #e4e9f2; margin-top: 12px; }
