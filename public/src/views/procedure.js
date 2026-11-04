@@ -95,7 +95,7 @@ function renderProcedurePanel(procedure, state) {
 
   return `<section class="procedure-panel sop-execution-panel" aria-label="Seguimiento y validación de la SOP">
     <header class="sop-run-header">
-      <div class="sop-run-title"><h2>SOP: ${escapeHtml(sopDocument.title)}</h2><span class="sop-run-version">${escapeHtml(sopDocument.id)} · Versión ${escapeHtml(sopDocument.revision)}</span></div>
+      <div class="sop-run-title"><h2>SOP: ${escapeHtml(sopDocument.title)}</h2><div class="sop-run-meta"><span class="sop-run-version">${escapeHtml(sopDocument.id)} · Versión ${escapeHtml(sopDocument.revision)}</span><span class="sop-run-unit"><span class="material-symbols-rounded" aria-hidden="true">dns</span>Nodo PN ${escapeHtml(state.form.nodePartNumber || "—")} · ${escapeHtml(state.form.serial || "—")}</span><span class="sop-run-unit"><span class="material-symbols-rounded" aria-hidden="true">memory</span>Tarjeta PN ${escapeHtml(state.form.componentPartNumber || "—")} · ${escapeHtml(state.form.componentSerial || "—")}</span></div></div>
       <span class="sop-sheet-badge"><span class="material-symbols-rounded" aria-hidden="true">layers</span>${sheetBadge}</span>
       <div class="sop-total-progress" role="group" aria-label="Progreso de la SOP"><span>Progreso de la SOP</span><div class="sop-total-progress-track"><span data-sop-progress-bar style="width:${sopPercent}%"></span></div><strong data-sop-progress-pct>${sopPercent}%</strong></div>
     </header>
@@ -138,15 +138,13 @@ function renderProcedurePanel(procedure, state) {
     <div class="sop-info-row">
       <section class="sop-info-card sop-observations-card" aria-label="Observaciones de la hoja">
         <label for="sheet-observation"><span class="material-symbols-rounded" aria-hidden="true">chat_bubble</span>Observaciones</label>
-        <textarea id="sheet-observation" data-sheet-observation="${escapeHtml(procedure.id)}" rows="2" maxlength="500" placeholder="Escribe observaciones de la Hoja ${escapeHtml(procedure.sheet)}…" ${canOperate ? "" : "disabled"}>${escapeHtml(observationValue)}</textarea>
+        <textarea id="sheet-observation" data-sheet-observation="${escapeHtml(procedure.id)}" rows="1" maxlength="500" placeholder="Escribe observaciones de la Hoja ${escapeHtml(procedure.sheet)}…" ${canOperate ? "" : "disabled"}>${escapeHtml(observationValue)}</textarea>
       </section>
       <section class="sop-info-card sop-record-card" aria-label="Registro de trazabilidad">
         <h3><span class="material-symbols-rounded" aria-hidden="true">assignment</span>Registro (trazabilidad)</h3>
         <dl>
           <div><dt>Fecha:</dt><dd>${escapeHtml(recordDate)}</dd></div>
           <div><dt>Operador:</dt><dd>${escapeHtml(user.name)}</dd></div>
-          <div><dt>Nodo:</dt><dd>PN ${escapeHtml(state.form.nodePartNumber || "—")} · ${escapeHtml(state.form.serial || "—")}</dd></div>
-          <div><dt>Tarjeta:</dt><dd>PN ${escapeHtml(state.form.componentPartNumber || "—")} · ${escapeHtml(state.form.componentSerial || "—")}</dd></div>
           <div class="sop-record-evidence-field"><dt>Evidencia:</dt><dd>${evidenceCell}</dd></div>
         </dl>
       </section>

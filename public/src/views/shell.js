@@ -53,14 +53,14 @@ function renderTopbar(state = {}) {
     </button>
     <div class="topbar-title"><div class="topbar-title-copy"><h1>${escapeHtml(section.label)}</h1></div></div>
     <div class="topbar-user-panel">
-    <div class="topbar-profile">
-      ${renderProfileMenu(user, { caption: "Operador:" })}
-    </div>
-    <div class="topbar-meta">
-      ${stationChip}
+      <div class="topbar-id-pill">
+        <div class="topbar-profile">
+          ${renderProfileMenu(user, { caption: "Operador:" })}
+        </div>
+        <div class="topbar-meta">${stationChip}</div>
+      </div>
       <div class="shift-chip" aria-label="Fecha y turno"><span class="material-symbols-rounded" aria-hidden="true">calendar_month</span><span class="shift-chip-copy"><strong id="topbar-date">${formatTopbarDate()}</strong><small><span id="topbar-time">${formatTopbarTime()}</span> · <span id="current-shift-label">${getCurrentShiftLabel()}</span></small></span></div>
       <button class="icon-button help-button" type="button" data-action="open-help" data-focus-key="help-open" aria-label="Ayuda sobre el almacenamiento de datos" title="Ayuda"><span class="material-symbols-rounded" aria-hidden="true">help</span></button>
-    </div>
     </div>
   </header>`;
 }
