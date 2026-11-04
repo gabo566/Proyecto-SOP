@@ -477,6 +477,12 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Cambio (solo estilos):** `src/styles-md3.css` (bloque «C-052»): radio de 22 px (18 px en móvil), contorno de 3 px en rojo oscuro `#6f0d11`, relleno rojo `#a92328` con degradado suave y brillo, elevación MD3 y cápsula del logo e icono con radio de 16 px. `index.html` (`?v=md3-c052`).
 - **Revertir:** quitar el bloque «C-052» (queda C-051).
 
+### C-053 (2026-11-03) — «Registrar validación»: relleno original y solo contorno rojo
+
+- **Solicitud:** no cambiar el relleno del encabezado; cambiar solo la forma (rectángulo redondeado) y el contorno (rojo). C-051 y C-052 habían cambiado también el relleno a rojo.
+- **Cambio (solo estilos):** `src/styles-md3.css` (bloque «C-053»): se restaura el relleno azul marino con brillo naranja, el logo sin cápsula y el icono naranja de la versión anterior; el contorno pasa a 4 px en rojo `#cf3a3e` con esquinas de 22 px (18 px en móvil). `index.html` (`?v=md3-c053`).
+- **Revertir:** quitar el bloque «C-053» (queda C-052).
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.

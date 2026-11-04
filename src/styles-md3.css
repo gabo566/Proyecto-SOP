@@ -2094,3 +2094,26 @@ details.sop-version-procedure.is-sheet-saved > summary > span { color: #146c3a; 
 .station-intake-banner-brand { border-radius: 16px; }
 .station-intake-banner-icon { border-radius: 16px; }
 @media (max-width: 700px) { .station-intake-banner { border-radius: 18px; border-width: 2px; } }
+
+/* C-053: se conserva el relleno original (azul marino, logo e icono naranja); solo cambia la forma (rectángulo redondeado) y el contorno (rojo). */
+.station-intake-banner {
+  min-height: 0;
+  padding: 14px 28px;
+  border: 4px solid #cf3a3e;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 92% -50%, rgb(232 115 15 / 28%) 0, transparent 55%),
+    linear-gradient(100deg, #0f1b27, #172635 60%, #223a50);
+  box-shadow: 0 6px 18px rgb(13 24 34 / 45%), 0 0 0 1px rgb(0 0 0 / 25%);
+}
+.station-intake-banner::before, .station-intake-banner::after { border: 2px solid rgb(232 115 15 / 20%); background: none; }
+.station-intake-banner-brand { background: transparent; box-shadow: none; padding: 0; border-radius: 0; }
+.station-intake-banner-icon {
+  width: 52px; height: 52px; flex-basis: 52px;
+  border: 1px solid #f6a35a; border-radius: 16px;
+  background: var(--md-accent, #e8730f); color: #fff;
+  box-shadow: 0 2px 8px rgb(232 115 15 / 45%);
+}
+.station-intake-banner-icon .material-symbols-rounded { font-size: 30px; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; color: #fff; }
+.station-intake-banner h1 { font-size: clamp(24px, 2.4vw, 34px); font-weight: 800; letter-spacing: 0; text-shadow: 0 2px 10px rgb(0 0 0 / 50%); }
+@media (max-width: 700px) { .station-intake-banner { border-radius: 18px; border-width: 3px; padding: 10px 14px; } .station-intake-banner-icon { width: 44px; height: 44px; flex-basis: 44px; } }
