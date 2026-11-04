@@ -521,6 +521,11 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Cambios:** `src/styles-md3.css` (bloque «C-058»): `min-width: 0` y `minmax(0,1fr)` en `.topbar-title-copy`, `.sop-version-*` y `.sop-catalog-manager`; input nativo de PDF con elipsis; `flex-wrap` en cabeceras de sección y formulario de carga en una columna a ≤760 px; `.topbar` deja de ser fijo a ≤760 px. `index.html` (`?v=md3-c058c`).
 - **Verificación:** sin desbordes en todas las secciones y anchos salvo un `OL` fuera de pantalla a 320 px en Producción (pendiente de revisar). Pruebas 9/9.
 
+### C-059 (2026-11-03) — Hamburguesa y título del encabezado ya no se encaman en móvil
+
+- **Causa:** a ≤650 px el botón de menú y el título quedaban en la misma celda de la cuadrícula (`grid-row: 1`, columna única de C-0xx).
+- **Cambios:** `src/styles-md3.css` (bloque «C-059», solo `@media (max-width: 650px)`): dos columnas (botón + título) y panel de usuario en la segunda fila. Anchos mayores sin cambios. `index.html` (`?v=md3-c059`).
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.

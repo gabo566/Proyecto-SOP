@@ -2240,3 +2240,10 @@ details.sop-version-procedure.is-sheet-saved > summary > span { color: #146c3a; 
 @media (max-width: 760px) {
   .topbar { position: relative !important; top: auto !important; }
 }
+/* C-059: hamburguesa y título ya no se encaman en móvil (solo <=650 px, donde existe el botón). */
+@media (max-width: 650px) {
+  .topbar { grid-template-columns: auto minmax(0, 1fr) !important; align-items: center; column-gap: 10px; row-gap: 10px; }
+  .topbar > .menu-toggle { grid-column: 1; grid-row: 1; align-self: center; margin: 0; }
+  .topbar > .topbar-title { grid-column: 2; grid-row: 1; margin: 0; }
+  .topbar > .topbar-user-panel { grid-column: 1 / -1; grid-row: 2; }
+}
