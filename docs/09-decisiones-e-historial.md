@@ -497,6 +497,15 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Pruebas:** 9 pasan; en el navegador, al tocar un paso se marca, el contador pasa a 1/2, la barra a 50 % y el mensaje a «faltan 1».
 - **Revertir:** `git revert` de este cambio.
 
+### C-056 (2026-11-03) — Captura de datos del equipo por escáner, con validación
+
+- **Solicitud:** en «Captura los datos del equipo», el PN del nodo se escanea (ya no se elige de una lista), los PN válidos se guardan pero no se muestran, un PN no válido muestra el error «Ese PN no es válido», y tras cada escaneo el cursor pasa al siguiente campo (serie del nodo → PN de la tarjeta → serie de la tarjeta).
+- **Reglas [Inferido] pendientes de confirmar:** PN del nodo válido = uno de `NODE_PART_NUMBER_OPTIONS` (675-24975-2000-000, -3000-000, -3100-000, -0000-000 y 675-24059-3000-000); serie del nodo = 13 dígitos (`NODE_SERIAL_PATTERN`, a partir del ejemplo 1934526000013 que «puede variar»); PN y serie de la tarjeta = 3 a 100 caracteres alfanuméricos (se desconoce su formato real). Cambiar el patrón o la lista es modificar esas constantes.
+- **Archivos tocados:** `src/data/workStations.js` (`NODE_SERIAL_PATTERN`, `SCAN_FIELD_ORDER`, `normalizeScanValue`, `validateScanField`; `isStationIntakeComplete` ahora exige valores válidos), `src/views/completion-dialog.js` (el PN del nodo ya no viene precargado), `src/views/station-intake.js` (campos de escaneo con mensaje de error y texto de ayuda), `src/interactions.js` (Enter del escáner valida y avanza; al salir del campo también valida; un valor no válido se borra, muestra el error y deja el cursor en el campo; `setScanError`, `commitScanField`, `focusNextScanField`), `src/styles-md3.css` (bloque «C-056»), `index.html` (`?v=md3-c056`).
+- **Comportamiento:** PN malo → campo vacío con el mensaje y cursor en el mismo campo; PN válido → pasa a la serie; serie de 13 dígitos válida → pasa al PN de la tarjeta → serie de la tarjeta → botón «Abrir la SOP». El escáner debe enviar Enter al final (configuración habitual).
+- **Pruebas:** 9 pasan; en el navegador se simularon PN no válido, PN válido, serie no válida y válida, y los campos de la tarjeta; el botón se habilita al completar.
+- **Límite:** los registros guardados antes pueden traer un PN precargado; los nuevos empiezan vacíos. **Revertir:** `git revert` de este cambio.
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.

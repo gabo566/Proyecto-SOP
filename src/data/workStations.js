@@ -13,6 +13,31 @@ const NODE_PART_NUMBER_OPTIONS = [
   "675-24059-3000-000",
 ];
 
+const NODE_SERIAL_PATTERN = /^\d{13}$/;
+const SCAN_FIELD_ORDER = ["nodePartNumber", "serial", "componentPartNumber", "componentSerial"];
+
+function normalizeScanValue(value) {
+  return String(value ?? "").replace(/[\r\n\t]/g, "").trim().toUpperCase();
+}
+
+function validateScanField(field, value) {
+  const text = normalizeScanValue(value);
+  if (field === "nodePartNumber") {
+    return NODE_PART_NUMBER_OPTIONS.includes(text)
+      ? { ok: true }
+      : { ok: false, message: "Ese PN no es válido. Escanea la etiqueta del PN del nodo." };
+  }
+  if (field === "serial") {
+    return NODE_SERIAL_PATTERN.test(text)
+      ? { ok: true }
+      : { ok: false, message: "La serie del nodo no tiene el formato correcto (13 dígitos). Vuelve a escanearla." };
+  }
+  const label = field === "componentPartNumber" ? "El PN de la tarjeta" : "La serie de la tarjeta";
+  return /^[A-Z0-9][A-Z0-9._\-\/ ]{2,99}$/.test(text)
+    ? { ok: true }
+    : { ok: false, message: `${label} no es válido. Vuelve a escanearlo.` };
+}
+
 function createCustomWorkStationAssignment(type, label) {
   const normalizedType = String(type ?? "").trim().toUpperCase();
   const normalizedLabel = String(label ?? "").trim();
@@ -204,10 +229,7 @@ function isStationIntakeReady(state) {
 }
 
 function isStationIntakeComplete(form = {}) {
-  return Boolean(form.nodePartNumber?.trim()
-    && form.serial?.trim()
-    && form.componentPartNumber?.trim()
-    && form.componentSerial?.trim());
+  return SCAN_FIELD_ORDER.every((field) => form[field]?.trim() && validateScanField(field, form[field]).ok);
 }
 
 function getStationIntakeStatus(state) {

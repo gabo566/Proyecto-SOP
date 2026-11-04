@@ -66,6 +66,61 @@ function bindInteractions(app, handlers) {
     return true;
   }
 
+  function setScanError(field, message) {
+    state.scanErrors = { ...(state.scanErrors ?? {}), [field]: message };
+    const node = document.querySelector(`[data-scan-error="${field}"]`);
+    if (node) {
+      node.textContent = message;
+      node.hidden = !message;
+    }
+    const input = document.querySelector(`[data-form-field="${field}"]`);
+    if (!input) return;
+    input.setAttribute("aria-invalid", message ? "true" : "false");
+    input.classList.toggle("station-scan-input--error", Boolean(message));
+    if (message) {
+      input.classList.remove("station-scan-input--shake");
+      void input.offsetWidth;
+      input.classList.add("station-scan-input--shake");
+    }
+  }
+
+  function focusNextScanField(field) {
+    const next = SCAN_FIELD_ORDER[SCAN_FIELD_ORDER.indexOf(field) + 1];
+    const target = next
+      ? document.querySelector(`[data-form-field="${next}"]`)
+      : document.querySelector(".station-intake-continue:not(:disabled)");
+    target?.focus();
+  }
+
+  function commitScanField(input, advance) {
+    const field = input.dataset.formField;
+    const value = normalizeScanValue(input.value);
+    if (!value) return false;
+    const result = validateScanField(field, value);
+    if (!result.ok) {
+      state.form[field] = "";
+      input.value = "";
+      setScanError(field, result.message);
+      persistWorkState();
+      updateStationIntakeUI(state);
+      input.focus();
+      return false;
+    }
+    state.form[field] = value;
+    input.value = value;
+    setScanError(field, "");
+    persistWorkState();
+    updateStationIntakeUI(state);
+    if (advance) focusNextScanField(field);
+    return true;
+  }
+
+  app.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || !event.target.matches?.("[data-scan-field]")) return;
+    event.preventDefault();
+    commitScanField(event.target, true);
+  });
+
   function updateSerialSearch() {
     const { filtered, visible } = getVisibleSerialRecords(getRecords(), state.serialQuery);
     const body = document.querySelector("#serial-table-body");
@@ -432,6 +487,10 @@ function bindInteractions(app, handlers) {
 
   app.addEventListener("change", (event) => {
     const { target } = event;
+    if (target.matches("[data-scan-field]")) {
+      commitScanField(target, false);
+      return;
+    }
     if (target.matches("[data-station-type]")) {
       if (prepareSopChangeFromIntake(target)) return;
       const assignment = getEnabledWorkStationAssignments(state, target.value)[0];
@@ -532,6 +591,7 @@ function bindInteractions(app, handlers) {
   });
 
   app.addEventListener("input", (event) => {
+    if (event.target.matches("[data-scan-field]") && state.scanErrors?.[event.target.dataset.formField]) setScanError(event.target.dataset.formField, "");
     if (event.target.matches("[data-disassembly-filter]")) {
       state.disassemblyFilter = event.target.value;
       const query = normalizeDisassemblySearch(event.target.value).trim();

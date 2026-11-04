@@ -2193,3 +2193,12 @@ details.sop-version-procedure.is-sheet-saved > summary > span { color: #146c3a; 
 .sop-execution-panel .guided-work-utility-actions .button { flex: 1 1 160px; min-height: 44px; border-radius: 14px; font-size: 14px; }
 @media (max-width: 1100px) { .sop-execution-panel .sop-page-checklist-layout, .sop-execution-panel .sop-page-checklist-layout[data-page-zoom] { grid-template-columns: 1fr; } .sop-execution-panel .sop-page-checklist-layout > .guided-sop-page, .sop-execution-panel .sop-page-checklist-layout > .guided-checklist-panel { min-height: 0; } }
 .sop-execution-panel .guided-check-item .guided-check-copy strong, .sop-execution-panel .guided-check-item--checked .guided-check-copy strong { color: #fff !important; }
+
+/* C-056: captura por escáner con validación (PN del nodo solo válidos, serie de 13 dígitos). */
+.station-scan-field .station-scan-error { display: flex; align-items: center; gap: 6px; margin-top: 6px; padding: 8px 12px; border-radius: 12px; background: #ffdad6; color: #8a1b20; font-size: 15px; font-weight: 800; }
+.station-scan-field .station-scan-error[hidden] { display: none; }
+.station-scan-input--error, .station-scan-field input[aria-invalid="true"] { border-color: #c2352b !important; background: #fff5f4 !important; box-shadow: 0 0 0 3px #ffd9d6; }
+.station-scan-input--shake { animation: station-scan-shake .35s; }
+@keyframes station-scan-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+.station-scan-field input:focus { border-color: #2f6fd0; box-shadow: 0 0 0 4px #dbe8fb; }
+@media (prefers-reduced-motion: reduce) { .station-scan-input--shake { animation: none; } }
