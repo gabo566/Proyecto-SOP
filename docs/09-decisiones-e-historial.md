@@ -483,6 +483,12 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Cambio (solo estilos):** `src/styles-md3.css` (bloque «C-053»): se restaura el relleno azul marino con brillo naranja, el logo sin cápsula y el icono naranja de la versión anterior; el contorno pasa a 4 px en rojo `#cf3a3e` con esquinas de 22 px (18 px en móvil). `index.html` (`?v=md3-c053`).
 - **Revertir:** quitar el bloque «C-053» (queda C-052).
 
+### C-054 (2026-11-03) — Encabezado de la SOP y ficha de hojas en «Validar SOP asignada»
+
+- **Solicitud:** en la pantalla «Validar SOP asignada», aplicar al encabezado superior el estilo de «Seleccionar estación»; mover ahí la información de la SOP; quitar de junto al operador la ficha de la SOP y poner en su lugar las hojas (y qué desensamble) que se realizan, una por una; hacer más grandes iconos y texto.
+- **Cambios:** `src/views/shell.js`: la etiqueta del encabezado ahora dice «SOP actual · SOP-NVD-GB200-141 · Rev. 1.1» (id y revisión). `src/views/procedure.js`: se elimina la ficha «SOP utilizada» y la ficha «Hojas del desensamble» antigua; nueva `renderContextSheets` con la lista de hojas del recorrido (número y descripción de cada una, la actual resaltada); con más de 6 hojas muestra el resumen («Desensamble completo del nodo · N hojas») y la hoja actual; en SOP que no son de desensamble muestra «Hoja en validación». `src/styles-md3.css` (bloque «C-054»): el encabezado `.topbar` usa relleno azul marino, contorno rojo de 4 px y esquinas de 22 px como el de «Registrar validación»; iconos de 56 px y textos de 18/14 px en las fichas. `index.html` (`?v=md3-c054b`).
+- **Alcance:** el estilo del encabezado se aplica a todas las pantallas que usan `.topbar`, no solo a la validación. **Revertir:** `git revert` de este cambio; sin comprometer en `main` hasta confirmarlo.
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.

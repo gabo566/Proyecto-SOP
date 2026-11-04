@@ -38,7 +38,7 @@ function renderTopbar(state = {}) {
     </button>
     <div class="topbar-title">
       <span class="topbar-title-icon"><span class="material-symbols-rounded" aria-hidden="true">description</span></span>
-      <div class="topbar-title-copy"><h1>${escapeHtml(SOP_DOCUMENT.title)}</h1><span class="topbar-kicker">SOP actual · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}</span></div>
+      <div class="topbar-title-copy"><h1>${escapeHtml(SOP_DOCUMENT.title)}</h1><span class="topbar-kicker">SOP actual · ${escapeHtml(SOP_DOCUMENT.id)} · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}</span></div>
     </div>
     <div class="topbar-user-panel">
     <div class="topbar-profile">

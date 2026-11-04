@@ -25,6 +25,18 @@ function renderProcedureSteps(procedure, state, hasMoreSteps) {
     <div class="step-note"><span class="material-symbols-rounded" aria-hidden="true">info</span><span>Revisa cada instrucción y su referencia visual. Marca su validación en el panel del operador.</span></div>`;
 }
 
+function renderContextSheets(state, procedure) {
+  const run = state.sopRun;
+  const choice = getStationDisassemblyChoice(state);
+  const describe = (item) => choice.options.find((option) => option.id === item.id)?.description || item.title || "";
+  const sheets = (run?.procedureIds ?? []).map((id) => PROCEDURES.find((item) => item.id === id)).filter(Boolean);
+  const isDisassembly = Boolean(run?.disassembly?.sheets?.length);
+  const listed = isDisassembly && sheets.length <= 6 ? sheets : [procedure];
+  const title = isDisassembly ? `${sheets.length === 1 ? "Hoja" : "Hojas"} del desensamble` : "Hoja en validación";
+  const summary = isDisassembly && sheets.length > 6 ? `<strong class="station-context-sheet-summary">${escapeHtml(run.disassembly.label)} · ${sheets.length} hojas</strong>` : "";
+  return `<div class="station-context-tile station-context-tile--sheets"><span class="material-symbols-rounded" aria-hidden="true">${isDisassembly ? "build_circle" : "description"}</span><span><small>${title}</small>${summary}<ul class="station-context-sheet-list">${listed.map((item) => `<li class="${item.id === procedure.id ? "is-current" : ""}"><b>Hoja ${escapeHtml(item.sheet)}</b><span>${escapeHtml(describe(item))}</span></li>`).join("")}</ul></span></div>`;
+}
+
 function renderStationSopContext(state, procedure) {
   const assignment = getWorkStationAssignment(state.form.stationAssignment);
   const user = getActiveLocalUser();
@@ -35,8 +47,7 @@ function renderStationSopContext(state, procedure) {
     <div class="station-context-tile station-context-tile--node"><span class="material-symbols-rounded" aria-hidden="true">dns</span><span><small>Nodo</small><strong>PN ${escapeHtml(state.form.nodePartNumber || "—")}</strong><small>Serie ${escapeHtml(state.form.serial || "—")}</small></span></div>
     <div class="station-context-tile station-context-tile--card"><span class="material-symbols-rounded" aria-hidden="true">memory</span><span><small>Tarjeta</small><strong>PN ${escapeHtml(state.form.componentPartNumber || "—")}</strong><small>Serie ${escapeHtml(state.form.componentSerial || "—")}</small></span></div>
     <div class="station-context-tile station-context-tile--operator"><span class="material-symbols-rounded" aria-hidden="true">person</span><span><small>Operador responsable</small><strong>${escapeHtml(user.name)}</strong><small>No. empleado ${escapeHtml(user.employeeNumber)}</small></span></div>
-    <div class="station-context-tile station-context-tile--sop"><span class="material-symbols-rounded" aria-hidden="true">description</span><span><small>SOP utilizada</small><strong>${escapeHtml(document.title)}</strong><small>${escapeHtml(document.id)} · Rev. ${escapeHtml(document.revision)} · Hoja ${escapeHtml(procedure.sheet)}</small></span></div>
-    ${state.sopRun?.disassembly ? `<div class="station-context-tile station-context-tile--type"><span class="material-symbols-rounded" aria-hidden="true">build_circle</span><span><small>Hojas del desensamble</small><strong>${escapeHtml(state.sopRun.disassembly.label)}</strong></span></div>` : ""}
+    ${renderContextSheets(state, procedure)}
   </section>`;
 }
 
