@@ -41,6 +41,22 @@ function bindInteractions(app, handlers) {
   let stepImageViewer = { zoom: 100 };
   let sopAreaSelection = null;
 
+  // Cambios de pantalla discretos (render() reconstruye el DOM): View Transitions con fallback sin animación.
+  // direction: "forward" (por defecto), "back" o "soft" (solo fundido corto, sin desplazamiento).
+  function runWithTransition(update, direction = "forward") {
+    const canAnimate = typeof document.startViewTransition === "function"
+      && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!canAnimate) {
+      update();
+      return Promise.resolve();
+    }
+    document.documentElement.dataset.navDir = direction;
+    const transition = document.startViewTransition(update);
+    return transition.finished
+      .catch(() => {})
+      .finally(() => { delete document.documentElement.dataset.navDir; });
+  }
+
   function handleNavigation(action) {
     const item = navItems.find((navItem) => navItem.id === action.dataset.navId);
     if (!item) return;
@@ -57,17 +73,13 @@ function bindInteractions(app, handlers) {
       state.activeSection = item.id;
       render();
     };
-    const animate = item.id !== state.activeSection
-      && typeof document.startViewTransition === "function"
-      && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (animate) {
-      document.startViewTransition(update).finished.finally(() => {
-        document.getElementById(item.target)?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
+    const scrollToTarget = () => document.getElementById(item.target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (item.id === state.activeSection) {
+      update();
+      scrollToTarget();
       return;
     }
-    update();
-    document.getElementById(item.target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    runWithTransition(update).then(scrollToTarget);
   }
 
   function prepareSopChangeFromIntake(target) {
@@ -390,7 +402,7 @@ function bindInteractions(app, handlers) {
         state.form.sopVersionId = nextVersion?.id ?? "";
         state.form.disassemblySheets = [];
         state.formError = "";
-        render({ focusKey: action.dataset.focusKey });
+        runWithTransition(() => render({ focusKey: action.dataset.focusKey }), "soft");
         break;
       }
       case "navigate": handleNavigation(action); break;
@@ -425,12 +437,12 @@ function bindInteractions(app, handlers) {
           break;
         }
         state.formError = "";
-        render({ focusKey: `station-${getWorkStationAssignment(state.form.stationAssignment)?.type ?? "MFG"}` });
+        runWithTransition(() => render({ focusKey: `station-${getWorkStationAssignment(state.form.stationAssignment)?.type ?? "MFG"}` }), "back");
         break;
       case "close-validation-dialog": document.querySelector("#validation-dialog")?.close(); break;
-      case "continue-sop-sheet": continueGuidedSopSheet(); break;
-      case "open-final-confirmation": continueGuidedSopSheet(); break;
-      case "previous-sop-sheet": previousGuidedSopSheet(); break;
+      case "continue-sop-sheet": runWithTransition(() => continueGuidedSopSheet()); break;
+      case "open-final-confirmation": runWithTransition(() => continueGuidedSopSheet()); break;
+      case "previous-sop-sheet": runWithTransition(() => previousGuidedSopSheet(), "back"); break;
       case "zoom-step-image": openStepImage(action); break;
       case "step-image-zoom-in": setStepImageZoom(stepImageViewer.zoom + 25); break;
       case "step-image-zoom-out": setStepImageZoom(stepImageViewer.zoom - 25); break;
@@ -655,7 +667,7 @@ function bindInteractions(app, handlers) {
   app.addEventListener("submit", (event) => {
     if (event.target.matches("#station-intake-form")) {
       event.preventDefault();
-      continueStationIntake();
+      runWithTransition(() => continueStationIntake());
       return;
     }
     if (event.target.matches("#local-login-form")) {

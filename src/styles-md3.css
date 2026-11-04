@@ -2314,3 +2314,13 @@ dialog[data-enter]::backdrop { animation: c062-fade var(--md-dur-3) var(--md-eas
 @keyframes c062-fade { from { opacity: 0; } }
 @keyframes c062-toast { from { opacity: 0; transform: translateY(16px); } }
 @keyframes c062-boot { from { opacity: 0; transform: translateY(6px); } }
+
+/* C-062 (3/3): dirección de la transición de pantalla (html[data-navDir] la pone runWithTransition en interactions.js). */
+html[data-nav-dir="back"]::view-transition-old(page-content) { animation-name: c062-out-back; }
+html[data-nav-dir="back"]::view-transition-new(page-content) { animation-name: c062-in-back; }
+html[data-nav-dir="soft"]::view-transition-old(page-content) { animation: c062-fade-out 90ms linear both; }
+html[data-nav-dir="soft"]::view-transition-new(page-content) { animation: c062-fade-in 160ms linear both; }
+@keyframes c062-out-back { to { opacity: 0; transform: translateY(6px); } }
+@keyframes c062-in-back { from { opacity: 0; transform: translateY(-10px); } }
+@keyframes c062-fade-out { to { opacity: 0; } }
+@keyframes c062-fade-in { from { opacity: 0; } }
