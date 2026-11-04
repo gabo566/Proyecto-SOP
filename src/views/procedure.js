@@ -34,7 +34,7 @@ function renderContextSheets(state, procedure) {
   const listed = isDisassembly && sheets.length <= 6 ? sheets : [procedure];
   const title = isDisassembly ? `${sheets.length === 1 ? "Hoja" : "Hojas"} del desensamble` : "Hoja en validación";
   const summary = isDisassembly && sheets.length > 6 ? `<strong class="station-context-sheet-summary">${escapeHtml(run.disassembly.label)} · ${sheets.length} hojas</strong>` : "";
-  return `<div class="station-context-tile station-context-tile--sheets"><span class="material-symbols-rounded" aria-hidden="true">${isDisassembly ? "build_circle" : "description"}</span><span><small>${title}</small>${summary}<ul class="station-context-sheet-list">${listed.map((item) => `<li class="${item.id === procedure.id ? "is-current" : ""}"><b>Hoja ${escapeHtml(item.sheet)}</b><span>${escapeHtml(describe(item))}</span></li>`).join("")}</ul></span></div>`;
+  return `<div class="station-context-tile station-context-tile--sheets"><span class="material-symbols-rounded" aria-hidden="true">${isDisassembly ? "build_circle" : "description"}</span><span><small>${title}</small>${summary}<ul class="station-context-sheet-list">${listed.map((item) => `<li class="${item.id === procedure.id ? "is-current" : ""}"><b>Hoja ${escapeHtml(item.sheet)}</b>${describe(item) && describe(item) !== `Hoja ${item.sheet}` ? `<span>${escapeHtml(describe(item))}</span>` : ""}</li>`).join("")}</ul></span></div>`;
 }
 
 function renderStationSopContext(state, procedure) {
@@ -94,28 +94,25 @@ function renderProcedurePanel(procedure, state) {
             <button class="icon-button" type="button" data-action="sop-page-zoom-out" aria-label="Reducir hoja SOP" ${pageZoom <= 50 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">remove</span></button>
             <output id="sop-page-zoom-level" aria-live="polite">${pageZoom}%</output>
             <button class="icon-button" type="button" data-action="sop-page-zoom-in" aria-label="Ampliar hoja SOP" ${pageZoom >= 500 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">add</span></button>
-            <button class="text-button" type="button" data-action="sop-page-zoom-reset" aria-label="Ajustar hoja completa">Ajustar</button>
-            <button class="button button--outlined guided-focus-zoom-button" type="button" data-action="sop-page-toggle-focused-zoom" aria-pressed="${Boolean(state.sopFocusedZoom)}" aria-describedby="sop-page-focus-zoom-hint"><span class="material-symbols-rounded" aria-hidden="true">center_focus_strong</span>Ampliar en vista específica</button>
+            <button class="icon-button" type="button" data-action="sop-page-zoom-reset" aria-label="Ajustar hoja completa" title="Ajustar a la pantalla"><span class="material-symbols-rounded" aria-hidden="true">fit_screen</span></button>
+            <button class="button button--outlined guided-focus-zoom-button" type="button" data-action="sop-page-toggle-focused-zoom" aria-pressed="${Boolean(state.sopFocusedZoom)}" aria-describedby="sop-page-focus-zoom-hint"><span class="material-symbols-rounded" aria-hidden="true">center_focus_strong</span>Acercar a una zona</button>
           </div>
           ${sourceUrl ? `<a class="guided-page-open-pdf" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer" aria-label="Abrir PDF en página ${escapeHtml(pageNumber)}"><span class="material-symbols-rounded" aria-hidden="true">open_in_new</span></a>` : ""}
         </div>
         <div class="guided-pdf-viewport" id="sop-page-preview" data-pdf-source="${escapeHtml(pdfSource)}" data-pdf-page="${escapeHtml(pageNumber)}" data-restricted="${restricted}" data-zoom="${pageZoom}" data-focus-zoom="${Boolean(state.sopFocusedZoom)}" role="group" aria-label="Vista completa del PDF, página ${escapeHtml(pageNumber)}">
           <div class="guided-pdf-canvas-wrap"><canvas aria-label="Página ${escapeHtml(pageNumber)} completa de ${escapeHtml(SOP_DOCUMENT.title)}"></canvas>${renderSopAnnotationOverlay(procedure.annotations ?? [])}<svg class="guided-zoom-selection-overlay" data-sop-zoom-selection-overlay viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true" hidden><rect data-sop-zoom-selection-box x="0" y="0" width="0" height="0" /></svg></div>
           <iframe title="Hoja ${escapeHtml(procedure.sheet)} completa de la SOP" hidden></iframe>
-          <span class="guided-focus-zoom-hint" id="sop-page-focus-zoom-hint" role="status" ${state.sopFocusedZoom ? "" : "hidden"}>Arrastra sobre la hoja para seleccionar el recuadro; al soltar se ampliará esa zona.</span>
+          <span class="guided-focus-zoom-hint" id="sop-page-focus-zoom-hint" role="status" ${state.sopFocusedZoom ? "" : "hidden"}>Dibuja un recuadro sobre la hoja para acercar esa zona.</span>
           <p class="guided-pdf-status" role="status" aria-live="polite">Cargando hoja completa…</p>
         </div>
-        <footer class="guided-page-footer"><span>${escapeHtml(SOP_DOCUMENT.id)} · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}</span><span>${escapeHtml(procedure.category)} · ${procedure.steps.length} pasos</span></footer>
       </section>
       <section class="guided-checklist-panel" aria-label="Validación de hoja ${escapeHtml(procedure.sheet)}">
-        <header class="guided-checklist-titlebar"><div><p class="eyebrow">Validación de hoja</p><h2>Hoja ${escapeHtml(procedure.sheet)} <small>${sheetOfLabel}</small></h2></div><span class="guided-checklist-heading-count">${checkedCount} de ${procedure.steps.length} pasos</span></header>
-        <p class="guided-checklist-intro">Marca cada paso conforme lo completes en la estación.</p>
-        <div class="sop-run-progress" role="group" aria-label="Progreso de esta hoja"><div class="sop-run-progress-track"><span style="width:${sheetPercent}%"></span></div><strong>${checkedCount} de ${procedure.steps.length} pasos · ${sheetPercent}%</strong></div>
+        <header class="guided-checklist-titlebar"><div><p class="eyebrow">Hoja ${escapeHtml(procedure.sheet)}</p><h2>${procedure.steps.length === 1 ? "1 paso" : `${procedure.steps.length} pasos`} por validar</h2></div><span class="guided-checklist-heading-count" title="Pasos completados">${checkedCount}/${procedure.steps.length}</span></header>
+        <div class="sop-run-progress" role="group" aria-label="Progreso de esta hoja"><div class="sop-run-progress-track"><span style="width:${sheetPercent}%"></span></div><strong>${sheetPercent}%</strong></div>
         <div class="guided-checklist-list sop-sheet-step-list" role="group" aria-label="Pasos de la hoja ${escapeHtml(procedure.sheet)}">${renderGuidedValidationSteps(procedure, state, !canOperate, false)}</div>
         <p class="form-error sop-run-error" id="sop-run-error" role="alert" aria-live="polite" ${state.formError ? "" : "hidden"}>${escapeHtml(state.formError)}</p>
-        <aside class="guided-checklist-note-box"><span class="material-symbols-rounded" aria-hidden="true">info</span><span>Verifica físicamente cada paso antes de marcarlo como realizado.</span></aside>
         <div class="guided-checklist-footer">
-          <small class="guided-checklist-note">${isComplete ? "Hoja completa. Ya puedes continuar." : `Completa los ${procedure.steps.length - checkedCount} pasos pendientes para avanzar.`}</small>
+          <small class="guided-checklist-note">${isComplete ? "¡Hoja completa! Ya puedes continuar." : `Toca cada paso al terminarlo · faltan ${procedure.steps.length - checkedCount}`}</small>
           <div class="guided-sheet-actions">
             ${!isFirstPage ? `<button class="button button--secondary guided-previous-button" type="button" data-action="previous-sop-sheet" data-focus-key="previous-sop-sheet" ${canOperate ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Anterior</button>` : ""}
             <button class="button button--primary guided-continue-button" type="button" data-action="${nextAction}" data-focus-key="continue-sop-sheet" ${!canOperate || run.stage !== "confirmation" && !isComplete ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${run.stage === "confirmation" ? "fact_check" : "arrow_forward"}</span>${nextLabel}</button>

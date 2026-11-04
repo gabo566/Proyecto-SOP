@@ -674,16 +674,16 @@ function updateGuidedChecklistUI(procedure, state) {
   }
   const currentCount = procedure.steps.filter((step) => checked.has(String(step.number))).length;
   const currentCountLabel = document.querySelector(".guided-checklist-heading-count");
-  if (currentCountLabel) currentCountLabel.textContent = `${currentCount} de ${procedure.steps.length} pasos`;
+  if (currentCountLabel) currentCountLabel.textContent = `${currentCount}/${procedure.steps.length}`;
   const localProgress = document.querySelector(".guided-checklist-panel .sop-run-progress-track > span");
   const localProgressLabel = document.querySelector(".guided-checklist-panel .sop-run-progress > strong");
   const localPercent = procedure.steps.length ? Math.round(currentCount / procedure.steps.length * 100) : 0;
   if (localProgress) localProgress.style.width = `${localPercent}%`;
-  if (localProgressLabel) localProgressLabel.textContent = `${currentCount} de ${procedure.steps.length} pasos · ${localPercent}%`;
+  if (localProgressLabel) localProgressLabel.textContent = `${localPercent}%`;
   const pendingNote = document.querySelector(".guided-checklist-footer .guided-checklist-note");
   if (pendingNote) pendingNote.textContent = isGuidedSopProcedureComplete(state.sopRun, procedure)
-    ? "Hoja completa. Ya puedes continuar."
-    : `Completa los ${procedure.steps.length - currentCount} pasos pendientes para avanzar.`;
+    ? "¡Hoja completa! Ya puedes continuar."
+    : `Toca cada paso al terminarlo · faltan ${procedure.steps.length - currentCount}`;
   const progress = getGuidedSopProgress(state.sopRun, SOP_SHEETS);
   const progressCopy = document.querySelector(".guided-progress-copy");
   if (progressCopy) {

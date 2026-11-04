@@ -35,7 +35,7 @@ function renderGuidedValidationSteps(procedure, state, disabled = false, showRef
     const auditLabel = checked && audit ? `<small class="step-audit-label">Marcó ${escapeHtml(audit.actor.name)} · ${escapeHtml(new Intl.DateTimeFormat("es-MX", { dateStyle: "short", timeStyle: "short" }).format(new Date(audit.at)))}</small>` : "";
     return `<div class="guided-check-item ${checked ? "guided-check-item--checked" : ""}">
       <input id="validation-step-${escapeHtml(step.number)}" type="checkbox" data-step="${escapeHtml(step.number)}" data-focus-key="step-${escapeHtml(step.number)}" aria-label="Realicé el paso ${escapeHtml(step.number)}: ${escapeHtml(step.text)}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} />
-      <div class="guided-check-details"><label for="validation-step-${escapeHtml(step.number)}" class="guided-check-copy"><strong>Realicé el paso ${escapeHtml(step.number)}</strong><span>${escapeHtml(step.text)}</span>${step.sourceNote ? `<small class="validation-source-note">${escapeHtml(step.sourceNote)}</small>` : ""}${auditLabel}</label>${showReferenceImages && step.images?.length ? renderStepImages(step, procedure.sheet) : ""}</div>
+      <div class="guided-check-details"><label for="validation-step-${escapeHtml(step.number)}" class="guided-check-copy"><strong>Paso ${escapeHtml(step.number)}</strong><span>${escapeHtml(step.text)}</span>${step.sourceNote ? `<small class="validation-source-note">${escapeHtml(step.sourceNote)}</small>` : ""}${auditLabel}</label>${showReferenceImages && step.images?.length ? renderStepImages(step, procedure.sheet) : ""}</div>
     </div>`;
   }).join("");
 }

@@ -2146,3 +2146,50 @@ details.sop-version-procedure.is-sheet-saved > summary > span { color: #146c3a; 
 @media (max-width: 1200px) { .station-sop-context { grid-template-columns: repeat(2, minmax(0, 1fr)); } .station-context-tile--sheets { grid-column: 1 / -1; } }
 @media (max-width: 640px) { .station-sop-context { grid-template-columns: 1fr; } .topbar { border-radius: 18px; border-width: 3px; } }
 .station-context-tile--node strong, .station-context-tile--card strong { font-size: 16px; overflow-wrap: anywhere; }
+
+/* C-055: validación de hoja rediseñada: hoja más grande, pasos grandes y táctiles, sin textos repetidos. */
+.sop-execution-panel .sop-page-checklist-layout,
+.sop-execution-panel .sop-page-checklist-layout[data-page-zoom] { grid-template-columns: minmax(0, 2.1fr) minmax(370px, .95fr); gap: 16px; }
+.sop-execution-panel .sop-page-checklist-layout > .guided-sop-page,
+.sop-execution-panel .sop-page-checklist-layout > .guided-checklist-panel,
+.sop-execution-panel .sop-page-checklist-layout[data-page-zoom] > .guided-sop-page,
+.sop-execution-panel .sop-page-checklist-layout[data-page-zoom] > .guided-checklist-panel { min-height: min(88vh, 1000px); max-height: none; padding: 16px; border-radius: 24px; }
+.sop-execution-panel .guided-pdf-viewport { min-height: 70vh; border-radius: 16px; }
+.sop-execution-panel .guided-page-heading strong { font-size: 22px; }
+.sop-execution-panel .guided-page-heading small { font-size: 15px; font-weight: 600; color: #5b4f4d; }
+.sop-execution-panel .guided-page-heading .material-symbols-rounded { font-size: 30px; }
+
+/* Panel de pasos */
+.sop-execution-panel .guided-checklist-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sop-execution-panel .guided-checklist-titlebar .eyebrow { margin: 0; color: #a92328; font-size: 14px; font-weight: 800; }
+.sop-execution-panel .guided-checklist-titlebar h2 { margin: 2px 0 0; font-size: 26px; font-weight: 800; color: #172635; }
+.sop-execution-panel .guided-checklist-heading-count { display: grid; place-items: center; min-width: 68px; height: 68px; padding: 0 8px; border-radius: 50%; background: #146c3a; color: #fff; font-size: 22px; font-weight: 800; box-shadow: 0 4px 12px rgb(20 108 58 / 35%); }
+.sop-execution-panel .guided-checklist-panel:has(.guided-check-item:not(.guided-check-item--checked)) .guided-checklist-heading-count { background: #a92328; box-shadow: 0 4px 12px rgb(169 35 40 / 35%); }
+.sop-execution-panel .sop-run-progress { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 4px 0 10px; }
+.sop-execution-panel .sop-run-progress-track { height: 12px; border-radius: 999px; background: #ece0de; overflow: hidden; }
+.sop-execution-panel .sop-run-progress-track > span { background: linear-gradient(90deg, #146c3a, #2fa866); border-radius: 999px; transition: width .3s; }
+.sop-execution-panel .sop-run-progress > strong { font-size: 18px; font-weight: 800; color: #146c3a; }
+.sop-execution-panel .guided-checklist-list { gap: 12px; padding: 2px 4px 2px 0; }
+.sop-execution-panel .sop-page-checklist-layout .guided-check-item,
+.sop-execution-panel .guided-check-item { position: relative; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 14px; padding: 16px; border: 2px solid #e5d6d3; border-radius: 18px; background: #fff; transition: border-color .2s, background .2s, box-shadow .2s, transform .12s; }
+.sop-execution-panel .guided-check-item:hover { border-color: #c9a9a5; box-shadow: 0 3px 12px rgb(65 0 2 / 12%); }
+.sop-execution-panel .guided-check-item:active { transform: scale(.99); }
+.sop-execution-panel .guided-check-item > input { appearance: none; -webkit-appearance: none; width: 38px; height: 38px; margin: 0; border: 3px solid #a92328; border-radius: 12px; background: #fff; cursor: pointer; transition: background .15s, border-color .15s; }
+.sop-execution-panel .guided-check-item > input:checked { border-color: #146c3a; background: #146c3a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round' d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E") center / 26px no-repeat; }
+.sop-execution-panel .guided-check-item > input:focus-visible { outline: 3px solid #e8730f; outline-offset: 3px; }
+.sop-execution-panel .guided-check-item--checked { border-color: #146c3a; background: #e8f6ee; }
+.sop-execution-panel .guided-check-copy { gap: 8px; font-size: 17px; line-height: 1.5; color: #201a19; }
+.sop-execution-panel .guided-check-copy::after { content: ""; position: absolute; inset: 0; border-radius: 18px; cursor: pointer; }
+.sop-execution-panel .guided-check-copy strong { display: inline-flex; width: max-content; padding: 3px 14px; border-radius: 999px; background: #172635; color: #fff; font-size: 15px; letter-spacing: .02em; }
+.sop-execution-panel .guided-check-item--checked .guided-check-copy strong { background: #146c3a; }
+.sop-execution-panel .step-audit-label { font-size: 13px; color: #3a5f48; }
+
+/* Acciones */
+.sop-execution-panel .guided-checklist-footer { display: grid; gap: 10px; padding-top: 6px; }
+.sop-execution-panel .guided-checklist-note { font-size: 15px; font-weight: 700; color: #5b4f4d; text-align: center; }
+.sop-execution-panel .guided-continue-button { min-height: 58px; font-size: 18px; font-weight: 800; border-radius: 18px; }
+.sop-execution-panel .guided-previous-button { min-height: 58px; border-radius: 18px; }
+.sop-execution-panel .guided-work-utility-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sop-execution-panel .guided-work-utility-actions .button { flex: 1 1 160px; min-height: 44px; border-radius: 14px; font-size: 14px; }
+@media (max-width: 1100px) { .sop-execution-panel .sop-page-checklist-layout, .sop-execution-panel .sop-page-checklist-layout[data-page-zoom] { grid-template-columns: 1fr; } .sop-execution-panel .sop-page-checklist-layout > .guided-sop-page, .sop-execution-panel .sop-page-checklist-layout > .guided-checklist-panel { min-height: 0; } }
+.sop-execution-panel .guided-check-item .guided-check-copy strong, .sop-execution-panel .guided-check-item--checked .guided-check-copy strong { color: #fff !important; }
