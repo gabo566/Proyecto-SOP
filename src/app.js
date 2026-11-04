@@ -217,13 +217,13 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   const helpDialog = document.querySelector("#help-dialog");
   helpDialog.addEventListener("close", () => handleNativeDialogClose("helpDialogOpen"));
 
-  if (state.recordsDialogOpen) recordsDialog.showModal();
-  if (state.validationDialogOpen) validationDialog.showModal();
-  if (state.workDialogOpen) workDialog.showModal();
-  if (state.operatorHandoffDialogOpen) operatorHandoffDialog.showModal();
-  if (state.evidenceReviewDialogOpen) evidenceReviewDialog.showModal();
-  if (state.evidenceImageDialogOpen) evidenceImageDialog.showModal();
-  if (state.helpDialogOpen) helpDialog.showModal();
+  openDialog("records", state.recordsDialogOpen, recordsDialog);
+  openDialog("validation", state.validationDialogOpen, validationDialog);
+  openDialog("work", state.workDialogOpen, workDialog);
+  openDialog("handoff", state.operatorHandoffDialogOpen, operatorHandoffDialog);
+  openDialog("evidence-review", state.evidenceReviewDialogOpen, evidenceReviewDialog);
+  openDialog("evidence-image", state.evidenceImageDialogOpen, evidenceImageDialog);
+  openDialog("help", state.helpDialogOpen, helpDialog);
   restoreFocus(previousFocus, { focusDialog, initial }, state);
   const reportRecords = state.activeSection === "reports"
     ? getReportRecords(allRecords, state.reportFilters, state.includeDemoData)
@@ -254,10 +254,36 @@ async function handleStationIntakeSubmit() {
   render({ focusKey: `step-${getProcedure()?.steps?.[0]?.number ?? ""}` });
 }
 
+// Los diálogos se reabren en cada render(); la animación de entrada solo debe verse la primera vez.
+const openedDialogs = new Set();
+function openDialog(key, isOpen, dialog) {
+  if (!isOpen) {
+    openedDialogs.delete(key);
+    return;
+  }
+  if (!openedDialogs.has(key)) {
+    openedDialogs.add(key);
+    dialog.dataset.enter = "1";
+  }
+  dialog.showModal();
+}
+
+// showToast() renderiza dos veces: el atributo data-enter se mantiene una ventana corta para no cortar la animación.
+let toastSignature = "";
+let toastEnterUntil = 0;
 function renderToast() {
-  if (!state.toast) return "";
+  if (!state.toast) {
+    toastSignature = "";
+    return "";
+  }
+  const signature = `${state.toast.kind}|${state.toast.message}`;
+  if (signature !== toastSignature) {
+    toastSignature = signature;
+    toastEnterUntil = Date.now() + 450;
+  }
+  const entering = Date.now() < toastEnterUntil ? " data-enter=\"1\"" : "";
   const icon = state.toast.kind === "warning" ? "warning" : "check_circle";
-  return `<div class="toast toast--${state.toast.kind}" role="status"><span class="material-symbols-rounded" aria-hidden="true">${icon}</span>
+  return `<div class="toast toast--${state.toast.kind}" role="status"${entering}><span class="material-symbols-rounded" aria-hidden="true">${icon}</span>
     ${escapeHtml(state.toast.message)}<button type="button" data-action="close-toast" aria-label="Cerrar aviso"><span class="material-symbols-rounded" aria-hidden="true">close</span></button></div>`;
 }
 
@@ -629,7 +655,9 @@ bindReportInteractions(app, {
 bindSopVersionInteractions(app, { state, render, showToast });
 
 startCurrentShiftClock();
+document.documentElement.classList.add("app-boot");
 render({ initial: true });
+window.setTimeout(() => document.documentElement.classList.remove("app-boot"), 600);
 restoreCurrentSopVersion(state).then(async () => {
   if (state.sopVersionMeta?.builtIn) {
     await restoreStoredSopSource(state);

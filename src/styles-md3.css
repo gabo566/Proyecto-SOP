@@ -2304,3 +2304,13 @@ details[open] > :not(summary) { animation: c062-drop .22s var(--md-ease) both; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
 }
+
+/* C-062 (2/3): entradas de un solo disparo (diálogos, toast, primera carga). Marcadores data-enter / .app-boot puestos desde app.js. */
+dialog[data-enter] { animation: c062-dialog var(--md-dur-3) var(--md-ease) both; }
+dialog[data-enter]::backdrop { animation: c062-fade var(--md-dur-3) var(--md-ease) both; }
+.toast[data-enter] { animation: c062-toast var(--md-dur-3) var(--md-ease) both; }
+.app-boot #app { animation: c062-boot 380ms var(--md-ease) both; }
+@keyframes c062-dialog { from { opacity: 0; transform: translateY(14px) scale(.96); } }
+@keyframes c062-fade { from { opacity: 0; } }
+@keyframes c062-toast { from { opacity: 0; transform: translateY(16px); } }
+@keyframes c062-boot { from { opacity: 0; transform: translateY(6px); } }
