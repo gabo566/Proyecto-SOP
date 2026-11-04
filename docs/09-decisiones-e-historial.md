@@ -515,6 +515,12 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Observación [Pendiente de confirmar]:** en la captura del usuario varios pasos de su revisión se leían sin espacios («Procedimientoparausodelprograma…»); en los datos actuales los pasos sí tienen espacios, por lo que parece un texto guardado así en esa revisión. Se puede corregir en «Modificar SOP» o volviendo a extraer el PDF.
 - **Revertir:** `git revert` de este cambio.
 
+### C-058 (2026-11-03) — Auditoría de responsividad: sin desbordes horizontales
+
+- **Auditoría:** barrido de elementos fuera del viewport en las 6 secciones a 320, 375, 768, 1024 y 1366 px. Fallaban a 375: encabezado (`h1`/kicker, 399 px), Reportes (404 px) y «Modificar SOP» (1157 px, también a 768 px). En móvil el encabezado fijo ocupaba ~270 px de 812 sobre la hoja de pasos.
+- **Cambios:** `src/styles-md3.css` (bloque «C-058»): `min-width: 0` y `minmax(0,1fr)` en `.topbar-title-copy`, `.sop-version-*` y `.sop-catalog-manager`; input nativo de PDF con elipsis; `flex-wrap` en cabeceras de sección y formulario de carga en una columna a ≤760 px; `.topbar` deja de ser fijo a ≤760 px. `index.html` (`?v=md3-c058c`).
+- **Verificación:** sin desbordes en todas las secciones y anchos salvo un `OL` fuera de pantalla a 320 px en Producción (pendiente de revisar). Pruebas 9/9.
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.
