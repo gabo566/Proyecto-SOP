@@ -459,6 +459,12 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Pruebas:** 9 pasan; en el navegador, elegidas las hojas 35 y 36: solo se dibuja la página 35, sin enlace al PDF, siguiente botón «Continuar a hoja 36».
 - **Límite:** quien abra directamente el archivo `public/documents/SOP-NVD-GB200-141.pdf` por su URL lo ve completo; es un prototipo estático sin control de acceso. **Revertir:** `git revert`; sin comprometer en `main` hasta confirmarlo.
 
+### C-050 (propuesta, 2026-11-03) — Tarjetas de hoja con el estilo de iconos de la primera versión
+
+- **Solicitud:** al usuario le gustaron más los iconos de la primera versión (por categorías) que las insignias de color de C-048; proponer esa apariencia en las tarjetas por hoja.
+- **Cambio (solo estilos):** `src/styles-md3.css` (bloque «C-050»): tarjeta centrada con icono rojo de contorno de 36 px sobre «Hoja N», etiqueta de pasos, descripción debajo y marca de selección en la esquina; la tarjeta elegida pasa a azul oscuro con icono blanco. `index.html` (`?v=md3-c050`). Los iconos y su asignación por palabras clave no cambian.
+- **Estado:** rama `propuesta/iconos-iniciales`, **sin unir a `main`**; a la espera de confirmación. **Revertir:** `git revert` o no unir la rama.
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.

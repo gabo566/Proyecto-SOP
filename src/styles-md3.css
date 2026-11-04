@@ -2032,3 +2032,17 @@ details.sop-version-procedure.is-sheet-saved > summary > span { color: #146c3a; 
 .station-disassembly-check .material-symbols-rounded { font-size: 28px; color: #b9a7a4; }
 .station-disassembly-sheet--on .station-disassembly-check .material-symbols-rounded { color: #8fe3b0; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24; }
 .station-disassembly-sheet--on { box-shadow: 0 4px 14px rgb(23 38 53 / 35%); }
+
+/* C-050 (propuesta): tarjetas de hoja con el estilo de iconos de la primera versión (icono rojo de contorno sobre el nombre, tarjeta centrada). */
+.station-disassembly .station-disassembly-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.station-disassembly .station-disassembly-sheet { position: relative; grid-template-columns: 1fr; justify-items: center; align-content: start; text-align: center; gap: 4px; padding: 14px 12px 12px; }
+.station-disassembly-icon { width: auto; height: auto; background: none !important; box-shadow: none; color: #c2352b; }
+.station-disassembly-icon .material-symbols-rounded { font-size: 36px; color: #c2352b; font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+.station-disassembly-body { justify-items: center; }
+.station-disassembly-sheet-head { flex-direction: column; gap: 2px; }
+.station-disassembly-sheet-head strong { font-size: 19px; }
+.station-disassembly-sheet-head small { margin-left: 0; }
+.station-disassembly-sheet-text { font-size: 13px; }
+.station-disassembly-check { position: absolute; top: 8px; right: 8px; }
+.station-disassembly-check .material-symbols-rounded { font-size: 24px; }
+.station-disassembly-sheet--on .station-disassembly-icon .material-symbols-rounded { color: #fff; }
