@@ -2251,3 +2251,21 @@ details.sop-version-procedure.is-sheet-saved > summary > span { color: #146c3a; 
    Causa: el hover aplica transform a la tarjeta (nuevo stacking context) y atrapa el z-index del popover. */
 .work-item-card:hover, .work-item-card:focus-within, .work-item-card:has(.work-item-history[open]) { position: relative; z-index: 20; }
 .work-item-history[open] ol { z-index: 30; }
+/* C-061: transiciones al navegar por el sidebar (View Transitions API; render() reconstruye el DOM). */
+.nav-item--active { view-transition-name: nav-pill; }
+.dashboard-content { view-transition-name: page-content; }
+::view-transition-group(root) { animation: none; }
+::view-transition-group(nav-pill) { animation-duration: 320ms; animation-timing-function: cubic-bezier(.2, 0, 0, 1); }
+::view-transition-old(nav-pill), ::view-transition-new(nav-pill) { animation: none; mix-blend-mode: normal; height: 100%; }
+::view-transition-old(page-content) { animation: c061-out 140ms cubic-bezier(.4, 0, 1, 1) both; }
+::view-transition-new(page-content) { animation: c061-in 260ms cubic-bezier(.2, 0, 0, 1) 60ms both; }
+@keyframes c061-out { to { opacity: 0; transform: translateY(-6px); } }
+@keyframes c061-in { from { opacity: 0; transform: translateY(10px); } }
+@keyframes c061-bar { from { transform: scaleY(.3); opacity: 0; } }
+.nav-item .material-symbols-rounded { transition: color .15s ease, transform .2s cubic-bezier(.2, 0, 0, 1); }
+.nav-item:hover .material-symbols-rounded { transform: translateX(2px) scale(1.06); }
+.nav-item--active::before { animation: c061-bar .3s cubic-bezier(.2, 0, 0, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+  .nav-item .material-symbols-rounded, .nav-item--active::before { transition: none; animation: none; }
+}

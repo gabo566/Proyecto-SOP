@@ -533,6 +533,12 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Cambios:** `src/styles-md3.css` (bloque «C-060»): la tarjeta con hover, foco o historial abierto pasa a `position: relative; z-index: 20` (`:has(.work-item-history[open])`) y el popover abierto a `z-index: 30`. `index.html` (`?v=md3-c060`).
 - **Verificación:** con el historial de la 2.ª tarjeta abierto, `elementFromPoint` en la esquina del popover devuelve el popover; captura sin superposición.
 
+### C-061 (2026-11-03) — Transiciones al navegar por el sidebar
+
+- **Causa:** `render()` reemplaza todo `#app.innerHTML` (incluido el sidebar), así que la píldora activa y la barra naranja aparecían de golpe; las `transition` de `.nav-item` solo animaban el hover.
+- **Cambios:** `src/interactions.js` (`handleNavigation`): si cambia la sección y el navegador soporta `document.startViewTransition` (y no hay `prefers-reduced-motion`), el `render()` se ejecuta dentro de la transición; si no, comportamiento anterior. `src/styles-md3.css` (bloque «C-061»): `view-transition-name: nav-pill` en `.nav-item--active` (la píldora se desliza ~320 ms) y `page-content` en `.dashboard-content` (fundido + subida de 10 px); micro-interacción de icono en hover y barra activa que crece; reduced-motion lo apaga. `index.html` (`?v=md3-c061`).
+- **Verificación:** al hacer clic se crean las pseudo-capas `nav-pill` y `page-content`; clic en la sección ya activa no inicia transición; 9/9 pruebas.
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.

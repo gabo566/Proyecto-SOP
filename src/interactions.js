@@ -53,8 +53,20 @@ function bindInteractions(app, handlers) {
       openRecords(action.dataset.focusKey);
       return;
     }
-    state.activeSection = item.id;
-    render();
+    const update = () => {
+      state.activeSection = item.id;
+      render();
+    };
+    const animate = item.id !== state.activeSection
+      && typeof document.startViewTransition === "function"
+      && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (animate) {
+      document.startViewTransition(update).finished.finally(() => {
+        document.getElementById(item.target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      return;
+    }
+    update();
     document.getElementById(item.target)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
