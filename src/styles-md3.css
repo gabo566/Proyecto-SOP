@@ -2264,8 +2264,43 @@ details.sop-version-procedure.is-sheet-saved > summary > span { color: #146c3a; 
 @keyframes c061-bar { from { transform: scaleY(.3); opacity: 0; } }
 .nav-item .material-symbols-rounded { transition: color .15s ease, transform .2s cubic-bezier(.2, 0, 0, 1); }
 .nav-item:hover .material-symbols-rounded { transform: translateX(2px) scale(1.06); }
-.nav-item--active::before { animation: c061-bar .3s cubic-bezier(.2, 0, 0, 1) both; }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
   .nav-item .material-symbols-rounded, .nav-item--active::before { transition: none; animation: none; }
+}
+
+/* C-062 (1/3): micro-interacciones en nodos estables (hover, foco, :active, :checked, [open]). Solo transform/opacity/color/sombra. */
+:root { --md-ease: cubic-bezier(.2, 0, 0, 1); --md-ease-in: cubic-bezier(.4, 0, 1, 1); --md-dur-1: 120ms; --md-dur-2: 200ms; --md-dur-3: 300ms; }
+.button, .icon-button, .work-item-action, .date-chip, .shift-chip, .profile-chip {
+  transition: background-color var(--md-dur-2) var(--md-ease), border-color var(--md-dur-2) var(--md-ease), color var(--md-dur-2) var(--md-ease), box-shadow var(--md-dur-2) var(--md-ease), transform var(--md-dur-1) var(--md-ease);
+}
+.button:active, .icon-button:active, .work-item-action:active { transform: scale(.97); }
+.button--primary:hover, .work-item-action:hover { transform: translateY(-1px); }
+.button--primary:active, .work-item-action:active { transform: scale(.97); }
+.icon-button:hover .material-symbols-rounded, .button:hover .material-symbols-rounded { transform: scale(1.08); }
+.icon-button .material-symbols-rounded, .button .material-symbols-rounded { transition: transform var(--md-dur-2) var(--md-ease); }
+.metric-card, .station-choice, .station-disassembly-sheet, .station-context-tile, .sop-catalog-item {
+  transition: border-color var(--md-dur-2) var(--md-ease), background-color var(--md-dur-2) var(--md-ease), box-shadow var(--md-dur-2) var(--md-ease), transform var(--md-dur-2) var(--md-ease);
+}
+.metric-card:hover, .station-disassembly-sheet:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgb(23 55 82 / 12%); }
+.station-disassembly-sheet:active, .station-choice:active { transform: scale(.985); }
+.station-disassembly-icon { transition: transform var(--md-dur-2) var(--md-ease); }
+.station-disassembly-sheet:active .station-disassembly-icon { transform: scale(.9); }
+.station-pill, .station-filter, .chip, .filter-chip { transition: background-color var(--md-dur-2) var(--md-ease), border-color var(--md-dur-2) var(--md-ease), box-shadow var(--md-dur-2) var(--md-ease), transform var(--md-dur-1) var(--md-ease); }
+.station-pill:hover, .station-filter:hover { transform: translateY(-1px); }
+.station-pill:active, .station-filter:active { transform: scale(.96); }
+select, input:not([type="checkbox"]), textarea { transition: border-color var(--md-dur-2) var(--md-ease), box-shadow var(--md-dur-2) var(--md-ease), background-color var(--md-dur-2) var(--md-ease); }
+.sop-execution-panel .guided-check-item > input { transition: background-color .15s, border-color .15s, transform var(--md-dur-2) var(--md-ease); }
+.sop-execution-panel .guided-check-item > input:active { transform: scale(.82); }
+.sop-run-progress-track > span { transition: width .35s var(--md-ease); }
+.guided-checklist-heading-count, .guided-checklist-note { transition: background-color var(--md-dur-2) var(--md-ease), box-shadow var(--md-dur-2) var(--md-ease), color var(--md-dur-2) var(--md-ease); }
+tbody tr { transition: background-color var(--md-dur-1) ease; }
+tbody tr:hover { background-color: #f3f7fb; }
+details > summary { transition: color var(--md-dur-1) ease; }
+details > summary .material-symbols-rounded, .profile-menu-chevron { transition: transform var(--md-dur-2) var(--md-ease); }
+details[open] > summary .profile-menu-chevron { transform: rotate(180deg); }
+details[open] > :not(summary) { animation: c062-drop .22s var(--md-ease) both; }
+@keyframes c062-drop { from { opacity: 0; transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
 }
