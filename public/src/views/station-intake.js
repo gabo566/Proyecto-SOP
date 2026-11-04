@@ -27,7 +27,7 @@ function renderDisassemblyChoice(choice, filter = "", panelOpen = false) {
   const query = normalizeDisassemblySearch(filter).trim();
   const totalSteps = choice.selected.reduce((total, option) => total + option.steps, 0);
   if (!panelOpen) return "";
-  return `<div class="station-disassembly-overlay" data-disassembly-overlay><fieldset class="station-disassembly station-disassembly--modal" id="station-disassembly-panel" aria-labelledby="station-disassembly-title"><legend id="station-disassembly-title">Hojas del desensamble</legend>
+  return `<div class="station-disassembly-overlay" data-disassembly-overlay><fieldset class="station-disassembly station-disassembly--modal" id="station-disassembly-panel" aria-labelledby="station-disassembly-title"><legend id="station-disassembly-title" class="station-disassembly-legend-hidden">Hojas del desensamble</legend><h3 class="station-disassembly-title" aria-hidden="true">Hojas del desensamble</h3>
     <p>Elige una o varias. Solo verás en la SOP las hojas que selecciones.</p>
     <div class="station-disassembly-bar">
       <label class="station-disassembly-search"><span class="material-symbols-rounded" aria-hidden="true">search</span><input type="search" data-disassembly-filter value="${escapeHtml(filter)}" placeholder="Buscar: BF3, busbar, hoja 35…" autocomplete="off" aria-label="Buscar hoja" /></label>

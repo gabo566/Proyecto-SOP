@@ -73,7 +73,11 @@
 /* Hojas del desensamble: ventana flotante sobre la pantalla; el fondo se difumina y no mueve el diseño */
 .station-disassembly-overlay { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 16px; background: rgb(20 34 61 / 38%); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); animation: station-disassembly-in 180ms cubic-bezier(.23, 1, .32, 1) both; }
 .station-disassembly--modal { width: min(880px, 100%); max-height: 86vh; overflow: auto; margin: 0; padding: 20px; border: 1px solid #c7d3e3; border-radius: 18px; background: #fff; box-shadow: 0 24px 60px rgb(20 34 61 / 30%); }
-.station-disassembly--modal legend { color: #14223d; font-size: 20px; font-weight: 800; }
+.station-disassembly--modal { display: block; overflow-x: hidden; }
+.station-disassembly-legend-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.station-disassembly-title { margin: 0 0 4px; color: #14223d; font-size: 20px; font-weight: 800; }
+.station-disassembly--modal .station-disassembly-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); min-width: 0; }
+.station-disassembly--modal .station-disassembly-bar { flex-wrap: wrap; }
 .station-disassembly-done { display: flex; justify-content: flex-end; padding-top: 14px; border-top: 1px solid #e4e9f2; margin-top: 14px; }
 @keyframes station-disassembly-in { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .station-disassembly-overlay { animation: none; } }
