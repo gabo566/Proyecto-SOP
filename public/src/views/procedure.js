@@ -103,7 +103,7 @@ function renderProcedurePanel(procedure, state) {
     <div class="guided-page-layout sop-page-checklist-layout" data-page-zoom="${pageZoom}">
       <section class="guided-sop-page" aria-label="Hoja completa ${escapeHtml(procedure.sheet)} de la SOP">
         <div class="guided-page-toolbar">
-          <div class="guided-page-heading"><span class="material-symbols-rounded" aria-hidden="true">search</span><strong>Hoja ${escapeHtml(procedure.sheet)}: ${escapeHtml(procedure.title)}</strong></div>
+          <div class="guided-page-heading"><span class="material-symbols-rounded" aria-hidden="true">search</span><strong><span class="guided-page-sheet">Hoja ${escapeHtml(procedure.sheet)}</span><span class="guided-page-title">${escapeHtml(procedure.title)}</span></strong></div>
           <div class="sop-page-zoom-controls" role="group" aria-label="Tamaño de la hoja SOP">
             <button class="icon-button" type="button" data-action="sop-page-zoom-out" aria-label="Reducir hoja SOP" ${pageZoom <= 50 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">remove</span></button>
             <output id="sop-page-zoom-level" aria-live="polite">${pageZoom}%</output>
