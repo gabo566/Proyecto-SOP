@@ -2247,3 +2247,7 @@ details.sop-version-procedure.is-sheet-saved > summary > span { color: #146c3a; 
   .topbar > .topbar-title { grid-column: 2; grid-row: 1; margin: 0; }
   .topbar > .topbar-user-panel { grid-column: 1 / -1; grid-row: 2; }
 }
+/* C-060: el historial desplegable de un trabajo ya no queda tapado por las tarjetas de abajo.
+   Causa: el hover aplica transform a la tarjeta (nuevo stacking context) y atrapa el z-index del popover. */
+.work-item-card:hover, .work-item-card:focus-within, .work-item-card:has(.work-item-history[open]) { position: relative; z-index: 20; }
+.work-item-history[open] ol { z-index: 30; }

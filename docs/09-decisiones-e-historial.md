@@ -526,6 +526,13 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Causa:** a ≤650 px el botón de menú y el título quedaban en la misma celda de la cuadrícula (`grid-row: 1`, columna única de C-0xx).
 - **Cambios:** `src/styles-md3.css` (bloque «C-059», solo `@media (max-width: 650px)`): dos columnas (botón + título) y panel de usuario en la segunda fila. Anchos mayores sin cambios. `index.html` (`?v=md3-c059`).
 
+### C-060 (2026-11-03) — El historial desplegable de Producción ya no queda tapado
+
+- **Síntoma:** al abrir «Historial» de un trabajo, el texto de la tarjeta de abajo (su botón «Historial») se encimaba sobre el popover.
+- **Causa:** `.work-item-card:hover` aplica `transform: translateY(-1px)` (C-0xx), lo que crea un stacking context; el `z-index: 5` del popover quedaba atrapado dentro de la tarjeta y las tarjetas siguientes se pintaban encima.
+- **Cambios:** `src/styles-md3.css` (bloque «C-060»): la tarjeta con hover, foco o historial abierto pasa a `position: relative; z-index: 20` (`:has(.work-item-history[open])`) y el popover abierto a `z-index: 30`. `index.html` (`?v=md3-c060`).
+- **Verificación:** con el historial de la 2.ª tarjeta abierto, `elementFromPoint` en la esquina del popover devuelve el popover; captura sin superposición.
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.
