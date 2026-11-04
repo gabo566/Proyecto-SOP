@@ -30,27 +30,35 @@ function renderSidebar(state) {
     </aside>`;
 }
 
+function formatTopbarDate(date = new Date()) {
+  const part = (options) => new Intl.DateTimeFormat("es-MX", options).format(date).replace(/\./g, "");
+  const weekday = part({ weekday: "short" });
+  return `${weekday.charAt(0).toLocaleUpperCase("es-MX")}${weekday.slice(1)}, ${date.getDate()} ${part({ month: "short" })} ${date.getFullYear()}`;
+}
+
+function formatTopbarTime(date = new Date()) {
+  return new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit", hour12: true }).format(date).replace(/\./g, "");
+}
+
 function renderTopbar(state = {}) {
   const user = getActiveLocalUser();
   const section = NAV_ITEMS.find((item) => item.id === state.activeSection) ?? NAV_ITEMS[0];
   const assignment = getWorkStationAssignment(state.form?.stationAssignment);
   const stationChip = assignment
-    ? `<div class="station-chip" aria-label="Estación asignada"><span class="material-symbols-rounded" aria-hidden="true">desktop_windows</span><span class="station-chip-copy"><small>Estación</small><strong>${escapeHtml(assignment.label)}</strong></span></div>`
+    ? `<div class="station-chip" aria-label="Estación asignada"><span class="material-symbols-rounded" aria-hidden="true">desktop_windows</span><span class="station-chip-copy"><small>Estación:</small><strong>${escapeHtml(assignment.label)}</strong><em>${escapeHtml(assignment.type)}</em></span></div>`
     : "";
   return `<header class="topbar" id="top">
     <button class="icon-button menu-toggle" type="button" data-action="open-menu" data-focus-key="menu-open" aria-label="Abrir menú">
       <span class="material-symbols-rounded" aria-hidden="true">menu</span>
     </button>
-    <div class="topbar-title">
-      <div class="topbar-title-copy"><h1>${escapeHtml(section.label)}</h1><span class="topbar-kicker">${escapeHtml(SOP_DOCUMENT.title)} · ${escapeHtml(SOP_DOCUMENT.id)} · Rev. ${escapeHtml(SOP_DOCUMENT.revision)}</span></div>
-    </div>
+    <div class="topbar-title"><div class="topbar-title-copy"><h1>${escapeHtml(section.label)}</h1></div></div>
     <div class="topbar-user-panel">
     <div class="topbar-profile">
-      ${renderProfileMenu(user)}
+      ${renderProfileMenu(user, { caption: "Operador:" })}
     </div>
     <div class="topbar-meta">
       ${stationChip}
-      <div class="shift-chip" aria-label="Turno actual"><span class="material-symbols-rounded" aria-hidden="true">schedule</span><span id="current-shift-label">${getCurrentShiftLabel()}</span></div>
+      <div class="shift-chip" aria-label="Fecha y turno"><span class="material-symbols-rounded" aria-hidden="true">calendar_month</span><span class="shift-chip-copy"><strong id="topbar-date">${formatTopbarDate()}</strong><small><span id="topbar-time">${formatTopbarTime()}</span> · <span id="current-shift-label">${getCurrentShiftLabel()}</span></small></span></div>
       <button class="icon-button help-button" type="button" data-action="open-help" data-focus-key="help-open" aria-label="Ayuda sobre el almacenamiento de datos" title="Ayuda"><span class="material-symbols-rounded" aria-hidden="true">help</span></button>
     </div>
     </div>
@@ -68,6 +76,10 @@ function getCurrentShiftLabel(date = new Date()) {
 function updateCurrentShiftLabel() {
   const label = document.querySelector("#current-shift-label");
   if (label) label.textContent = getCurrentShiftLabel();
+  const date = document.querySelector("#topbar-date");
+  const time = document.querySelector("#topbar-time");
+  if (date) date.textContent = formatTopbarDate();
+  if (time) time.textContent = formatTopbarTime();
 }
 
 function startCurrentShiftClock() {

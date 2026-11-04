@@ -15,11 +15,11 @@ function renderProfileAvatar(user, className = "profile-avatar") {
 
 // Menú de usuario (foto, nombre, Mi perfil y Cerrar sesión). Lo comparten la barra
 // superior y la pantalla de selección de estación, que es donde entran los operadores.
-function renderProfileMenu(user) {
+function renderProfileMenu(user, { caption = "" } = {}) {
   return `<details class="profile-menu">
       <summary class="profile-chip" aria-label="Opciones de ${escapeHtml(user.name)}">
         ${renderProfileAvatar(user)}
-      <span class="profile-copy"><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(user.position || "Técnico de FA")}</small></span>
+      <span class="profile-copy"><strong>${escapeHtml(user.name)}</strong><small>${escapeHtml(caption || user.position || "Técnico de FA")}</small></span>
         <span class="material-symbols-rounded profile-menu-chevron" aria-hidden="true">expand_more</span>
       </summary>
       <div class="profile-dropdown"><span class="profile-dropdown-role">${escapeHtml(LOCAL_USER_ROLES[user.role])}</span><button class="profile-logout profile-action" type="button" data-action="open-profile" data-focus-key="profile-open"><span class="material-symbols-rounded" aria-hidden="true">manage_accounts</span>Mi perfil</button><button class="profile-logout" type="button" data-action="logout-local-user"><span class="material-symbols-rounded" aria-hidden="true">logout</span>Cerrar sesión</button></div>

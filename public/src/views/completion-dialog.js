@@ -29,6 +29,10 @@ function renderComponentFields(form, workDraft = null) {
 }
 
 const GUIDED_STEP_STATUS_LABELS = { done: "Completado", current: "En curso", pending: "Pendiente" };
+const GUIDED_STEP_STATUS_ICONS = { done: "check_circle", current: "play_circle", pending: "radio_button_unchecked" };
+function renderGuidedStepStatusPill(status) {
+  return `<span class="guided-check-status guided-check-status--${status}" aria-hidden="true"><span class="material-symbols-rounded">${GUIDED_STEP_STATUS_ICONS[status]}</span>${GUIDED_STEP_STATUS_LABELS[status]}</span>`;
+}
 
 function renderGuidedValidationSteps(procedure, state, disabled = false, showReferenceImages = true) {
   const doneSteps = new Set(getGuidedSopCheckedSteps(state.sopRun, procedure.id));
@@ -42,7 +46,7 @@ function renderGuidedValidationSteps(procedure, state, disabled = false, showRef
       <span class="guided-check-index" aria-hidden="true">${index + 1}/${procedure.steps.length}</span>
       <input id="validation-step-${escapeHtml(step.number)}" type="checkbox" data-step="${escapeHtml(step.number)}" data-focus-key="step-${escapeHtml(step.number)}" aria-label="Realicé el paso ${escapeHtml(step.number)}: ${escapeHtml(step.text)}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} />
       <div class="guided-check-details"><label for="validation-step-${escapeHtml(step.number)}" class="guided-check-copy"><strong>Paso ${escapeHtml(step.number)}</strong><span>${escapeHtml(step.text)}</span>${step.sourceNote ? `<small class="validation-source-note">${escapeHtml(step.sourceNote)}</small>` : ""}${auditLabel}</label>${showReferenceImages && step.images?.length ? renderStepImages(step, procedure.sheet) : ""}</div>
-      <span class="guided-check-status guided-check-status--${status}" aria-hidden="true">${GUIDED_STEP_STATUS_LABELS[status]}</span>
+      ${renderGuidedStepStatusPill(status)}
     </div>`;
   }).join("");
 }

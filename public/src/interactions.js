@@ -519,6 +519,7 @@ function bindInteractions(app, handlers) {
         runWithTransition(() => render({ focusKey: `station-${getWorkStationAssignment(state.form.stationAssignment)?.type ?? "MFG"}` }), "back");
         break;
       case "close-validation-dialog": document.querySelector("#validation-dialog")?.close(); break;
+      case "confirm-current-step": document.querySelector(".guided-check-item:not(.guided-check-item--checked) > input[data-step]")?.click(); break;
       case "continue-sop-sheet": runWithTransition(() => continueGuidedSopSheet()); break;
       case "open-final-confirmation": runWithTransition(() => continueGuidedSopSheet()); break;
       case "previous-sop-sheet": runWithTransition(() => previousGuidedSopSheet(), "back"); break;
@@ -699,6 +700,10 @@ function bindInteractions(app, handlers) {
   });
 
   app.addEventListener("input", (event) => {
+    if (event.target.matches("[data-sheet-observation]")) {
+      state.sheetObservations = { ...state.sheetObservations, [event.target.dataset.sheetObservation]: event.target.value };
+      return;
+    }
     if (event.target.matches("[data-scan-field]") && state.scanErrors?.[event.target.dataset.formField]) setScanError(event.target.dataset.formField, "");
     if (event.target.matches("[data-disassembly-filter]")) {
       state.disassemblyFilter = event.target.value;
@@ -873,10 +878,7 @@ function updateGuidedChecklistUI(procedure, state) {
   for (const row of document.querySelectorAll(".guided-check-item")) {
     const status = row.classList.contains("guided-check-item--checked") ? "done" : row === currentRow ? "current" : "pending";
     const pill = row.querySelector(".guided-check-status");
-    if (pill) {
-      pill.className = `guided-check-status guided-check-status--${status}`;
-      pill.textContent = GUIDED_STEP_STATUS_LABELS[status];
-    }
+    if (pill) pill.outerHTML = renderGuidedStepStatusPill(status);
   }
   const currentCount = procedure.steps.filter((step) => checked.has(String(step.number))).length;
   const currentCountLabel = document.querySelector(".guided-checklist-heading-count");
@@ -899,6 +901,13 @@ function updateGuidedChecklistUI(procedure, state) {
   const progressCopy = document.querySelector(".guided-progress-copy");
   if (progressCopy) {
     progressCopy.textContent = `${progress.complete} / ${progress.total} SOP`;
+  }
+  const confirmButton = document.querySelector('[data-action="confirm-current-step"]');
+  if (confirmButton) {
+    const complete = isGuidedSopProcedureComplete(state.sopRun, procedure);
+    confirmButton.disabled = complete || !canOperateGuidedSopRun();
+    const confirmLabel = confirmButton.querySelector("[data-confirm-label]");
+    if (confirmLabel) confirmLabel.textContent = complete ? "Hoja completa" : `Confirmar paso (${Math.min(currentCount + 1, procedure.steps.length)}/${procedure.steps.length})`;
   }
   const continueButton = document.querySelector('[data-action="continue-sop-sheet"], [data-action="open-final-confirmation"]');
   if (continueButton) continueButton.disabled = !isGuidedSopProcedureComplete(state.sopRun, procedure) || !canOperateGuidedSopRun();

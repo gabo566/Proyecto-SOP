@@ -22,6 +22,7 @@ const state = {
   operatorHandoffError: "",
   workDraft: { type: "pause", failedStep: "", note: "" },
   validationEvidenceFiles: [],
+  sheetObservations: {},
   workError: "",
   evidenceError: "",
   evidenceBusy: false,
@@ -507,6 +508,7 @@ function saveCompletion() {
     status: "Completado",
     recordType: "Validación del operador",
     declared: true,
+    observations: run.procedureIds.map((id) => ({ procedureId: id, text: String(state.sheetObservations?.[id] ?? "").trim() })).filter((item) => item.text),
     evidenceFiles: [...state.validationEvidenceFiles],
     evidenceCount: state.validationEvidenceFiles.length,
   };
@@ -544,6 +546,7 @@ function saveCompletion() {
   document.querySelector("#validation-dialog")?.close();
   state.form = createEmptyForm();
   state.validationEvidenceFiles = [];
+  state.sheetObservations = {};
   state.auditSessionId = `session-${crypto.randomUUID()}`;
   localStorage.setItem("sop-operador-audit-session-v1", state.auditSessionId);
   state.formError = "";
@@ -592,6 +595,7 @@ bindInteractions(app, {
       state.operatorFlowReady = false;
     }
     state.validationEvidenceFiles = [];
+    state.sheetObservations = {};
     state.workDialogOpen = false;
     state.recordsDialogOpen = false;
     state.helpDialogOpen = false;
