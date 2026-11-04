@@ -1,6 +1,6 @@
-// Editor visual de revisiones de SOP: miniaturas de hojas · lienzo con herramientas · inspector.
-// Trabaja directamente sobre state.sopDraft (las marcas viajan con la revisión) y usa las funciones
-// de extracción/vista previa de sop-version-control.js y sop-version-preview.js.
+// Etapa 2 «Editar» del flujo de revisión de SOP: miniaturas de hojas · lienzo con herramientas · panel con pestañas.
+// Vive dentro de la página (host [data-sop-ws-host]) y trabaja directamente sobre state.sopDraft.
+// Se vuelve a montar tras cada render() de la aplicación conservando selección, zoom e historial.
 
 const SOP_WS_TOOLS = [
   { id: "select", icon: "near_me", label: "Seleccionar", key: "V", hint: "Haz clic en una marca para seleccionarla; arrástrala para moverla o usa sus puntos para cambiar el tamaño." },
@@ -8,8 +8,8 @@ const SOP_WS_TOOLS = [
   { id: "box", icon: "crop_square", label: "Recuadro", key: "R", hint: "Arrastra sobre la hoja para encuadrar un área." },
   { id: "highlight", icon: "highlight", label: "Resaltador", key: "H", hint: "Arrastra sobre un texto o zona para resaltarla." },
   { id: "number", icon: "looks_one", label: "Número", key: "N", hint: "Haz clic para colocar el siguiente número de referencia." },
-  { id: "note", icon: "sticky_note_2", label: "Nota", key: "M", hint: "Haz clic para colocar una nota y escribe su texto a la derecha." },
-  { id: "text", icon: "title", label: "Texto libre", key: "T", hint: "Haz clic para colocar un texto y escríbelo a la derecha." },
+  { id: "note", icon: "sticky_note_2", label: "Nota", key: "M", hint: "Haz clic para colocar una nota y escribe su texto en la pestaña Marcas." },
+  { id: "text", icon: "title", label: "Texto libre", key: "T", hint: "Haz clic para colocar un texto y escríbelo en la pestaña Marcas." },
   { id: "edit", icon: "edit_note", label: "Texto del documento", key: "E", hint: "Haz clic sobre un texto de la hoja para corregirlo; se dibuja con la misma letra del documento." },
 ];
 const SOP_WS_COLORS = [["#d31e27", "Rojo"], ["#1f56b3", "Azul"], ["#f0a020", "Ámbar"], ["#2f8f3c", "Verde"], ["#ffe14d", "Amarillo"], ["#111111", "Negro"], ["#ffffff", "Blanco"]];
@@ -17,26 +17,31 @@ const SOP_WS_TYPE_NAMES = { arrow: "Flecha", box: "Recuadro", highlight: "Resalt
 const SOP_WS_TYPE_ICONS = { arrow: "north_east", box: "crop_square", highlight: "highlight", number: "looks_one", note: "sticky_note_2", text: "title", textfix: "edit_note" };
 
 let sopWs = null;
+let sopWsGlobalsBound = false;
 
-function openSopWorkspace({ state, render, showToast, procedureIndex = 0, stepIndex = 0 }) {
-  if (!state?.sopDraft) return;
-  if (sopWs) closeSopWorkspace(false);
-  sopWs = {
-    state, render, showToast,
-    procedureIndex: Math.max(0, Math.min(state.sopDraft.procedures.length - 1, procedureIndex)),
-    stepIndex, tool: "select", selectedId: null, zoom: 1, dash: "solid", width: 8,
+// ---------------------------------------------------------------- montaje
+function createSopWsState(state) {
+  return {
+    draftId: state.sopDraft.id, state, root: null, host: null,
+    procedureIndex: Math.max(0, state.sopDraft.procedures.findIndex((procedure) => procedure.steps.length)), stepIndex: 0, tool: "select", tab: "steps", selectedId: null, zoom: 1, dash: "solid", width: 8,
     colors: { arrow: "#d31e27", box: "#d31e27", highlight: "#ffe14d", number: "#d31e27", note: "#f0a020", text: "#d31e27" },
     history: new Map(), drag: null, renderSeq: 0, aspect: SOP_PAGE_ASPECT, vp: null, natural: null,
     textEdit: null, fieldSnapshot: null, space: false, busy: false, nudgeAt: 0, thumbChain: Promise.resolve(),
   };
-  const dialog = document.createElement("dialog");
-  dialog.className = "sop-ws";
-  dialog.setAttribute("aria-label", "Editor visual de la SOP");
-  dialog.innerHTML = buildSopWorkspaceShell();
-  document.body.append(dialog);
-  sopWs.dialog = dialog;
-  bindSopWorkspace(dialog);
-  dialog.showModal();
+}
+
+// Se llama después de cada render() de la aplicación.
+function mountSopWorkspace(state) {
+  const host = document.querySelector("[data-sop-ws-host]");
+  if (!state?.sopDraft) { sopWs = null; return; }
+  if (!host) return;
+  if (!sopWs || sopWs.draftId !== state.sopDraft.id) sopWs = createSopWsState(state);
+  sopWs.state = state;
+  sopWs.host = host;
+  host.innerHTML = buildSopWorkspaceShell();
+  sopWs.root = host.querySelector(".sop-ws-inline");
+  sopWs.procedureIndex = Math.max(0, Math.min(state.sopDraft.procedures.length - 1, sopWs.procedureIndex));
+  bindSopWorkspace(sopWs.root);
   renderSopWsRail();
   renderSopWsToolbar();
   renderSopWsTop();
@@ -44,21 +49,11 @@ function openSopWorkspace({ state, render, showToast, procedureIndex = 0, stepIn
   paintSopWsPage();
 }
 
-function closeSopWorkspace(refresh = true) {
-  const ws = sopWs;
-  if (!ws) return;
-  sopWs = null;
-  const draft = ws.state.sopDraft;
-  if (draft) {
-    for (const procedure of draft.procedures) {
-      procedure.annotations = (procedure.annotations ?? []).filter((annotation) => !(["note", "text"].includes(annotation.type) && !String(annotation.text ?? "").trim()));
-    }
+// Antes de salir de la etapa 2: quita notas y textos vacíos (no se pueden publicar).
+function cleanupSopWorkspaceDraft(draft) {
+  for (const procedure of draft?.procedures ?? []) {
+    procedure.annotations = (procedure.annotations ?? []).filter((annotation) => !(["note", "text"].includes(annotation.type) && !String(annotation.text ?? "").trim()));
   }
-  window.removeEventListener("resize", ws.onResize);
-  window.removeEventListener("sop-draft-annotations-changed", ws.onAnnotationsChanged);
-  ws.dialog.close();
-  ws.dialog.remove();
-  if (refresh) ws.render();
 }
 
 const sopWsDraft = () => sopWs?.state.sopDraft;
@@ -66,17 +61,17 @@ const sopWsProcedure = () => sopWsDraft()?.procedures[sopWs.procedureIndex];
 const sopWsAnnotations = () => (sopWsProcedure().annotations ??= []);
 const sopWsSelected = () => sopWsAnnotations().find((annotation) => annotation.id === sopWs.selectedId) ?? null;
 const sopWsCanAnnotate = () => Boolean(sopWsProcedure()?.steps?.length);
+const sopWsNotice = (message, kind = "success") => showInlineNotice(message, kind);
 
 function buildSopWorkspaceShell() {
   const draft = sopWsDraft();
-  return `<div class="sop-ws-shell">
-    <header class="sop-ws-top">
-      <div class="sop-ws-top-title"><span class="material-symbols-rounded" aria-hidden="true">edit_document</span>
-        <div><strong>${escapeHtml(draft.document.title)}</strong><small data-ws-summary></small></div></div>
-      <div class="sop-ws-top-actions">
-        <button class="sop-ws-icon" type="button" data-ws-action="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer"><span class="material-symbols-rounded" aria-hidden="true">undo</span></button>
-        <button class="sop-ws-icon" type="button" data-ws-action="redo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer"><span class="material-symbols-rounded" aria-hidden="true">redo</span></button>
-        <div class="sop-ws-menu"><button class="sop-ws-button" type="button" data-ws-action="toggle-export" aria-haspopup="true" aria-expanded="false"><span class="material-symbols-rounded" aria-hidden="true">download</span>Exportar</button>
+  return `<div class="sop-flow-editor">
+    <div class="sop-flow-editor-head">
+      <div><h2 class="sop-flow-title">${escapeHtml(draft.document.title)}${draft.document.revision ? ` · Rev. ${escapeHtml(draft.document.revision)}` : ""}</h2><p class="sop-flow-sub" data-ws-summary></p></div>
+      <div class="sop-flow-editor-actions">
+        <button class="sop-flow-btn sop-flow-btn--ghost sop-flow-btn--icon" type="button" data-ws-action="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer"><span class="material-symbols-rounded" aria-hidden="true">undo</span></button>
+        <button class="sop-flow-btn sop-flow-btn--ghost sop-flow-btn--icon" type="button" data-ws-action="redo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer"><span class="material-symbols-rounded" aria-hidden="true">redo</span></button>
+        <div class="sop-ws-menu"><button class="sop-flow-btn sop-flow-btn--ghost" type="button" data-ws-action="toggle-export" aria-haspopup="true" aria-expanded="false"><span class="material-symbols-rounded" aria-hidden="true">download</span>Exportar</button>
           <div class="sop-ws-menu-list" data-ws-export-menu hidden role="menu">
             <p>PDF con anotaciones</p>
             <button type="button" role="menuitem" data-ws-action="export-pdf" data-scope="current"><span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>Hoja actual</button>
@@ -87,10 +82,10 @@ function buildSopWorkspaceShell() {
             <button type="button" role="menuitem" data-ws-action="export-csv"><span class="material-symbols-rounded" aria-hidden="true">table_view</span>Resumen de cambios (CSV)</button>
             <button type="button" role="menuitem" data-ws-action="export-print"><span class="material-symbols-rounded" aria-hidden="true">print</span>Resumen de cambios (imprimir)</button>
           </div></div>
-        <button class="sop-ws-button sop-ws-button--primary" type="button" data-ws-action="close"><span class="material-symbols-rounded" aria-hidden="true">check</span>Listo</button>
+        <button class="sop-flow-btn sop-flow-btn--green" type="button" data-ws-action="go-review">Revisar y publicar<span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span></button>
       </div>
-    </header>
-    <div class="sop-ws-body">
+    </div>
+    <div class="sop-ws-inline">
       <nav class="sop-ws-rail" aria-label="Hojas de la SOP" data-ws-rail></nav>
       <section class="sop-ws-stage" aria-label="Hoja">
         <div class="sop-ws-toolbar" role="toolbar" aria-label="Herramientas" data-ws-toolbar></div>
@@ -102,6 +97,11 @@ function buildSopWorkspaceShell() {
         </div>
       </section>
       <aside class="sop-ws-inspector" aria-label="Pasos y propiedades" data-ws-inspector></aside>
+    </div>
+    <div class="sop-flow-nav">
+      <button class="sop-flow-btn sop-flow-btn--ghost" type="button" data-ws-action="step-prev"><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Paso anterior</button>
+      <strong data-ws-step-label></strong>
+      <button class="sop-flow-btn sop-flow-btn--blue" type="button" data-ws-action="step-next">Paso siguiente<span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span></button>
     </div>
   </div>`;
 }
@@ -150,41 +150,82 @@ function sopWsChanged() {
   renderSopWsTop();
   updateSopWsRailMeta();
   renderSopWsAnnotationList();
+  const tab = sopWs.root?.querySelector('[data-ws-tab="marks"]');
+  if (tab) tab.textContent = `Marcas · ${sopWsAnnotations().length}`;
 }
 
 // ---------------------------------------------------------------- cabecera, barra de herramientas y rail
 function renderSopWsTop() {
-  const dialog = sopWs?.dialog;
-  if (!dialog) return;
+  const root = sopWs?.root;
+  if (!root) return;
   const draft = sopWsDraft();
   const changes = collectSopChanges(draft).length;
   const stepCount = draft.procedures.reduce((total, procedure) => total + procedure.steps.length, 0);
-  const summary = dialog.querySelector("[data-ws-summary]");
-  if (summary) summary.textContent = `${draft.document.revision ? `Rev. ${draft.document.revision}` : "Revisión sin número"} · ${draft.procedures.length} hojas · ${stepCount} pasos · ${changes} ${changes === 1 ? "cambio" : "cambios"} sin publicar`;
+  const summary = root.closest(".sop-flow-editor")?.querySelector("[data-ws-summary]");
+  if (summary) summary.textContent = `${draft.procedures.length} hojas · ${stepCount} pasos · ${changes} ${changes === 1 ? "cambio" : "cambios"} sin publicar`;
   const history = sopWsHistory();
-  dialog.querySelector('[data-ws-action="undo"]').disabled = !history.undo.length;
-  dialog.querySelector('[data-ws-action="redo"]').disabled = !history.redo.length;
+  const editor = root.closest(".sop-flow-editor");
+  editor.querySelector('[data-ws-action="undo"]').disabled = !history.undo.length;
+  editor.querySelector('[data-ws-action="redo"]').disabled = !history.redo.length;
+  updateSopWsStepNav();
+}
+
+function sopWsStepPosition() {
+  const draft = sopWsDraft();
+  const procedure = sopWsProcedure();
+  const total = procedure.steps.length;
+  const previous = draft.procedures.slice(0, sopWs.procedureIndex).some((item) => item.steps.length);
+  const next = draft.procedures.slice(sopWs.procedureIndex + 1).some((item) => item.steps.length);
+  return { total, canPrev: sopWs.stepIndex > 0 || previous, canNext: sopWs.stepIndex < total - 1 || next };
+}
+
+function updateSopWsStepNav() {
+  const editor = sopWs?.root?.closest(".sop-flow-editor");
+  if (!editor) return;
+  const procedure = sopWsProcedure();
+  const position = sopWsStepPosition();
+  const label = editor.querySelector("[data-ws-step-label]");
+  if (label) label.textContent = position.total ? `Paso ${sopWs.stepIndex + 1} de ${position.total} · Hoja ${procedure.sheet}` : `Hoja ${procedure.sheet} · sin pasos`;
+  editor.querySelector('[data-ws-action="step-prev"]').disabled = !position.canPrev;
+  editor.querySelector('[data-ws-action="step-next"]').disabled = !position.canNext;
+}
+
+function sopWsGoStep(direction) {
+  const draft = sopWsDraft();
+  const procedure = sopWsProcedure();
+  let next = sopWs.stepIndex + direction;
+  if (next >= 0 && next < procedure.steps.length) {
+    sopWs.stepIndex = next;
+    renderSopWsInspector();
+    paintSopWsOverlay();
+    updateSopWsStepNav();
+    return;
+  }
+  const candidates = draft.procedures.map((item, index) => ({ item, index })).filter(({ item, index }) => item.steps.length && (direction > 0 ? index > sopWs.procedureIndex : index < sopWs.procedureIndex));
+  const target = direction > 0 ? candidates[0] : candidates.at(-1);
+  if (!target) return;
+  sopWsSelectSheet(target.index, direction > 0 ? 0 : target.item.steps.length - 1);
 }
 
 function renderSopWsToolbar() {
-  const dialog = sopWs.dialog;
+  const root = sopWs.root;
   const disabled = !sopWsCanAnnotate();
-  dialog.querySelector("[data-ws-toolbar]").innerHTML = `${SOP_WS_TOOLS.map((tool) => `<button type="button" class="sop-ws-tool" data-ws-tool="${tool.id}" aria-pressed="${sopWs.tool === tool.id}" title="${tool.label} (${tool.key})" aria-label="${tool.label}" ${disabled && tool.id !== "select" ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${tool.icon}</span><span class="sop-ws-tool-label">${tool.label}</span></button>`).join("")}
+  root.querySelector("[data-ws-toolbar]").innerHTML = `${SOP_WS_TOOLS.map((tool) => `<button type="button" class="sop-ws-tool" data-ws-tool="${tool.id}" aria-pressed="${sopWs.tool === tool.id}" title="${tool.label} (${tool.key})" aria-label="${tool.label}" ${disabled && tool.id !== "select" ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${tool.icon}</span><span class="sop-ws-tool-label">${tool.label}</span></button>`).join("")}
     <span class="sop-ws-sep" aria-hidden="true"></span>
-    <button type="button" class="sop-ws-icon sop-ws-icon--dark" data-ws-action="zoom-out" title="Alejar" aria-label="Alejar"><span class="material-symbols-rounded" aria-hidden="true">zoom_out</span></button>
+    <button type="button" class="sop-ws-icon" data-ws-action="zoom-out" title="Alejar" aria-label="Alejar"><span class="material-symbols-rounded" aria-hidden="true">zoom_out</span></button>
     <output class="sop-ws-zoom" data-ws-zoom>${Math.round(sopWs.zoom * 100)}%</output>
-    <button type="button" class="sop-ws-icon sop-ws-icon--dark" data-ws-action="zoom-in" title="Acercar" aria-label="Acercar"><span class="material-symbols-rounded" aria-hidden="true">zoom_in</span></button>
-    <button type="button" class="sop-ws-icon sop-ws-icon--dark" data-ws-action="zoom-fit" title="Ajustar a la ventana" aria-label="Ajustar a la ventana"><span class="material-symbols-rounded" aria-hidden="true">fit_screen</span></button>`;
+    <button type="button" class="sop-ws-icon" data-ws-action="zoom-in" title="Acercar" aria-label="Acercar"><span class="material-symbols-rounded" aria-hidden="true">zoom_in</span></button>
+    <button type="button" class="sop-ws-icon" data-ws-action="zoom-fit" title="Ajustar a la ventana" aria-label="Ajustar a la ventana"><span class="material-symbols-rounded" aria-hidden="true">fit_screen</span></button>`;
   const tool = SOP_WS_TOOLS.find((item) => item.id === sopWs.tool);
-  dialog.querySelector("[data-ws-hint]").innerHTML = disabled
-    ? '<span class="material-symbols-rounded" aria-hidden="true">info</span>Esta hoja no tiene pasos. Añade un paso en el panel derecho para poder anotarla.'
+  root.querySelector("[data-ws-hint]").innerHTML = disabled
+    ? '<span class="material-symbols-rounded" aria-hidden="true">info</span>Esta hoja no tiene pasos. Añade un paso en la pestaña Pasos para poder anotarla.'
     : `<span class="material-symbols-rounded" aria-hidden="true">${tool.icon}</span>${escapeHtml(tool.hint)}`;
-  dialog.querySelector("[data-ws-viewport]").dataset.tool = sopWs.tool;
+  root.querySelector("[data-ws-viewport]").dataset.tool = sopWs.tool;
 }
 
 function renderSopWsRail() {
   const draft = sopWsDraft();
-  const rail = sopWs.dialog.querySelector("[data-ws-rail]");
+  const rail = sopWs.root.querySelector("[data-ws-rail]");
   rail.innerHTML = draft.procedures.map((procedure, index) => `<button type="button" class="sop-ws-thumb" data-ws-sheet="${index}" aria-current="${index === sopWs.procedureIndex}">
     <canvas data-index="${index}" data-pending="1" width="120" height="93"></canvas>
     <span class="sop-ws-thumb-info"><strong>Hoja ${escapeHtml(procedure.sheet)}</strong><small data-ws-thumb-meta="${index}"></small></span><i class="sop-ws-dot" data-ws-thumb-dot="${index}" aria-hidden="true"></i></button>`).join("");
@@ -197,7 +238,7 @@ function renderSopWsRail() {
     }
   }, { root: rail, rootMargin: "300px" });
   rail.querySelectorAll("canvas[data-pending]").forEach((canvas) => observer.observe(canvas));
-  sopWs.thumbObserver = observer;
+  rail.querySelector('[aria-current="true"]')?.scrollIntoView({ block: "nearest" });
 }
 
 function sopWsSheetHasChanges(procedure) {
@@ -206,11 +247,11 @@ function sopWsSheetHasChanges(procedure) {
 
 function updateSopWsRailMeta() {
   const draft = sopWsDraft();
-  const dialog = sopWs?.dialog;
-  if (!draft || !dialog) return;
+  const root = sopWs?.root;
+  if (!draft || !root) return;
   draft.procedures.forEach((procedure, index) => {
-    const meta = dialog.querySelector(`[data-ws-thumb-meta="${index}"]`);
-    const dot = dialog.querySelector(`[data-ws-thumb-dot="${index}"]`);
+    const meta = root.querySelector(`[data-ws-thumb-meta="${index}"]`);
+    const dot = root.querySelector(`[data-ws-thumb-dot="${index}"]`);
     const marks = (procedure.annotations ?? []).length;
     if (meta) meta.textContent = `${procedure.steps.length} ${procedure.steps.length === 1 ? "paso" : "pasos"}${marks ? ` · ${marks} ${marks === 1 ? "marca" : "marcas"}` : ""}`;
     if (dot) {
@@ -218,7 +259,7 @@ function updateSopWsRailMeta() {
       dot.dataset.state = reviewed ? "reviewed" : sopWsSheetHasChanges(procedure) ? "edited" : procedure.steps.length ? "" : "empty";
     }
   });
-  dialog.querySelectorAll("[data-ws-sheet]").forEach((button) => button.setAttribute("aria-current", String(Number(button.dataset.wsSheet) === sopWs.procedureIndex)));
+  root.querySelectorAll("[data-ws-sheet]").forEach((button) => button.setAttribute("aria-current", String(Number(button.dataset.wsSheet) === sopWs.procedureIndex)));
 }
 
 async function paintSopWsThumb(canvas) {
@@ -238,11 +279,11 @@ async function paintSopWsThumb(canvas) {
 // ---------------------------------------------------------------- lienzo
 async function paintSopWsPage() {
   const ws = sopWs;
-  if (!ws) return;
+  if (!ws?.root) return;
   const sequence = ++ws.renderSeq;
-  const dialog = ws.dialog;
-  const status = dialog.querySelector("[data-ws-status]");
-  const canvas = dialog.querySelector("[data-ws-canvas]");
+  const root = ws.root;
+  const status = root.querySelector("[data-ws-status]");
+  const canvas = root.querySelector("[data-ws-canvas]");
   const procedure = sopWsProcedure();
   status.textContent = "Cargando hoja…";
   status.hidden = false;
@@ -252,13 +293,13 @@ async function paintSopWsPage() {
     const pdfPage = Number(procedure.pdfPage ?? procedure.sheet);
     if (!Number.isInteger(pdfPage) || pdfPage < 1 || pdfPage > pdf.numPages) throw new Error(`No existe la página ${pdfPage} en el PDF.`);
     const page = await pdf.getPage(pdfPage);
-    if (sequence !== ws.renderSeq) return;
+    if (sequence !== ws.renderSeq || !canvas.isConnected) return;
     await ensureSopStepBounds(draft, procedure);
     const natural = page.getViewport({ scale: 1 });
     ws.natural = natural;
     ws.aspect = natural.width / natural.height;
     procedure.pageAspect = Math.round(ws.aspect * 10000) / 10000;
-    const area = dialog.querySelector("[data-ws-viewport]");
+    const area = root.querySelector("[data-ws-viewport]");
     const fit = Math.min(Math.max(120, area.clientWidth - 40) / natural.width, Math.max(120, area.clientHeight - 40) / natural.height);
     const viewport = page.getViewport({ scale: fit * ws.zoom });
     const output = Math.max(1, Math.min(window.devicePixelRatio || 1, 2, 4096 / viewport.width, 4096 / viewport.height));
@@ -266,14 +307,14 @@ async function paintSopWsPage() {
     canvas.height = Math.ceil(viewport.height * output);
     canvas.style.width = `${Math.ceil(viewport.width)}px`;
     canvas.style.height = `${Math.ceil(viewport.height)}px`;
-    const pageBox = dialog.querySelector("[data-ws-page]");
+    const pageBox = root.querySelector("[data-ws-page]");
     pageBox.style.width = `${Math.ceil(viewport.width)}px`;
     pageBox.style.height = `${Math.ceil(viewport.height)}px`;
     await page.render({
       canvasContext: canvas.getContext("2d", { alpha: false }), viewport,
       transform: output === 1 ? null : [output, 0, 0, output, 0, 0], background: "#ffffff",
     }).promise;
-    if (sequence !== ws.renderSeq) return;
+    if (sequence !== ws.renderSeq || !canvas.isConnected) return;
     ws.vp = viewport;
     ws.page = page;
     status.hidden = true;
@@ -308,8 +349,8 @@ function sopWsHandles(annotation) {
 
 function paintSopWsOverlay(preview = null) {
   const ws = sopWs;
-  if (!ws) return;
-  const overlay = ws.dialog.querySelector("[data-ws-overlay]");
+  const overlay = ws?.root?.querySelector("[data-ws-overlay]");
+  if (!overlay) return;
   const aspect = ws.aspect;
   overlay.setAttribute("viewBox", `0 0 1000 ${Math.round(1000 / aspect * 100) / 100}`);
   let ui = "";
@@ -332,7 +373,7 @@ function paintSopWsOverlay(preview = null) {
 
 // ---------------------------------------------------------------- geometría y selección
 function sopWsPoint(event) {
-  const bounds = sopWs.dialog.querySelector("[data-ws-overlay]").getBoundingClientRect();
+  const bounds = sopWs.root.querySelector("[data-ws-overlay]").getBoundingClientRect();
   return {
     x: clampSopAnnotationCoordinate((event.clientX - bounds.left) / Math.max(1, bounds.width) * 1000),
     y: clampSopAnnotationCoordinate((event.clientY - bounds.top) / Math.max(1, bounds.height) * 1000),
@@ -374,6 +415,7 @@ function sopWsHitHandle(point) {
 function sopWsSelect(id) {
   sopWs.selectedId = id;
   sopWs.textEdit = null;
+  if (id) sopWs.tab = "marks";
   paintSopWsOverlay();
   renderSopWsInspector();
 }
@@ -426,48 +468,66 @@ function sopWsNewAnnotation(type, extra = {}) {
   return Object.assign(base, extra);
 }
 
-// ---------------------------------------------------------------- inspector
+// ---------------------------------------------------------------- panel derecho con pestañas
 function renderSopWsInspector() {
   const ws = sopWs;
-  if (!ws) return;
+  if (!ws?.root) return;
   const procedure = sopWsProcedure();
-  const draft = sopWsDraft();
-  const stepIndex = Math.min(ws.stepIndex, Math.max(0, procedure.steps.length - 1));
-  ws.stepIndex = stepIndex;
-  const currentStep = procedure.steps[stepIndex];
-  const stepList = procedure.steps.length
-    ? `<ol class="sop-ws-steps">${procedure.steps.map((step, index) => `<li><button type="button" data-ws-step="${index}" class="${index === stepIndex ? "is-current" : ""}"><b>${escapeHtml(step.number || "—")}</b><span>${escapeHtml(step.text || "Paso sin texto")}</span>${step.reviewed ? '<span class="material-symbols-rounded sop-ws-step-ok" aria-hidden="true">check_circle</span>' : isSopStepEdited(step) || step.added ? '<span class="material-symbols-rounded sop-ws-step-edited" aria-hidden="true">edit</span>' : ""}</button></li>`).join("")}</ol>`
+  ws.stepIndex = Math.min(ws.stepIndex, Math.max(0, procedure.steps.length - 1));
+  const tabs = [["steps", "Pasos"], ["marks", `Marcas · ${(procedure.annotations ?? []).length}`], ["sheet", "Hoja"]];
+  const body = ws.tab === "marks" ? sopWsMarksTabHtml() : ws.tab === "sheet" ? sopWsSheetTabHtml() : sopWsStepsTabHtml();
+  ws.root.querySelector("[data-ws-inspector]").innerHTML = `<div class="sop-flow-tabs" role="tablist">${tabs.map(([id, label]) => `<button type="button" role="tab" class="sop-flow-tab ${ws.tab === id ? "is-on" : ""}" data-ws-tab="${id}" aria-selected="${ws.tab === id}">${label}</button>`).join("")}</div><div class="sop-flow-pane">${body}</div>`;
+  updateSopWsStepNav();
+}
+
+function sopWsStepsTabHtml() {
+  const procedure = sopWsProcedure();
+  const currentStep = procedure.steps[sopWs.stepIndex];
+  const cards = procedure.steps.length
+    ? procedure.steps.map((step, index) => {
+      const pill = step.reviewed ? '<i class="sop-flow-pill sop-flow-pill--ok">Revisado</i>' : (step.added || isSopStepEdited(step)) ? '<i class="sop-flow-pill sop-flow-pill--edit">Editado</i>' : "";
+      return `<button type="button" class="sop-flow-step ${index === sopWs.stepIndex ? "is-current" : ""}" data-ws-step="${index}"><b>${escapeHtml(step.number || "—")}</b><span>${escapeHtml(step.text || "Paso sin texto")}</span>${pill}</button>`;
+    }).join("")
     : '<p class="sop-ws-empty">Esta hoja todavía no tiene pasos.</p>';
-  const stepEditor = currentStep ? `<div class="sop-ws-step-editor">
+  const editor = currentStep ? `<div class="sop-flow-step-editor">
       <div class="sop-ws-field-row"><label>Número<input type="text" data-ws-step-field="number" value="${escapeHtml(currentStep.number)}" maxlength="20" /></label>
         <button type="button" class="sop-ws-small ${currentStep.reviewed ? "is-on" : ""}" data-ws-action="toggle-reviewed"><span class="material-symbols-rounded" aria-hidden="true">${currentStep.reviewed ? "check_circle" : "radio_button_unchecked"}</span>${currentStep.reviewed ? "Revisado" : "Marcar revisado"}</button></div>
       <label>Texto del paso<textarea rows="4" data-ws-step-field="text">${escapeHtml(currentStep.text)}</textarea></label>
       <div class="sop-ws-field-row"><button type="button" class="sop-ws-small" data-ws-action="restore-step" ${isSopStepEdited(currentStep) ? "" : "hidden"}><span class="material-symbols-rounded" aria-hidden="true">undo</span>Restaurar</button>
         <button type="button" class="sop-ws-small sop-ws-small--danger" data-ws-action="delete-step"><span class="material-symbols-rounded" aria-hidden="true">delete</span>Eliminar paso</button></div>
     </div>` : "";
-  ws.dialog.querySelector("[data-ws-inspector]").innerHTML = `
-    <section class="sop-ws-panel"><header><h3>Hoja ${escapeHtml(procedure.sheet)} · pasos</h3><button type="button" class="sop-ws-small" data-ws-action="add-step"><span class="material-symbols-rounded" aria-hidden="true">add</span>Paso</button></header>
-      <label class="sop-ws-sheet-title">Nombre de la hoja<input type="text" data-ws-sheet-title value="${escapeHtml(procedure.title)}" maxlength="120" /></label>
-      ${stepList}${stepEditor}</section>
-    <section class="sop-ws-panel" data-ws-props>${sopWsPropertiesHtml()}</section>
-    <section class="sop-ws-panel"><header><h3>Marcas de esta hoja</h3></header><div data-ws-annotation-list>${sopWsAnnotationListHtml()}</div></section>`;
+  return `<p class="sop-flow-pane-title">Hoja ${escapeHtml(procedure.sheet)} · ${escapeHtml(procedure.title)}</p>${cards}${editor}
+    <button type="button" class="sop-ws-small" data-ws-action="add-step"><span class="material-symbols-rounded" aria-hidden="true">add</span>Añadir paso a esta hoja</button>`;
+}
+
+function sopWsSheetTabHtml() {
+  const procedure = sopWsProcedure();
+  const reviewed = procedure.steps.filter((step) => step.reviewed).length;
+  return `<p class="sop-flow-pane-title">Datos de la hoja ${escapeHtml(procedure.sheet)}</p>
+    <label>Nombre de la hoja<input type="text" data-ws-sheet-title value="${escapeHtml(procedure.title)}" maxlength="120" /></label>
+    <p class="sop-ws-muted">${procedure.steps.length} ${procedure.steps.length === 1 ? "paso" : "pasos"} · ${reviewed} revisados · ${(procedure.annotations ?? []).length} marcas</p>
+    <button type="button" class="sop-ws-small is-on" data-ws-action="review-sheet" ${procedure.steps.length ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">task_alt</span>Marcar toda la hoja como revisada</button>`;
 }
 
 function sopWsSwatches(active) {
   return `<div class="sop-ws-swatches" role="group" aria-label="Color">${SOP_WS_COLORS.map(([hex, name]) => `<button type="button" class="sop-ws-swatch" data-ws-color="${hex}" style="--swatch:${hex}" aria-label="${name}" title="${name}" aria-pressed="${String(active).toLowerCase() === hex}"></button>`).join("")}</div>`;
 }
 
+function sopWsMarksTabHtml() {
+  return `<div data-ws-props>${sopWsPropertiesHtml()}</div><div class="sop-flow-marks"><p class="sop-flow-pane-title">Marcas de esta hoja</p><div data-ws-annotation-list>${sopWsAnnotationListHtml()}</div></div>`;
+}
+
 function sopWsPropertiesHtml() {
   const selected = sopWsSelected();
   const procedure = sopWsProcedure();
   if (sopWs.textEdit) {
-    return `<header><h3>Texto del documento</h3></header>
+    return `<p class="sop-flow-pane-title">Texto del documento</p>
       <label>Corrige el texto<textarea rows="4" data-ws-doc-text>${escapeHtml(sopWs.textEdit.value)}</textarea></label>
       <div class="sop-ws-field-row"><button type="button" class="sop-ws-small" data-ws-action="doc-restore"><span class="material-symbols-rounded" aria-hidden="true">undo</span>Restaurar original</button><button type="button" class="sop-ws-small is-on" data-ws-action="doc-done"><span class="material-symbols-rounded" aria-hidden="true">check</span>Listo</button></div>`;
   }
   if (!selected) {
     const tool = ["arrow", "box", "highlight", "number", "note", "text"].includes(sopWs.tool) ? sopWs.tool : "arrow";
-    return `<header><h3>Valores para lo que dibujes</h3></header>
+    return `<p class="sop-flow-pane-title">Valores para lo que dibujes</p>
       <p class="sop-ws-muted">Elige una herramienta y dibuja; luego selecciona la marca para ajustarla.</p>
       <div class="sop-ws-group"><span>Color de ${escapeHtml((SOP_WS_TYPE_NAMES[tool] ?? "marca").toLowerCase())}</span>${sopWsSwatches(sopWs.colors[tool])}</div>
       <label class="sop-ws-range">Grosor de líneas<input type="range" min="3" max="20" value="${sopWs.width}" data-ws-default-width /><output>${sopWs.width}</output></label>
@@ -476,7 +536,7 @@ function sopWsPropertiesHtml() {
   const hasLine = selected.type === "arrow" || selected.type === "box";
   const hasText = selected.type === "note" || selected.type === "text";
   const stepOptions = `<option value="">Sin paso</option>${procedure.steps.map((step) => `<option value="${escapeHtml(step.number)}" ${String(selected.stepNumber) === String(step.number) ? "selected" : ""}>Paso ${escapeHtml(step.number)}</option>`).join("")}`;
-  return `<header><h3>${SOP_WS_TYPE_NAMES[selected.type] ?? "Marca"} seleccionada</h3></header>
+  return `<p class="sop-flow-pane-title">${SOP_WS_TYPE_NAMES[selected.type] ?? "Marca"} seleccionada</p>
     ${selected.type === "textfix" ? '<p class="sop-ws-muted">Este texto reemplaza al original sobre la hoja. Edítalo con la herramienta «Texto del documento».</p>' : `<div class="sop-ws-group"><span>Color</span>${sopWsSwatches(selected.color ?? sopWs.colors[selected.type])}</div>`}
     ${hasText ? `<label>Texto<textarea rows="3" maxlength="${selected.type === "note" ? 200 : 300}" data-ws-prop="text" placeholder="Escribe aquí">${escapeHtml(selected.text ?? "")}</textarea></label>
       <label class="sop-ws-range">Tamaño de letra<input type="range" min="14" max="${selected.type === "note" ? 48 : 90}" value="${Number(selected.fontSize) || (selected.type === "note" ? 21 : 30)}" data-ws-prop="fontSize" /><output>${Number(selected.fontSize) || (selected.type === "note" ? 21 : 30)}</output></label>` : ""}
@@ -499,7 +559,7 @@ function sopWsAnnotationListHtml() {
 }
 
 function renderSopWsAnnotationList() {
-  const holder = sopWs?.dialog.querySelector("[data-ws-annotation-list]");
+  const holder = sopWs?.root?.querySelector("[data-ws-annotation-list]");
   if (holder) holder.innerHTML = sopWsAnnotationListHtml();
 }
 
@@ -515,10 +575,12 @@ function sopWsSetTool(tool) {
   renderSopWsInspector();
 }
 
-function sopWsSelectSheet(index) {
-  if (index === sopWs.procedureIndex || !sopWsDraft().procedures[index]) return;
+function sopWsSelectSheet(index, stepIndex = 0) {
+  if (!sopWsDraft().procedures[index]) return;
+  if (index === sopWs.procedureIndex && stepIndex === sopWs.stepIndex) return;
+  const changedSheet = index !== sopWs.procedureIndex;
   sopWs.procedureIndex = index;
-  sopWs.stepIndex = 0;
+  sopWs.stepIndex = stepIndex;
   sopWs.selectedId = null;
   sopWs.textEdit = null;
   if (!sopWsCanAnnotate() && sopWs.tool !== "select") sopWs.tool = "select";
@@ -526,42 +588,53 @@ function sopWsSelectSheet(index) {
   renderSopWsInspector();
   updateSopWsRailMeta();
   renderSopWsTop();
-  paintSopWsPage();
+  if (changedSheet) paintSopWsPage();
+  else paintSopWsOverlay();
+  sopWs.root.querySelector('.sop-ws-thumb[aria-current="true"]')?.scrollIntoView({ block: "nearest" });
 }
 
 function sopWsSetZoom(zoom) {
   sopWs.zoom = Math.max(0.5, Math.min(5, Math.round(zoom * 100) / 100));
-  const label = sopWs.dialog.querySelector("[data-ws-zoom]");
+  const label = sopWs.root.querySelector("[data-ws-zoom]");
   if (label) label.textContent = `${Math.round(sopWs.zoom * 100)}%`;
   window.clearTimeout(sopWs.zoomTimer);
   sopWs.zoomTimer = window.setTimeout(paintSopWsPage, 60);
 }
 
-function sopWsProxyStep(field, value) {
-  const procedureIndex = sopWs.procedureIndex;
-  const stepIndex = sopWs.stepIndex;
-  const target = document.querySelector(`[data-procedure-index="${procedureIndex}"][data-step-index="${stepIndex}"][data-step-field="${field}"]`);
-  if (target) {
-    target.value = value;
-    target.dispatchEvent(new Event("input", { bubbles: true }));
-    return;
-  }
-  const step = sopWsProcedure().steps[stepIndex];
+// Edición de número o texto de un paso: mismas reglas que el editor anterior (restaurar, renumerar marcas, texto corregido sobre la hoja).
+function sopWsEditStep(field, value) {
+  const procedure = sopWsProcedure();
+  const step = procedure.steps[sopWs.stepIndex];
   if (!step) return;
+  const previousNumber = step.number;
   step.originalText ??= step.text;
   step.originalNumber ??= step.number;
   step.reviewed = false;
   step[field] = value;
+  if (field === "number" && previousNumber !== value) {
+    procedure.annotations = (procedure.annotations ?? []).map((annotation) => (annotation.stepNumber === previousNumber ? { ...annotation, stepNumber: value } : annotation));
+  }
+  const procedureIndex = sopWs.procedureIndex;
+  syncSopStepTextFix(sopWsDraft(), procedure, step).then(() => {
+    if (!sopWs || sopWs.procedureIndex !== procedureIndex) return;
+    paintSopWsOverlay();
+    renderSopWsAnnotationList();
+    renderSopWsTop();
+    updateSopWsRailMeta();
+  }).catch(() => {});
+  sopWsAfterStepEdit();
 }
 
 function sopWsAfterStepEdit() {
   renderSopWsTop();
   updateSopWsRailMeta();
-  const stepButton = sopWs.dialog.querySelector(`[data-ws-step="${sopWs.stepIndex}"]`);
+  const button = sopWs.root.querySelector(`[data-ws-step="${sopWs.stepIndex}"]`);
   const step = sopWsProcedure().steps[sopWs.stepIndex];
-  if (stepButton && step) {
-    stepButton.querySelector("b").textContent = step.number || "—";
-    stepButton.querySelector("span:not(.material-symbols-rounded)").textContent = step.text || "Paso sin texto";
+  if (button && step) {
+    button.querySelector("b").textContent = step.number || "—";
+    button.querySelector("span").textContent = step.text || "Paso sin texto";
+    button.querySelector(".sop-flow-pill")?.remove();
+    if (step.added || isSopStepEdited(step)) button.insertAdjacentHTML("beforeend", '<i class="sop-flow-pill sop-flow-pill--edit">Editado</i>');
   }
 }
 
@@ -575,10 +648,11 @@ async function sopWsEditDocumentText(point) {
     && py >= step.sourceBounds.y - 4 && py <= step.sourceBounds.y + step.sourceBounds.height + 4);
   if (stepIndex >= 0) {
     ws.stepIndex = stepIndex;
+    ws.tab = "steps";
     renderSopWsInspector();
     paintSopWsOverlay();
-    ws.dialog.querySelector('[data-ws-step-field="text"]')?.focus();
-    ws.showToast("Ese texto es el paso " + procedure.steps[stepIndex].number + ": edítalo en el panel derecho.");
+    ws.root.querySelector('[data-ws-step-field="text"]')?.focus();
+    sopWsNotice(`Ese texto es el paso ${procedure.steps[stepIndex].number}: edítalo en el panel derecho.`);
     return;
   }
   const free = sopWsAnnotations().find((annotation) => annotation.type === "textfix" && !annotation.stepNumber
@@ -590,16 +664,17 @@ async function sopWsEditDocumentText(point) {
     const page = await getSopDraftPdfDocument(sopWsDraft()).then((pdf) => pdf.getPage(Number(procedure.pdfPage ?? procedure.sheet)));
     const block = findSopTextBlockAt((await page.getTextContent()).items, px, py);
     if (!block) {
-      ws.showToast("No se encontró texto editable en ese punto de la hoja.", "warning");
+      sopWsNotice("No se encontró texto editable en ese punto de la hoja.", "warning");
       return;
     }
     target = { id: null, block, value: block.text };
   }
   ws.textEdit = target;
   ws.selectedId = null;
+  ws.tab = "marks";
   paintSopWsOverlay();
   renderSopWsInspector();
-  ws.dialog.querySelector("[data-ws-doc-text]")?.focus();
+  ws.root.querySelector("[data-ws-doc-text]")?.focus();
 }
 
 async function sopWsApplyDocumentText(text) {
@@ -628,70 +703,92 @@ async function sopWsApplyDocumentText(text) {
 async function runSopWsExport(kind, scope = "current") {
   const ws = sopWs;
   if (!ws || ws.busy) return;
-  const draft = sopWsDraft();
-  const procedure = sopWsProcedure();
-  const status = ws.dialog.querySelector("[data-ws-status]");
-  const baseName = `${String(draft.document.id || "SOP").replace(/[^A-Za-z0-9._-]+/g, "_")}_Rev${String(draft.document.revision || "borrador").replace(/[^A-Za-z0-9._-]+/g, "_")}`;
+  const status = ws.root.querySelector("[data-ws-status]");
   try {
     ws.busy = true;
-    ws.dialog.classList.add("is-busy");
-    if (kind === "csv" || kind === "print") {
-      const rows = collectSopChanges(draft);
-      if (kind === "csv") downloadSopBlob(new Blob(["﻿", sopChangesToCsv(draft, rows)], { type: "text/csv;charset=utf-8" }), `${baseName}_cambios.csv`);
-      else openSopChangesPrint(draft, rows);
-      ws.showToast(rows.length ? `Resumen con ${rows.length} cambios listo.` : "Todavía no hay cambios; el resumen quedó vacío.");
-      return;
-    }
-    if (kind === "png") {
-      status.hidden = false;
-      status.textContent = "Preparando imagen…";
-      const sheet = await renderSopSheetCanvas(draft, procedure, { maxWidth: 2000 });
-      const blob = await new Promise((resolve) => sheet.canvas.toBlob(resolve, "image/png"));
-      downloadSopBlob(blob, `${baseName}_hoja${procedure.sheet}.png`);
-      ws.showToast(`Hoja ${procedure.sheet} exportada como imagen.`);
-      return;
-    }
-    const targets = scope === "all" ? draft.procedures
-      : scope === "changed" ? draft.procedures.filter(sopWsSheetHasChanges)
-        : [procedure];
-    if (!targets.length) {
-      ws.showToast("Ninguna hoja tiene cambios todavía. Elige «Hoja actual» o «Todas las hojas».", "warning");
-      return;
-    }
-    status.hidden = false;
-    const blob = await exportSopAnnotatedPdf(draft, targets, (done, total) => { status.textContent = `Exportando PDF… hoja ${done} de ${total}`; });
-    downloadSopBlob(blob, `${baseName}_${scope === "current" ? `hoja${procedure.sheet}` : scope === "changed" ? "con_cambios" : "completa"}.pdf`);
-    ws.showToast(`PDF con ${targets.length} ${targets.length === 1 ? "hoja" : "hojas"} exportado.`);
+    ws.root.classList.add("is-busy");
+    await runSopDraftExport(ws.state.sopDraft, kind, scope, sopWsProcedure(), (message) => { status.hidden = false; status.textContent = message; });
   } catch (error) {
-    ws.showToast(error?.message || "No se pudo exportar.", "warning");
+    sopWsNotice(error?.message || "No se pudo exportar.", "warning");
   } finally {
     ws.busy = false;
-    ws.dialog.classList.remove("is-busy");
-    const live = ws.dialog.querySelector("[data-ws-status]");
+    ws.root?.classList.remove("is-busy");
+    const live = ws.root?.querySelector("[data-ws-status]");
     if (live && ws.vp) live.hidden = true;
   }
 }
 
 // ---------------------------------------------------------------- eventos
-function bindSopWorkspace(dialog) {
-  const ws = sopWs;
-  ws.onResize = () => { window.clearTimeout(ws.resizeTimer); ws.resizeTimer = window.setTimeout(paintSopWsPage, 150); };
-  ws.onAnnotationsChanged = () => { if (sopWs) { paintSopWsOverlay(); renderSopWsAnnotationList(); renderSopWsTop(); updateSopWsRailMeta(); } };
-  window.addEventListener("resize", ws.onResize);
-  window.addEventListener("sop-draft-annotations-changed", ws.onAnnotationsChanged);
+function toggleSopWsExportMenu(open) {
+  const editor = sopWs?.root?.closest(".sop-flow-editor");
+  if (!editor) return;
+  const menu = editor.querySelector("[data-ws-export-menu]");
+  const button = editor.querySelector('[data-ws-action="toggle-export"]');
+  menu.hidden = !open;
+  button.setAttribute("aria-expanded", String(open));
+}
 
-  dialog.addEventListener("cancel", (event) => {
-    event.preventDefault();
-    if (sopWs.selectedId || sopWs.textEdit) sopWsSelect(null);
-    else if (!dialog.querySelector("[data-ws-export-menu]").hidden) toggleSopWsExportMenu(false);
-    else closeSopWorkspace();
+function bindSopWorkspaceGlobals() {
+  if (sopWsGlobalsBound) return;
+  sopWsGlobalsBound = true;
+  window.addEventListener("resize", () => {
+    if (!sopWs?.root?.isConnected) return;
+    window.clearTimeout(sopWs.resizeTimer);
+    sopWs.resizeTimer = window.setTimeout(paintSopWsPage, 150);
   });
+  window.addEventListener("sop-draft-annotations-changed", () => {
+    if (!sopWs?.root?.isConnected) return;
+    paintSopWsOverlay();
+    renderSopWsAnnotationList();
+    renderSopWsTop();
+    updateSopWsRailMeta();
+  });
+  document.addEventListener("keyup", (event) => {
+    if (event.key === " " && sopWs) { sopWs.space = false; sopWs.root?.classList.remove("is-panning"); }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (!sopWs?.root?.isConnected || !document.contains(sopWs.root)) return;
+    const typing = event.target.closest?.("input, textarea, select, [contenteditable]");
+    const modifier = event.ctrlKey || event.metaKey;
+    if (modifier && event.key.toLowerCase() === "z" && !typing) { event.preventDefault(); sopWsStep(event.shiftKey ? "redo" : "undo"); return; }
+    if (modifier && event.key.toLowerCase() === "y" && !typing) { event.preventDefault(); sopWsStep("redo"); return; }
+    if (typing || modifier || event.altKey || event.target.closest?.("dialog[open]")) return;
+    if (event.key === " " && !event.target.closest("button")) { sopWs.space = true; sopWs.root.classList.add("is-panning"); event.preventDefault(); return; }
+    if (event.key === "Escape") {
+      if (sopWs.selectedId || sopWs.textEdit) { sopWsSelect(null); return; }
+      toggleSopWsExportMenu(false);
+      return;
+    }
+    const tool = SOP_WS_TOOLS.find((item) => item.key.toLowerCase() === event.key.toLowerCase());
+    if (tool) { event.preventDefault(); sopWsSetTool(tool.id); return; }
+    const selected = sopWsSelected();
+    if (!selected) return;
+    if (event.key === "Delete" || event.key === "Backspace") { event.preventDefault(); handleSopWsAction({ dataset: { wsAction: "delete" } }); return; }
+    const step = event.shiftKey ? 10 : 1;
+    const delta = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[event.key];
+    if (delta) {
+      event.preventDefault();
+      const now = Date.now();
+      const before = sopWsSnapshot();
+      sopWsMoveBy(selected, structuredClone(selected), delta[0], delta[1]);
+      if (now - sopWs.nudgeAt > 700) { sopWsHistory().undo.push(before); sopWsHistory().redo = []; }
+      sopWs.nudgeAt = now;
+      sopWsChanged();
+    }
+  });
+}
 
-  dialog.addEventListener("click", (event) => {
-    const menu = dialog.querySelector("[data-ws-export-menu]");
+function bindSopWorkspace(root) {
+  bindSopWorkspaceGlobals();
+  const editor = root.closest(".sop-flow-editor");
+
+  editor.addEventListener("click", (event) => {
+    const menu = editor.querySelector("[data-ws-export-menu]");
     if (!menu.hidden && !event.target.closest(".sop-ws-menu")) toggleSopWsExportMenu(false);
     const tool = event.target.closest("[data-ws-tool]");
     if (tool) { sopWsSetTool(tool.dataset.wsTool); return; }
+    const tab = event.target.closest("[data-ws-tab]");
+    if (tab) { sopWs.tab = tab.dataset.wsTab; renderSopWsInspector(); return; }
     const sheet = event.target.closest("[data-ws-sheet]");
     if (sheet) { sopWsSelectSheet(Number(sheet.dataset.wsSheet)); return; }
     const step = event.target.closest("[data-ws-step]");
@@ -708,17 +805,13 @@ function bindSopWorkspace(dialog) {
     if (action) handleSopWsAction(action);
   });
 
-  dialog.addEventListener("input", (event) => {
+  editor.addEventListener("input", (event) => {
     const target = event.target;
     if (target.matches("[data-ws-step-field]")) {
-      sopWsProxyStep(target.dataset.wsStepField, target.value);
-      sopWsAfterStepEdit();
+      sopWsEditStep(target.dataset.wsStepField, target.value);
       return;
     }
-    if (target.matches("[data-ws-sheet-title]")) {
-      sopWsProcedure().title = target.value;
-      return;
-    }
+    if (target.matches("[data-ws-sheet-title]")) { sopWsProcedure().title = target.value; return; }
     if (target.matches("[data-ws-default-width]")) {
       sopWs.width = Number(target.value);
       target.nextElementSibling.textContent = String(sopWs.width);
@@ -744,10 +837,10 @@ function bindSopWorkspace(dialog) {
       paintSopWsOverlay();
     }
   });
-  dialog.addEventListener("focusin", (event) => {
+  editor.addEventListener("focusin", (event) => {
     if (event.target.matches("[data-ws-prop], [data-ws-default-width]")) sopWs.fieldSnapshot = sopWsSnapshot();
   });
-  dialog.addEventListener("change", (event) => {
+  editor.addEventListener("change", (event) => {
     if (event.target.matches("[data-ws-prop]") && sopWs.fieldSnapshot !== null) {
       sopWsCommit(sopWs.fieldSnapshot);
       sopWs.fieldSnapshot = null;
@@ -755,21 +848,21 @@ function bindSopWorkspace(dialog) {
       renderSopWsAnnotationList();
     }
   });
-  dialog.addEventListener("focusout", (event) => {
-    if (event.target.matches("[data-ws-prop]") && sopWs?.fieldSnapshot !== null && sopWs) {
+  editor.addEventListener("focusout", (event) => {
+    if (sopWs && event.target.matches("[data-ws-prop]") && sopWs.fieldSnapshot !== null) {
       sopWsCommit(sopWs.fieldSnapshot);
       sopWs.fieldSnapshot = null;
     }
   });
 
   // dibujo y selección sobre el lienzo
-  const overlay = dialog.querySelector("[data-ws-overlay]");
+  const overlay = root.querySelector("[data-ws-overlay]");
   overlay.addEventListener("pointerdown", (event) => {
     if (event.button !== 0 || !sopWs.vp) return;
-    const viewport = dialog.querySelector("[data-ws-viewport]");
+    const viewport = root.querySelector("[data-ws-viewport]");
     if (sopWs.space) {
       sopWs.drag = { mode: "pan", x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop };
-      overlay.setPointerCapture(event.pointerId);
+      try { overlay.setPointerCapture(event.pointerId); } catch { /* el puntero puede no admitir captura */ }
       return;
     }
     const point = sopWsPoint(event);
@@ -790,12 +883,12 @@ function bindSopWorkspace(dialog) {
           return;
         } else return;
       }
-      overlay.setPointerCapture(event.pointerId);
+      try { overlay.setPointerCapture(event.pointerId); } catch { /* el puntero puede no admitir captura */ }
       return;
     }
     if (["arrow", "box", "highlight"].includes(tool)) {
       sopWs.drag = { mode: "draw", tool, start: point, end: point };
-      overlay.setPointerCapture(event.pointerId);
+      try { overlay.setPointerCapture(event.pointerId); } catch { /* el puntero puede no admitir captura */ }
       return;
     }
     if (tool === "edit") { sopWsEditDocumentText(point).catch(() => {}); return; }
@@ -810,10 +903,11 @@ function bindSopWorkspace(dialog) {
     }
     sopWsMutate(() => sopWsAnnotations().push(annotation));
     sopWs.selectedId = annotation.id;
+    sopWs.tab = "marks";
     paintSopWsOverlay();
     renderSopWsInspector();
     if (tool !== "number") {
-      const field = dialog.querySelector('[data-ws-prop="text"]');
+      const field = root.querySelector('[data-ws-prop="text"]');
       field?.focus();
       field?.select();
     }
@@ -822,7 +916,7 @@ function bindSopWorkspace(dialog) {
     const drag = sopWs.drag;
     if (!drag) return;
     if (drag.mode === "pan") {
-      const viewport = dialog.querySelector("[data-ws-viewport]");
+      const viewport = root.querySelector("[data-ws-viewport]");
       viewport.scrollLeft = drag.left - (event.clientX - drag.x);
       viewport.scrollTop = drag.top - (event.clientY - drag.y);
       return;
@@ -856,7 +950,7 @@ function bindSopWorkspace(dialog) {
     paintSopWsOverlay();
   });
   const finishDrag = (event) => {
-    const drag = sopWs.drag;
+    const drag = sopWs?.drag;
     if (!drag) return;
     sopWs.drag = null;
     try { overlay.releasePointerCapture(event.pointerId); } catch { /* ya liberado */ }
@@ -869,6 +963,7 @@ function bindSopWorkspace(dialog) {
         : sopWsNewAnnotation(tool, { x: Math.min(start.x, end.x), y: Math.min(start.y, end.y), width: Math.max(8, Math.abs(end.x - start.x)), height: Math.max(8, Math.abs(end.y - start.y)) });
       sopWsMutate(() => sopWsAnnotations().push(annotation));
       sopWs.selectedId = annotation.id;
+      sopWs.tab = "marks";
       paintSopWsOverlay();
       renderSopWsInspector();
       return;
@@ -880,49 +975,13 @@ function bindSopWorkspace(dialog) {
   overlay.addEventListener("pointercancel", finishDrag);
   overlay.addEventListener("dblclick", () => {
     const selected = sopWsSelected();
-    if (selected && ["note", "text"].includes(selected.type)) dialog.querySelector('[data-ws-prop="text"]')?.focus();
+    if (selected && ["note", "text"].includes(selected.type)) root.querySelector('[data-ws-prop="text"]')?.focus();
   });
-  dialog.querySelector("[data-ws-viewport]").addEventListener("wheel", (event) => {
+  root.querySelector("[data-ws-viewport]").addEventListener("wheel", (event) => {
     if (!event.ctrlKey) return;
     event.preventDefault();
     sopWsSetZoom(sopWs.zoom + (event.deltaY < 0 ? 0.15 : -0.15));
   }, { passive: false });
-
-  dialog.addEventListener("keydown", (event) => {
-    if (event.key === " " && !event.target.closest("input, textarea, select, button")) { sopWs.space = true; dialog.classList.add("is-panning"); event.preventDefault(); }
-    const typing = event.target.closest("input, textarea, select");
-    const modifier = event.ctrlKey || event.metaKey;
-    if (modifier && event.key.toLowerCase() === "z") { event.preventDefault(); sopWsStep(event.shiftKey ? "redo" : "undo"); return; }
-    if (modifier && event.key.toLowerCase() === "y") { event.preventDefault(); sopWsStep("redo"); return; }
-    if (typing || modifier || event.altKey) return;
-    const tool = SOP_WS_TOOLS.find((item) => item.key.toLowerCase() === event.key.toLowerCase());
-    if (tool) { event.preventDefault(); sopWsSetTool(tool.id); return; }
-    const selected = sopWsSelected();
-    if (!selected) return;
-    if (event.key === "Delete" || event.key === "Backspace") { event.preventDefault(); handleSopWsAction({ dataset: { wsAction: "delete" } }); return; }
-    const step = event.shiftKey ? 10 : 1;
-    const delta = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[event.key];
-    if (delta) {
-      event.preventDefault();
-      const now = Date.now();
-      const before = sopWsSnapshot();
-      sopWsMoveBy(selected, structuredClone(selected), delta[0], delta[1]);
-      if (now - sopWs.nudgeAt > 700) sopWsHistory().undo.push(before), sopWsHistory().redo = [];
-      sopWs.nudgeAt = now;
-      sopWsChanged();
-    }
-  });
-  dialog.addEventListener("keyup", (event) => {
-    if (event.key === " ") { sopWs.space = false; dialog.classList.remove("is-panning"); }
-  });
-}
-
-function toggleSopWsExportMenu(open) {
-  const dialog = sopWs.dialog;
-  const menu = dialog.querySelector("[data-ws-export-menu]");
-  const button = dialog.querySelector('[data-ws-action="toggle-export"]');
-  menu.hidden = !open;
-  button.setAttribute("aria-expanded", String(open));
 }
 
 function sopWsApplyColor(hex) {
@@ -941,9 +1000,11 @@ function sopWsApplyColor(hex) {
 function handleSopWsAction(action) {
   const name = action.dataset.wsAction;
   const ws = sopWs;
-  if (name === "close") { closeSopWorkspace(); return; }
+  if (name === "go-review") { goSopFlowStage(3); return; }
   if (name === "undo" || name === "redo") { sopWsStep(name); return; }
-  if (name === "toggle-export") { toggleSopWsExportMenu(ws.dialog.querySelector("[data-ws-export-menu]").hidden); return; }
+  if (name === "step-prev") { sopWsGoStep(-1); return; }
+  if (name === "step-next") { sopWsGoStep(1); return; }
+  if (name === "toggle-export") { toggleSopWsExportMenu(ws.root.closest(".sop-flow-editor").querySelector("[data-ws-export-menu]").hidden); return; }
   if (name.startsWith("export-")) {
     toggleSopWsExportMenu(false);
     runSopWsExport(name.replace("export-", ""), action.dataset.scope);
@@ -981,12 +1042,12 @@ function handleSopWsAction(action) {
   if (name === "add-step") {
     procedure.steps.push({ number: "", text: "", sourceNote: "", images: [], added: true });
     ws.stepIndex = procedure.steps.length - 1;
-    ws.render();
+    ws.tab = "steps";
     renderSopWsToolbar();
     renderSopWsInspector();
     renderSopWsTop();
     updateSopWsRailMeta();
-    ws.dialog.querySelector('[data-ws-step-field="number"]')?.focus();
+    ws.root.querySelector('[data-ws-step-field="number"]')?.focus();
     return;
   }
   if (name === "delete-step" && step) {
@@ -995,7 +1056,6 @@ function handleSopWsAction(action) {
     procedure.annotations = sopWsAnnotations().filter((annotation) => annotation.stepNumber !== String(removed?.number));
     ws.stepIndex = Math.max(0, ws.stepIndex - 1);
     ws.selectedId = null;
-    ws.render();
     renderSopWsToolbar();
     renderSopWsInspector();
     paintSopWsOverlay();
@@ -1004,8 +1064,11 @@ function handleSopWsAction(action) {
     return;
   }
   if (name === "restore-step" && step) {
-    sopWsProxyStep("number", step.originalNumber ?? step.number);
-    sopWsProxyStep("text", step.originalText ?? step.text);
+    const number = step.originalNumber ?? step.number;
+    const text = step.originalText ?? step.text;
+    sopWsEditStep("number", number);
+    sopWsEditStep("text", text);
+    step.reviewed = false;
     renderSopWsInspector();
     sopWsAfterStepEdit();
     return;
@@ -1014,6 +1077,13 @@ function handleSopWsAction(action) {
     step.reviewed = !step.reviewed;
     renderSopWsInspector();
     updateSopWsRailMeta();
+    return;
+  }
+  if (name === "review-sheet") {
+    procedure.steps.forEach((item) => { item.reviewed = true; });
+    renderSopWsInspector();
+    updateSopWsRailMeta();
+    sopWsNotice(`Hoja ${procedure.sheet} marcada como revisada.`);
     return;
   }
   if (name === "doc-done") { ws.textEdit = null; renderSopWsInspector(); paintSopWsOverlay(); return; }
