@@ -83,6 +83,30 @@ class SopCatalogTest extends TestCase
         $this->getJson('/api/sop-versions')->assertJsonCount(1, 'versions');
     }
 
+    public function test_las_anotaciones_del_editor_visual_viajan_y_vuelven_intactas(): void
+    {
+        $this->actingAs($this->manager());
+        $version = $this->versionPayload();
+        $version['procedures'][0]['pageAspect'] = 1.2941;
+        $version['procedures'][0]['annotations'] = [
+            ['id' => 'a1', 'type' => 'arrow', 'stepNumber' => '5.1', 'x1' => 100, 'y1' => 200, 'x2' => 300, 'y2' => 400, 'color' => '#1f56b3', 'strokeWidth' => 12, 'dash' => 'dashed'],
+            ['id' => 'a2', 'type' => 'highlight', 'stepNumber' => '5.1', 'x' => 50, 'y' => 60, 'width' => 200, 'height' => 30, 'color' => '#ffe14d', 'opacity' => 0.4],
+            ['id' => 'a3', 'type' => 'note', 'stepNumber' => '', 'x' => 400, 'y' => 500, 'text' => 'Cuidar el conector: no forzar el giro', 'fontSize' => 24, 'width' => 320],
+            ['id' => 'a4', 'type' => 'text', 'stepNumber' => '5.1', 'x' => 10, 'y' => 900, 'text' => 'Paso crítico', 'fontSize' => 34, 'bold' => true, 'bg' => '#ffffff'],
+        ];
+
+        $this->save($version)->assertOk()
+            ->assertJsonPath('version.procedures.0.pageAspect', 1.2941)
+            ->assertJsonPath('version.procedures.0.annotations.0.dash', 'dashed')
+            ->assertJsonPath('version.procedures.0.annotations.1.type', 'highlight')
+            ->assertJsonPath('version.procedures.0.annotations.2.text', 'Cuidar el conector: no forzar el giro')
+            ->assertJsonPath('version.procedures.0.annotations.3.bold', true);
+
+        $leida = $this->getJson('/api/sop-versions')->json('versions.0.procedures.0.annotations');
+        $this->assertCount(4, $leida);
+        $this->assertSame('#1f56b3', $leida[0]['color']);
+    }
+
     public function test_actualizar_sin_pdf_conserva_el_archivo_y_los_metadatos_de_creacion(): void
     {
         $this->actingAs($this->manager());

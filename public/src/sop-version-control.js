@@ -4,61 +4,131 @@ function clampSopAnnotationCoordinate(value) {
   return Math.max(0, Math.min(1000, Math.round(Number(value) || 0)));
 }
 
-function renderSopAnnotationContents(annotations = [], preview = null) {
+// Las anotaciones se guardan normalizadas (0–1000 en ambos ejes). Para dibujarlas sin deformar círculos,
+// grosores ni textos, se pasan a un espacio uniforme de 1000 × (1000 / proporción de la hoja).
+const SOP_PAGE_ASPECT = 1.294;
+const SOP_ANNOTATION_COLOR = "#d31e27";
+
+function getSopAnnotationAspect(options = {}) {
+  return Math.max(0.2, Math.min(5, Number(options.aspect) || SOP_PAGE_ASPECT));
+}
+
+function sopAnnotationColor(value, fallback = SOP_ANNOTATION_COLOR) {
+  return /^#[0-9a-f]{6}$/i.test(String(value)) ? String(value).toLowerCase() : fallback;
+}
+
+function tintSopColor(hex, amount = 0.82) {
+  const value = sopAnnotationColor(hex, "#f0a020");
+  const channel = (offset) => Math.round(parseInt(value.slice(offset, offset + 2), 16) * (1 - amount) + 255 * amount);
+  return `#${[1, 3, 5].map((offset) => channel(offset).toString(16).padStart(2, "0")).join("")}`;
+}
+
+function wrapSopAnnotationText(text, maxChars) {
+  const lines = [];
+  for (const paragraph of String(text ?? "").split("\n")) {
+    let current = "";
+    for (const word of paragraph.split(/\s+/).filter(Boolean)) {
+      if (current && `${current} ${word}`.length > maxChars) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = current ? `${current} ${word}` : word;
+      }
+    }
+    lines.push(current);
+  }
+  return lines.length ? lines : [""];
+}
+
+// Tamaño (en unidades uniformes) de las notas y los textos libres; también lo usa la selección en el editor.
+function measureSopAnnotationBox(annotation) {
+  if (annotation.type === "note") {
+    const width = Math.max(140, Math.min(700, Number(annotation.width) || 280));
+    const fontSize = Math.max(12, Math.min(60, Number(annotation.fontSize) || 21));
+    const lines = wrapSopAnnotationText(annotation.text, Math.max(6, Math.floor((width - 28) / (fontSize * 0.55)))).slice(0, 10);
+    return { width, height: Math.max(56, lines.length * fontSize * 1.1 + 22), lines, fontSize };
+  }
+  const fontSize = Math.max(12, Math.min(120, Number(annotation.fontSize) || 30));
+  const lines = String(annotation.text ?? "").split("\n").slice(0, 12);
+  const widest = Math.max(1, ...lines.map((line) => line.length));
+  return { width: Math.max(fontSize, widest * fontSize * 0.56), height: Math.max(fontSize * 1.3, lines.length * fontSize * 1.25), lines, fontSize };
+}
+
+function renderSopAnnotationContents(annotations = [], preview = null, options = {}) {
+  const aspect = getSopAnnotationAspect(options);
+  const print = Boolean(options.print);
+  const ux = (value) => clampSopAnnotationCoordinate(value);
+  const uy = (value) => Math.round(clampSopAnnotationCoordinate(value) / aspect * 100) / 100;
+  const markers = new Map();
   const visibleAnnotations = preview ? [...annotations, preview] : annotations;
+  const dash = (annotation, width) => (annotation.dash === "dashed" ? `stroke-dasharray:${Math.round(width * 2.4)} ${Math.round(width * 1.5)};` : "");
   const shapes = visibleAnnotations.map((annotation) => {
     const title = annotation.stepNumber ? `Paso ${escapeHtml(annotation.stepNumber)}` : "Anotación visual";
+    const color = sopAnnotationColor(annotation.color);
+    const idAttribute = annotation.id ? ` data-annotation-id="${escapeHtml(annotation.id)}"` : "";
     if (annotation.type === "arrow") {
-      return `<g class="sop-annotation sop-annotation--arrow" pointer-events="none"><title>${title}</title><line x1="${clampSopAnnotationCoordinate(annotation.x1)}" y1="${clampSopAnnotationCoordinate(annotation.y1)}" x2="${clampSopAnnotationCoordinate(annotation.x2)}" y2="${clampSopAnnotationCoordinate(annotation.y2)}" /></g>`;
+      const width = Math.max(2, Math.min(30, Number(annotation.strokeWidth) || 10));
+      const markerId = `sop-ah-${color.slice(1)}`;
+      markers.set(markerId, color);
+      return `<g class="sop-annotation sop-annotation--arrow"${idAttribute} pointer-events="none"><title>${title}</title><line x1="${ux(annotation.x1)}" y1="${uy(annotation.y1)}" x2="${ux(annotation.x2)}" y2="${uy(annotation.y2)}" style="stroke:${color};stroke-width:${width};stroke-linecap:round;fill:none;${dash(annotation, width)}marker-end:url(#${markerId})${print ? ";filter:none" : ""}" /></g>`;
     }
-    if (annotation.type === "box") {
-      const x = clampSopAnnotationCoordinate(annotation.x);
+    if (annotation.type === "box" || annotation.type === "highlight") {
+      const x = ux(annotation.x);
       const y = clampSopAnnotationCoordinate(annotation.y);
       const width = Math.max(1, Math.min(1000 - x, clampSopAnnotationCoordinate(annotation.width)));
       const height = Math.max(1, Math.min(1000 - y, clampSopAnnotationCoordinate(annotation.height)));
-      return `<g class="sop-annotation sop-annotation--box" pointer-events="none"><title>${title}</title><rect x="${x}" y="${y}" width="${width}" height="${height}" /></g>`;
+      if (annotation.type === "highlight") {
+        const opacity = Math.max(0.1, Math.min(0.9, Number(annotation.opacity) || 0.38));
+        return `<g class="sop-annotation sop-annotation--highlight"${idAttribute} pointer-events="none"><title>${title} · resaltado</title><rect x="${x}" y="${uy(y)}" width="${width}" height="${uy(height)}" style="fill:${sopAnnotationColor(annotation.color, "#ffe14d")};fill-opacity:${opacity};stroke:none" /></g>`;
+      }
+      const strokeWidth = Math.max(2, Math.min(30, Number(annotation.strokeWidth) || 7));
+      return `<g class="sop-annotation sop-annotation--box"${idAttribute} pointer-events="none"><title>${title}</title><rect x="${x}" y="${uy(y)}" width="${width}" height="${uy(height)}" style="fill:${color};fill-opacity:.1;stroke:${color};stroke-width:${strokeWidth};${dash(annotation, strokeWidth)}vector-effect:none" /></g>`;
     }
     if (annotation.type === "number") {
-      const x = clampSopAnnotationCoordinate(annotation.x);
-      const y = clampSopAnnotationCoordinate(annotation.y);
-      return `<g class="sop-annotation sop-annotation--number" pointer-events="none"><title>${title}</title><circle cx="${x}" cy="${y}" r="29" /><text x="${x}" y="${y + 11}" text-anchor="middle">${escapeHtml(annotation.label || "1")}</text></g>`;
+      const x = ux(annotation.x);
+      const y = uy(annotation.y);
+      return `<g class="sop-annotation sop-annotation--number"${idAttribute} pointer-events="none"><title>${title}</title><circle cx="${x}" cy="${y}" r="29" style="fill:${color};stroke:#fff;stroke-width:7${print ? ";filter:none" : ""}" /><text x="${x}" y="${y + 14}" text-anchor="middle" style="fill:#fff;font-family:Roboto,Arial,sans-serif;font-size:42px;font-weight:800">${escapeHtml(annotation.label || "1")}</text></g>`;
     }
     if (annotation.type === "textfix") {
-      const x = clampSopAnnotationCoordinate(annotation.x);
+      const x = ux(annotation.x);
       const y = clampSopAnnotationCoordinate(annotation.y);
       const width = Math.max(1, Math.min(1000 - x, clampSopAnnotationCoordinate(annotation.width)));
       const height = Math.max(1, Math.min(1000 - y, clampSopAnnotationCoordinate(annotation.height)));
-      const aspect = Math.max(0.2, Math.min(5, Number(annotation.aspect) || 1.294));
       const fontSize = Math.max(2, Math.min(60, Number(annotation.fontSize) || 8));
       const pitch = Math.max(fontSize, Math.min(fontSize * 3, Number(annotation.pitch) || fontSize * 1.22));
-      const baseX = clampSopAnnotationCoordinate(annotation.baselineX ?? x + 5);
-      const baseY = clampSopAnnotationCoordinate(annotation.baselineY ?? y + fontSize * aspect * 0.95);
+      const baseX = ux(annotation.baselineX ?? x + 5);
+      const baseY = uy(annotation.baselineY ?? y + fontSize * 0.95 * aspect);
       const family = String(annotation.fontFamily ?? "").replace(/[^A-Za-z0-9 -]/g, "").trim();
       const fontFamily = `${family ? `'${family}', ` : ""}Carlito, Calibri, Arial, sans-serif`;
       const fontWeight = Number(annotation.fontWeight) >= 600 ? 700 : 400;
       const fontStyle = annotation.fontStyle === "italic" ? "italic" : "normal";
-      const bg = /^#[0-9a-f]{6}$/i.test(String(annotation.bg)) ? annotation.bg : "#ffffff";
-      const ink = /^#[0-9a-f]{6}$/i.test(String(annotation.ink)) ? annotation.ink : "#000000";
+      const bg = sopAnnotationColor(annotation.bg, "#ffffff");
+      const ink = sopAnnotationColor(annotation.ink, "#000000");
       const prefix = String(annotation.prefix ?? "");
       const prefixWeight = annotation.prefixBold ? 700 : fontWeight;
       const lines = (Array.isArray(annotation.lines) && annotation.lines.length ? annotation.lines : [annotation.text ?? ""]).slice(0, 40);
       const tspans = lines.map((line, index) => `<tspan x="0" ${index ? `dy="${pitch}"` : ""}>${index === 0 && prefix ? `<tspan font-weight="${prefixWeight}">${escapeHtml(prefix)}</tspan>` : ""}${escapeHtml(String(line))}</tspan>`).join("");
-      return `<g class="sop-annotation sop-annotation--textfix" pointer-events="none"><title>${title} · texto corregido</title><rect style="fill:${bg}" x="${x}" y="${y}" width="${width}" height="${height}" /><text style="fill:${ink}" transform="translate(${baseX} ${baseY}) scale(1 ${aspect})" font-size="${fontSize}" font-family="${fontFamily}" font-weight="${fontWeight}" font-style="${fontStyle}">${tspans}</text></g>`;
+      return `<g class="sop-annotation sop-annotation--textfix"${idAttribute} pointer-events="none"><title>${title} · texto corregido</title><rect style="fill:${bg};stroke:none" x="${x}" y="${uy(y)}" width="${width}" height="${uy(height)}" /><text style="fill:${ink}" transform="translate(${baseX} ${baseY})" font-size="${fontSize}" font-family="${fontFamily}" font-weight="${fontWeight}" font-style="${fontStyle}">${tspans}</text></g>`;
     }
     if (annotation.type === "note") {
-      const x = Math.max(0, Math.min(710, clampSopAnnotationCoordinate(annotation.x)));
-      const y = Math.max(0, Math.min(910, clampSopAnnotationCoordinate(annotation.y)));
-      const lines = String(annotation.text ?? "").trim().split(/\s+/).reduce((result, word) => {
-        const last = result.at(-1);
-        if (!last || `${last} ${word}`.length > 25) result.push(word);
-        else result[result.length - 1] = `${last} ${word}`;
-        return result;
-      }, []).slice(0, 3);
-      return `<g class="sop-annotation sop-annotation--note" pointer-events="none"><title>${title}</title><rect x="${x}" y="${y}" width="280" height="${Math.max(56, lines.length * 23 + 18)}" rx="8" /><text x="${x + 14}" y="${y + 25}">${lines.map((line, index) => `<tspan x="${x + 14}" dy="${index ? 22 : 0}">${escapeHtml(line)}</tspan>`).join("")}</text></g>`;
+      const x = Math.max(0, Math.min(1000 - 140, ux(annotation.x)));
+      const y = Math.max(0, uy(annotation.y));
+      const box = measureSopAnnotationBox(annotation);
+      const lineHeight = box.fontSize * 1.1;
+      const noteColor = sopAnnotationColor(annotation.color, "#a96a05");
+      return `<g class="sop-annotation sop-annotation--note"${idAttribute} pointer-events="none"><title>${title}</title><rect x="${x}" y="${y}" width="${box.width}" height="${box.height}" rx="8" style="fill:${tintSopColor(noteColor, 0.84)};stroke:${noteColor};stroke-width:4${print ? ";filter:none" : ""}" /><text x="${x + 14}" y="${y + box.fontSize + 6}" style="fill:#2b2418;font-family:Roboto,Arial,sans-serif;font-size:${box.fontSize}px;font-weight:700">${box.lines.map((line, index) => `<tspan x="${x + 14}" dy="${index ? lineHeight : 0}">${escapeHtml(line)}</tspan>`).join("")}</text></g>`;
+    }
+    if (annotation.type === "text") {
+      const x = ux(annotation.x);
+      const y = uy(annotation.y);
+      const box = measureSopAnnotationBox(annotation);
+      const background = annotation.bg ? `<rect x="${x - 6}" y="${y - 4}" width="${box.width + 12}" height="${box.height + 8}" rx="4" style="fill:${sopAnnotationColor(annotation.bg, "#ffffff")};fill-opacity:.92" />` : "";
+      return `<g class="sop-annotation sop-annotation--text"${idAttribute} pointer-events="none"><title>${title}</title>${background}<text x="${x}" y="${y + box.fontSize}" style="fill:${color};font-family:Roboto,Arial,sans-serif;font-size:${box.fontSize}px;font-weight:${annotation.bold ? 800 : 500}">${box.lines.map((line, index) => `<tspan x="${x}" dy="${index ? box.fontSize * 1.25 : 0}">${escapeHtml(line)}</tspan>`).join("")}</text></g>`;
     }
     return "";
   }).join("");
-  return `<defs><marker id="sop-annotation-arrowhead" markerWidth="28" markerHeight="28" refX="23" refY="14" orient="auto" markerUnits="userSpaceOnUse"><path d="M 0 0 L 28 14 L 0 28 z" /></marker></defs>${shapes}`;
+  const markerDefs = [...markers].map(([id, color]) => `<marker id="${id}" markerWidth="28" markerHeight="28" refX="23" refY="14" orient="auto" markerUnits="userSpaceOnUse"><path d="M 0 0 L 28 14 L 0 28 z" style="fill:${color}" /></marker>`).join("");
+  return `<defs><marker id="sop-annotation-arrowhead" markerWidth="28" markerHeight="28" refX="23" refY="14" orient="auto" markerUnits="userSpaceOnUse"><path d="M 0 0 L 28 14 L 0 28 z" /></marker>${markerDefs}</defs>${shapes}`;
 }
 
 function wrapSopTextFix(text, maxWidth, measure) {
@@ -349,8 +419,9 @@ async function syncSopStepTextFix(version, procedure, step) {
   else annotations.push(fix);
 }
 
-function renderSopAnnotationOverlay(annotations = [], editable = false) {
-  return `<svg class="sop-annotation-overlay ${editable ? "sop-annotation-overlay--editable" : ""}" viewBox="0 0 1000 1000" preserveAspectRatio="none" ${editable ? 'data-sop-annotation-overlay role="img" tabindex="0" aria-label="Lienzo de anotaciones de la hoja SOP"' : 'aria-hidden="true"'}>${renderSopAnnotationContents(annotations)}</svg>`;
+function renderSopAnnotationOverlay(annotations = [], editable = false, aspect = SOP_PAGE_ASPECT) {
+  const pageAspect = getSopAnnotationAspect({ aspect });
+  return `<svg class="sop-annotation-overlay ${editable ? "sop-annotation-overlay--editable" : ""}" viewBox="0 0 1000 ${Math.round(1000 / pageAspect * 100) / 100}" preserveAspectRatio="none" data-aspect="${pageAspect}" ${editable ? 'data-sop-annotation-overlay role="img" tabindex="0" aria-label="Lienzo de anotaciones de la hoja SOP"' : 'aria-hidden="true"'}>${renderSopAnnotationContents(annotations, null, { aspect: pageAspect })}</svg>`;
 }
 
 function openStationNameDialog(type, initialName, onSave) {
@@ -915,11 +986,29 @@ function validateSopDraft(draft) {
     const validStepNumbers = new Set(steps.map((step) => step.number));
     const annotations = (procedure.annotations ?? []).map((annotation, annotationIndex) => {
       const type = String(annotation.type ?? "");
-      if (!["arrow", "box", "number", "note", "textfix"].includes(type)) throw new Error(`La anotación ${annotationIndex + 1} de la hoja ${sheet} tiene una herramienta desconocida.`);
-      const stepNumber = String(annotation.stepNumber ?? "").trim();
-      if ((type !== "textfix" || stepNumber) && (!stepNumber || !validStepNumbers.has(stepNumber))) throw new Error(`La anotación ${annotationIndex + 1} de la hoja ${sheet} debe apuntar a un paso de esta hoja.`);
+      if (!["arrow", "box", "highlight", "number", "note", "text", "textfix"].includes(type)) throw new Error(`La anotación ${annotationIndex + 1} de la hoja ${sheet} tiene una herramienta desconocida.`);
+      let stepNumber = String(annotation.stepNumber ?? "").trim();
+      if (stepNumber && !validStepNumbers.has(stepNumber)) stepNumber = "";
+      const style = {
+        color: annotation.color === undefined ? undefined : sopAnnotationColor(annotation.color, ""),
+        strokeWidth: annotation.strokeWidth === undefined ? undefined : Math.max(2, Math.min(30, Number(annotation.strokeWidth) || 8)),
+        dash: annotation.dash === "dashed" ? "dashed" : undefined,
+        opacity: annotation.opacity === undefined ? undefined : Math.max(0.1, Math.min(0.9, Number(annotation.opacity) || 0.38)),
+      };
+      for (const key of Object.keys(style)) if (style[key] === undefined || style[key] === "") delete style[key];
+      if (type === "highlight") {
+        const x = clampSopAnnotationCoordinate(annotation.x);
+        const y = clampSopAnnotationCoordinate(annotation.y);
+        return { ...annotation, ...style, type, stepNumber, x, y, width: Math.max(1, Math.min(1000 - x, clampSopAnnotationCoordinate(annotation.width))), height: Math.max(1, Math.min(1000 - y, clampSopAnnotationCoordinate(annotation.height))) };
+      }
+      if (type === "text") {
+        const text = String(annotation.text ?? "").trim().slice(0, 300);
+        if (!text) throw new Error(`El texto ${annotationIndex + 1} de la hoja ${sheet} está vacío.`);
+        return { ...annotation, ...style, type, stepNumber, x: clampSopAnnotationCoordinate(annotation.x), y: clampSopAnnotationCoordinate(annotation.y), text, fontSize: Math.max(12, Math.min(120, Number(annotation.fontSize) || 30)), bold: Boolean(annotation.bold) };
+      }
       if (type === "arrow") return {
         ...annotation,
+        ...style,
         type,
         stepNumber,
         x1: clampSopAnnotationCoordinate(annotation.x1),
@@ -930,9 +1019,9 @@ function validateSopDraft(draft) {
       if (type === "box") {
         const x = clampSopAnnotationCoordinate(annotation.x);
         const y = clampSopAnnotationCoordinate(annotation.y);
-        return { ...annotation, type, stepNumber, x, y, width: Math.max(1, Math.min(1000 - x, clampSopAnnotationCoordinate(annotation.width))), height: Math.max(1, Math.min(1000 - y, clampSopAnnotationCoordinate(annotation.height))) };
+        return { ...annotation, ...style, type, stepNumber, x, y, width: Math.max(1, Math.min(1000 - x, clampSopAnnotationCoordinate(annotation.width))), height: Math.max(1, Math.min(1000 - y, clampSopAnnotationCoordinate(annotation.height))) };
       }
-      if (type === "number") return { ...annotation, type, stepNumber, x: clampSopAnnotationCoordinate(annotation.x), y: clampSopAnnotationCoordinate(annotation.y), label: String(annotation.label ?? "1").slice(0, 4) };
+      if (type === "number") return { ...annotation, ...style, type, stepNumber, x: clampSopAnnotationCoordinate(annotation.x), y: clampSopAnnotationCoordinate(annotation.y), label: String(annotation.label ?? "1").slice(0, 4) };
       if (type === "textfix") {
         const x = clampSopAnnotationCoordinate(annotation.x);
         const y = clampSopAnnotationCoordinate(annotation.y);
@@ -956,9 +1045,9 @@ function validateSopDraft(draft) {
           text: String(annotation.text ?? "").slice(0, 600),
         };
       }
-      const text = String(annotation.text ?? "").trim().slice(0, 70);
+      const text = String(annotation.text ?? "").trim().slice(0, 200);
       if (!text) throw new Error(`La nota ${annotationIndex + 1} de la hoja ${sheet} necesita texto.`);
-      return { ...annotation, type, stepNumber, x: clampSopAnnotationCoordinate(annotation.x), y: clampSopAnnotationCoordinate(annotation.y), text };
+      return { ...annotation, ...style, type, stepNumber, x: clampSopAnnotationCoordinate(annotation.x), y: clampSopAnnotationCoordinate(annotation.y), text, fontSize: Math.max(12, Math.min(60, Number(annotation.fontSize) || 21)), width: Math.max(140, Math.min(700, Number(annotation.width) || 280)) };
     });
     if (annotations.length > 100) throw new Error(`La hoja ${sheet} no puede tener más de 100 anotaciones.`);
     return {
@@ -969,6 +1058,7 @@ function validateSopDraft(draft) {
       category: String(procedure.category || "Procedimiento").trim(),
       steps,
       annotations,
+      ...(Number(procedure.pageAspect) > 0 ? { pageAspect: Math.max(0.2, Math.min(5, Number(procedure.pageAspect))) } : {}),
       stepRange: `${steps[0].number}–${steps.at(-1).number}`,
     };
   });
@@ -1015,6 +1105,7 @@ function renderSopVersionPreview(version, state) {
   return `<section class="sop-version-preview" aria-labelledby="sop-version-preview-title"><div class="sop-version-preview-heading"><div class="sop-version-preview-heading-copy"><h3 id="sop-version-preview-title"><span class="material-symbols-rounded" aria-hidden="true">fact_check</span>Revisa y corrige la extracción automática</h3>
       <p class="sop-version-preview-description">Se detectaron ${stepCount} pasos en ${version.procedures.length} hojas. Corrige números o textos, elimina falsos positivos y agrega pasos omitidos antes de guardar la revisión.</p>
       <div class="sop-review-stats"><span class="sop-review-chip"><span class="material-symbols-rounded" aria-hidden="true">list_alt</span>${stepCount} pasos</span><span class="sop-review-chip"><span class="material-symbols-rounded" aria-hidden="true">description</span>${version.procedures.length} hojas</span><span class="sop-review-chip sop-review-chip--edited"><span class="material-symbols-rounded" aria-hidden="true">edit_note</span><span data-sop-edited-count>0 textos editados</span></span><span class="sop-review-chip sop-review-chip--saved"><span class="material-symbols-rounded" aria-hidden="true">task_alt</span><span data-sop-reviewed-count>0 revisados</span></span></div></div></div>
+    <div class="sop-workspace-launch"><div><strong>Editor visual de la hoja</strong><small>Trabaja sobre la hoja completa con herramientas de anotación, deshacer y exportación.</small></div><button class="button button--primary" type="button" data-action="open-sop-workspace" data-sop-workspace-open><span class="material-symbols-rounded" aria-hidden="true">draw</span>Abrir editor visual</button></div>
     <div class="sop-version-document-fields"><label>Nombre de la SOP<input type="text" data-sop-document-field="title" value="${escapeHtml(version.document.title)}" /></label>
       <label>Revisión<input type="text" data-sop-document-field="revision" value="${escapeHtml(version.document.revision)}" placeholder="Captura la nueva revisión" /></label>
       <label>Área<select data-sop-station-type><option value="MFG" ${stationType === "MFG" ? "selected" : ""}>MFG · Manufactura</option><option value="RWK" ${stationType === "RWK" ? "selected" : ""}>RWK · Retrabajo</option></select></label>
@@ -1835,6 +1926,7 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
         const livePreview = app.querySelector("#sop-draft-preview-dialog");
         if (livePreview?.open && Number(livePreview.dataset.procedureIndex) === procedureIndex) syncSopDraftPreviewPanel(livePreview, state.sopDraft);
         refreshSopReviewMarks();
+        window.dispatchEvent(new CustomEvent("sop-draft-annotations-changed", { detail: { procedureIndex } }));
         const liveInline = app.querySelector("#sop-inline-preview");
         const liveOverlay = liveInline?.querySelector(".sop-annotation-overlay");
         if (liveOverlay && Number(liveInline.dataset.procedureIndex) === procedureIndex) {
@@ -1876,9 +1968,12 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
       if (overlay) overlay.innerHTML = renderSopAnnotationContents(procedure.annotations);
       updateAnnotationEditor(dialog, procedureIndex);
       markAnnotationsDirty(dialog);
-    } else if (action.dataset.action === "preview-sop-sheet") {
+    } else if (action.dataset.action === "preview-sop-sheet" || action.dataset.action === "open-sop-workspace") {
       if (!canManageSopVersions() || !state.sopDraft) return;
-      showSopDraftPreview(app.querySelector("#sop-draft-preview-dialog"), state, Number(action.dataset.procedureIndex));
+      const inline = app.querySelector("#sop-inline-preview");
+      const procedureIndex = action.dataset.procedureIndex !== undefined ? Number(action.dataset.procedureIndex) : Number(inline?.dataset.procedureIndex) || 0;
+      const stepIndex = Number(inline?.dataset.procedureIndex) === procedureIndex ? Number(inline?.dataset.stepIndex) || 0 : 0;
+      openSopWorkspace({ state, render, showToast, procedureIndex, stepIndex });
     } else if (action.dataset.action === "close-sop-sheet-preview") {
       app.querySelector("#sop-draft-preview-dialog")?.close();
     } else if (["preview-sop-previous-sheet", "preview-sop-next-sheet"].includes(action.dataset.action)) {
@@ -1959,9 +2054,10 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
       const procedure = state.sopDraft.procedures[Number(action.dataset.procedureIndex)];
       if (!procedure) return;
       state.sopDraftError = "";
-      if (action.dataset.action === "add-sop-step") procedure.steps.push({ number: "", text: "", sourceNote: "", images: [] });
+      if (action.dataset.action === "add-sop-step") procedure.steps.push({ number: "", text: "", sourceNote: "", images: [], added: true });
       else {
         const [removedStep] = procedure.steps.splice(Number(action.dataset.stepIndex), 1);
+        if (removedStep && !removedStep.added) (state.sopDraft.deletedSteps ??= []).push({ sheet: procedure.sheet, number: removedStep.originalNumber ?? removedStep.number, text: removedStep.originalText ?? removedStep.text });
         procedure.annotations = (procedure.annotations ?? []).filter((annotation) => annotation.stepNumber !== String(removedStep?.number));
       }
       render();
