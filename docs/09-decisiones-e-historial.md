@@ -546,6 +546,13 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Auditoría:** (1) sin parpadeo: tras `render()` repetido y al alternar hojas/marcar pasos no se crean animaciones nuevas (solo las previstas del escáner: sacudida de error y transición de borde); (2) diálogo de ayuda y toast animan una sola vez; (3) animaciones nuevas solo con `transform/opacity/color/sombra`; excepción deliberada: `width` de la barra de progreso (6 px de alto); (4) regla de reduced-motion presente y `runWithTransition` la respeta; (5) barrido de desbordes a 320/375/768/1024/1366 px en las 6 secciones: limpio; se corrigió el historial de Producción a ≤480 px (salía por la izquierda al abrirse); (6) pruebas 9/9.
 - **Limitación:** el navegador integrado no pinta animaciones con la ventana oculta; se verificó por `document.getAnimations()` y capturas. `intake-ready-pulse` (anterior) sigue repitiéndose al re-renderizar el botón del intake.
 
+### C-063 (2026-11-03) — Cada sección del sidebar abre desde arriba
+
+- **Síntoma:** al cambiar entre Seguimiento SOP, Producción, Trazabilidad, Reportes, etc., la vista nueva quedaba a la mitad o al final en lugar de empezar arriba.
+- **Causa:** `handleNavigation` hacía `scrollIntoView` (suave) hacia un título interno de cada vista (`production-dashboard-title`, `traceability-title`…), y `html { scroll-behavior: smooth }` heredaba la posición previa.
+- **Cambios:** `src/interactions.js`: dentro de la actualización (y por tanto dentro de la View Transition) se hace `window.scrollTo({ top: 0, behavior: "instant" })` tras `render()`; se elimina el `scrollIntoView` al título. `index.html` (`?v=md3-c063`).
+- **Verificación:** desde la parte baja de cada sección (hasta 7389 px) el clic en cualquier opción del sidebar deja `scrollY = 0`; 9/9 pruebas.
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.

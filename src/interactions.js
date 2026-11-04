@@ -69,17 +69,18 @@ function bindInteractions(app, handlers) {
       openRecords(action.dataset.focusKey);
       return;
     }
+    // Cada sección abre desde arriba: el scroll se reinicia dentro de la transición (instantáneo) para que
+    // la vista nueva no herede la posición de la anterior ni quede a medias por un scrollIntoView.
     const update = () => {
       state.activeSection = item.id;
       render();
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     };
-    const scrollToTarget = () => document.getElementById(item.target)?.scrollIntoView({ behavior: "smooth", block: "start" });
     if (item.id === state.activeSection) {
       update();
-      scrollToTarget();
       return;
     }
-    runWithTransition(update).then(scrollToTarget);
+    runWithTransition(update);
   }
 
   function prepareSopChangeFromIntake(target) {
