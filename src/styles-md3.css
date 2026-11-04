@@ -2324,3 +2324,9 @@ html[data-nav-dir="soft"]::view-transition-new(page-content) { animation: c062-f
 @keyframes c062-in-back { from { opacity: 0; transform: translateY(-10px); } }
 @keyframes c062-fade-out { to { opacity: 0; } }
 @keyframes c062-fade-in { from { opacity: 0; } }
+
+/* C-062 (auditoría): en pantallas muy angostas el historial se muestra en línea y no se sale por la izquierda. */
+@media (max-width: 480px) {
+  .work-item-history { flex: 1 1 100%; }
+  .work-item-history[open] ol { position: static; width: auto; max-width: 100%; margin-top: 8px; box-shadow: none; }
+}
