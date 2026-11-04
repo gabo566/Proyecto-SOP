@@ -72,7 +72,12 @@ async function renderSopPagePreview(zoomAnchor = null) {
     const naturalViewport = page.getViewport({ scale: 1 });
     const availableWidth = Math.max(1, viewport.clientWidth - 24);
     const availableHeight = Math.max(1, viewport.clientHeight - 24);
-    const fitScale = Math.min(availableWidth / naturalViewport.width, availableHeight / naturalViewport.height);
+    // En teléfono la caja del visor toma la altura de la hoja (sin mínimo fijo), así que la
+    // hoja se ajusta solo al ancho; en pantallas grandes sigue cabiendo completa en la caja.
+    const fitsWidthOnly = window.matchMedia("(max-width: 650px)").matches;
+    const fitScale = fitsWidthOnly
+      ? availableWidth / naturalViewport.width
+      : Math.min(availableWidth / naturalViewport.width, availableHeight / naturalViewport.height);
     const scale = Math.max(0.2, fitScale * zoom / 100);
     const pageViewport = page.getViewport({ scale });
     const outputScale = Math.max(1, Math.min(

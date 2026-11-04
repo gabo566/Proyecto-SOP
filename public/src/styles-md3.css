@@ -2394,3 +2394,12 @@ html[data-nav-dir="soft"]::view-transition-new(page-content) { animation: c062-f
   .station-intake-user .profile-copy, .station-intake-user .profile-menu-chevron { display: none; }
   .station-intake-user .profile-avatar { width: 38px; height: 38px; }
 }
+
+/* C-066 · en teléfono la hoja de la SOP no reserva altura de escritorio: la caja del visor y su
+   tarjeta toman la altura de la hoja (apaisada) y la hoja queda pegada arriba, sin hueco. */
+@media (max-width: 650px) {
+  .sop-execution-panel .sop-page-checklist-layout[data-page-zoom] { grid-template-rows: auto; grid-auto-rows: auto; align-items: start; }
+  .sop-execution-panel .sop-page-checklist-layout[data-page-zoom] > .guided-sop-page { height: auto; min-height: 0; max-height: none; }
+  .sop-execution-panel .guided-pdf-viewport { flex: 0 0 auto; height: auto; min-height: 140px; align-items: flex-start; }
+  .sop-execution-panel .guided-pdf-canvas-wrap { margin: 0 auto; }
+}
