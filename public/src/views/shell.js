@@ -51,7 +51,7 @@ function renderTopbar(state = {}) {
     <button class="icon-button menu-toggle" type="button" data-action="open-menu" data-focus-key="menu-open" aria-label="Abrir menú">
       <span class="material-symbols-rounded" aria-hidden="true">menu</span>
     </button>
-    <div class="topbar-title"><h1 class="topbar-heading"><button class="topbar-title-button" type="button" data-action="navigate" data-nav-id="${section.id}" data-focus-key="topbar-title" title="Ir al inicio de ${escapeHtml(section.label)}"><span class="topbar-title-badge material-symbols-rounded" aria-hidden="true">${section.icon}</span><span class="topbar-title-text">${escapeHtml(section.label)}</span></button></h1></div>
+    <div class="topbar-title"><h1 class="topbar-heading"><button class="topbar-title-button" type="button" data-action="navigate" data-nav-id="${section.id}" data-focus-key="topbar-title" title="Ir al inicio de ${escapeHtml(section.label)}"><span class="topbar-title-text">${escapeHtml(section.label)}</span></button></h1></div>
     <div class="topbar-user-panel">
       <div class="topbar-id-pill">
         <div class="topbar-profile">

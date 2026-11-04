@@ -76,3 +76,21 @@
   .topbar .topbar-title-text { font-size: 24px; }
 }
 @media (prefers-reduced-motion: reduce) { .topbar .topbar-title-button, .topbar .topbar-title-badge, .topbar .topbar-title-button::after { transition: none; } }
+
+/* ---- Título solo texto: degradado en las letras y línea dorada centrada que se extiende al pasar el mouse ---- */
+.topbar .topbar-title-button { gap: 0; padding: 6px 16px 16px; border-radius: 10px; }
+.topbar .topbar-title-badge { display: none; }
+.topbar .topbar-title-text {
+  font-size: clamp(26px, 2.4vw, 36px); font-weight: 800; letter-spacing: .015em;
+  color: #fff; background: linear-gradient(180deg, #ffffff 30%, #bcd3f7 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.topbar .topbar-title-button::after {
+  left: 50%; right: auto; bottom: 5px; width: 56px; height: 4px; border-radius: 4px;
+  background: linear-gradient(90deg, #f5b13d, #ffd98a); transform: translateX(-50%); transform-origin: center;
+  transition: width 280ms cubic-bezier(.23, 1, .32, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .topbar .topbar-title-button:hover { background: rgb(255 255 255 / 6%); transform: none; }
+  .topbar .topbar-title-button:hover::after { width: calc(100% - 32px); transform: translateX(-50%); }
+}
+@media (max-width: 650px) { .topbar .topbar-title-button { padding: 4px 8px 14px; } .topbar .topbar-title-text { font-size: 24px; } }
