@@ -136,6 +136,17 @@ async function setLocalUserSopRoles(userId, { review, publish }) {
   return "ok";
 }
 
+// Habilita o quita el rol de administrador (solo quien administra la SOP, cuenta 140784).
+async function setLocalUserAdmin(userId, admin) {
+  if (!canManageSopVersions()) return "forbidden";
+  const target = listLocalUsers().find((user) => String(user.id) === String(userId));
+  const result = await sopApi("PATCH", `/api/users/${encodeURIComponent(userId)}/admin`, { admin: Boolean(admin) });
+  if (!result.ok) return failureCode(result);
+  await refreshLocalUsers();
+  recordLocalAuditEvent("user_admin_changed", { targetUserId: userId, targetUserName: target?.name, targetRole: admin ? "admin" : "operator", details: admin ? "Habilitó el rol de administrador" : "Quitó el rol de administrador" });
+  return "ok";
+}
+
 // ---- perfil propio ------------------------------------------------------
 function profileFailureMessage(result, fallback) {
   const code = result.data?.code;
@@ -237,8 +248,9 @@ function renderUserStrengthMeter() {
 }
 
 function renderUserSopSwitch(role, checked, disabled, userId = "", name = "") {
-  const text = role === "review" ? ["Revisor", "Aprueba o devuelve las revisiones que edita otra persona"] : ["Publicador", "Publica las revisiones ya aprobadas"];
-  return `<label class="uh-switch ${disabled ? "is-locked" : ""}"><input type="checkbox" ${userId ? `data-sop-role-toggle data-role="${role}" data-user-id="${escapeHtml(userId)}"` : `name="${name}"`} ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} /><span class="uh-switch-track" aria-hidden="true"></span><span class="uh-switch-text"><b>${text[0]}</b><small>${text[1]}</small></span></label>`;
+  const text = role === "admin" ? ["Administrador", "Gestiona cuentas, contraseñas y reportes"] : role === "review" ? ["Revisor", "Aprueba o devuelve las revisiones que edita otra persona"] : ["Publicador", "Publica las revisiones ya aprobadas"];
+  const hook = role === "admin" ? "data-admin-toggle" : "data-sop-role-toggle";
+  return `<label class="uh-switch ${disabled ? "is-locked" : ""}"><input type="checkbox" ${userId ? `${hook} data-role="${role}" data-user-id="${escapeHtml(userId)}"` : `name="${name}"`} ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} /><span class="uh-switch-track" aria-hidden="true"></span><span class="uh-switch-text"><b>${text[0]}</b><small>${text[1]}</small></span></label>`;
 }
 
 function renderUserCard(user, view, canGrant) {
@@ -255,7 +267,7 @@ function renderUserCard(user, view, canGrant) {
     <section class="uh-sop uh-sop--tab ${sopOpen ? "is-open" : ""}" aria-label="Funciones en la SOP de ${escapeHtml(user.name)}">
       <button class="uh-sop-toggle" type="button" data-action="users-sop-toggle" data-user-id="${escapeHtml(user.id)}" aria-expanded="${sopOpen}" aria-controls="uh-sop-${escapeHtml(user.id)}"><span class="material-symbols-rounded" aria-hidden="true">verified_user</span>Funciones en la SOP<span class="material-symbols-rounded uh-sop-chevron" aria-hidden="true">expand_more</span></button>
       <div class="uh-sop-body" id="uh-sop-${escapeHtml(user.id)}" ${sopOpen ? "" : "hidden"}>
-        ${renderUserSopSwitch("review", flags.review, !canGrant, user.id)}${renderUserSopSwitch("publish", flags.publish, !canGrant, user.id)}
+        ${renderUserSopSwitch("admin", user.role === "admin", !canGrant, user.id)}${renderUserSopSwitch("review", flags.review, !canGrant, user.id)}${renderUserSopSwitch("publish", flags.publish, !canGrant, user.id)}
         ${canGrant ? "" : '<small class="uh-lock"><span class="material-symbols-rounded" aria-hidden="true">lock</span>Solo la cuenta 140784 asigna estas funciones</small>'}</div></section>
     <footer class="uh-card-actions"><button class="uh-action" type="button" data-action="users-password-toggle" data-user-id="${escapeHtml(user.id)}" aria-expanded="${passwordOpen}"><span class="material-symbols-rounded" aria-hidden="true">key</span>Cambiar contraseña</button>
       <button class="uh-action ${user.active ? "uh-action--danger" : "uh-action--ok"}" type="button" data-action="toggle-local-user" data-user-id="${escapeHtml(user.id)}" data-active="${user.active ? "false" : "true"}"><span class="material-symbols-rounded" aria-hidden="true">${user.active ? "person_off" : "person_check"}</span>${user.active ? "Desactivar acceso" : "Reactivar acceso"}</button></footer>
@@ -371,6 +383,7 @@ function renderLocalAuditTable() {
     sop_version_returned: "Devolvió una revisión de SOP",
     sop_version_published: "Publicó una revisión de SOP",
     user_sop_roles_changed: "Cambió las funciones de SOP de un usuario",
+    user_admin_changed: "Cambió el rol de administrador de un usuario",
     local_login: "Ingresó al sistema",
     local_logout: "Cerró sesión",
     local_user_password_changed: "Cambió la contraseña de un usuario",

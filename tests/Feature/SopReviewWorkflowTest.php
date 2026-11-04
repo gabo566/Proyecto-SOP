@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Permission;
+use App\Models\Role;
 use App\Models\SopVersion;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -173,5 +174,25 @@ class SopReviewWorkflowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('reviewers.0.name', 'Persona 200001')
             ->assertJsonPath('publishers.0.name', 'Persona 200002');
+    }
+
+    public function test_solo_quien_administra_la_sop_habilita_o_quita_administrador(): void
+    {
+        foreach ([Role::OPERATOR, Role::ADMIN] as $key) {
+            Role::firstOrCreate(['key' => $key], ['name' => $key]);
+        }
+        $owner = $this->person('140784', [Permission::SOP_MANAGE, Permission::USERS_MANAGE]);
+        $owner->update(['role_id' => Role::where('key', Role::ADMIN)->value('id')]);
+        $other = $this->person('400001', [Permission::USERS_MANAGE]);
+        $target = $this->person('500002');
+        $target->update(['role_id' => Role::where('key', Role::OPERATOR)->value('id')]);
+
+        $this->actingAs($other)->patchJson("/api/users/{$target->id}/admin", ['admin' => true])->assertForbidden();
+
+        $this->actingAs($owner)->patchJson("/api/users/{$target->id}/admin", ['admin' => true])
+            ->assertOk()->assertJsonPath('user.role', 'admin');
+        $this->patchJson("/api/users/{$target->id}/admin", ['admin' => false])
+            ->assertOk()->assertJsonPath('user.role', 'operator');
+        $this->patchJson("/api/users/{$owner->id}/admin", ['admin' => false])->assertStatus(422);
     }
 }

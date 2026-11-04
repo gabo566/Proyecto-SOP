@@ -173,3 +173,24 @@
 .uh-sop-body { display: grid; gap: 8px; padding: 0 12px 12px; animation: uh-in 200ms cubic-bezier(.23, 1, .32, 1) both; }
 .uh-sop-body[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) { .uh-sop-body, .uh-sop-chevron { animation: none; transition: none; } }
+
+/* Tarjetas: nada se sale del borde aunque el texto sea largo o la columna angosta */
+.uh-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
+.uh-card, .uh-card > *, .uh-sop-body, .uh-switch, .uh-switch-text { min-width: 0; }
+.uh-card { overflow: hidden; }
+.uh-switch { align-items: flex-start; }
+.uh-switch-track { margin-top: 1px; }
+.uh-switch-text b, .uh-switch-text small, .uh-card-id strong, .uh-card-id span { overflow-wrap: anywhere; }
+.uh-badges { flex-wrap: wrap; }
+
+/* Tabla de actividad: columnas con aire, texto que baja de línea y sin encimarse */
+#audit-panel .table-scroll { overflow-x: auto; }
+#audit-panel table { min-width: 880px; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+#audit-panel th, #audit-panel td { padding: 16px 20px; text-align: left; vertical-align: top; white-space: normal; overflow-wrap: anywhere; line-height: 1.5; }
+#audit-panel th { white-space: nowrap; }
+#audit-panel th:nth-child(1), #audit-panel td:nth-child(1) { width: 15%; }
+#audit-panel th:nth-child(2), #audit-panel td:nth-child(2) { width: 30%; }
+#audit-panel th:nth-child(3), #audit-panel td:nth-child(3) { width: 22%; }
+#audit-panel td strong { display: block; margin-bottom: 4px; line-height: 1.35; }
+#audit-panel td small { display: block; margin: 0; line-height: 1.4; }
+#audit-panel .section-heading { gap: 8px 20px; }

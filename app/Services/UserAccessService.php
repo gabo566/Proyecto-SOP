@@ -90,6 +90,43 @@ class UserAccessService
         return $target->load(['role.permissions', 'directPermissions']);
     }
 
+    /**
+     * Habilita o quita el rol de administrador. Quitarlo devuelve la cuenta a operador;
+     * nadie se quita el rol a sí mismo y siempre queda un administrador activo.
+     */
+    public function setAdmin(User $actor, User $target, bool $admin): string
+    {
+        $isAdmin = $target->role->key === Role::ADMIN;
+
+        if ($admin === $isAdmin) {
+            return 'ok';
+        }
+
+        if (! $admin) {
+            if ($actor->is($target)) {
+                return 'active-user';
+            }
+
+            $activeAdmins = User::where('is_active', true)
+                ->whereHas('role', fn ($query) => $query->where('key', Role::ADMIN))
+                ->count();
+
+            if ($target->is_active && $activeAdmins <= 1) {
+                return 'last-admin';
+            }
+        }
+
+        $role = Role::where('key', $admin ? Role::ADMIN : Role::OPERATOR)->first();
+
+        if (! $role) {
+            return 'role';
+        }
+
+        $target->update(['role_id' => $role->id]);
+
+        return 'ok';
+    }
+
     public function setActive(User $actor, User $target, bool $active): string
     {
         if (! $active && $actor->is($target)) {

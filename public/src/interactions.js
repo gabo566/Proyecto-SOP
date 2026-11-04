@@ -629,6 +629,10 @@ function bindInteractions(app, handlers) {
       void changeUserSopRole(target);
       return;
     }
+    if (target.matches("[data-admin-toggle]")) {
+      void changeUserAdmin(target);
+      return;
+    }
     if (target.matches("#profile-avatar-input")) {
       void changeOwnAvatar(target);
       return;
@@ -913,6 +917,21 @@ async function changeUserSopRole(toggle) {
     toggle.checked = !toggle.checked;
     showToast(result === "forbidden" ? "Solo la cuenta 140784 puede asignar estas funciones." : "No se pudo cambiar la función; intenta de nuevo.", "warning");
   }
+  render();
+}
+
+// Habilita o quita el rol de administrador desde la tarjeta de una persona.
+async function changeUserAdmin(toggle) {
+  const wanted = toggle.checked;
+  toggle.disabled = true;
+  const result = await setLocalUserAdmin(toggle.dataset.userId, wanted);
+  const messages = {
+    "active-user": "No puedes quitarte a ti mismo el rol de administrador.",
+    "last-admin": "Debe quedar al menos un administrador activo.",
+    forbidden: "Solo la cuenta 140784 puede asignar estas funciones.",
+  };
+  if (result === "ok") showToast(wanted ? "Administrador habilitado." : "Administrador retirado.", "success");
+  else showToast(messages[result] ?? "No se pudo cambiar el rol; intenta de nuevo.", "warning");
   render();
 }
 

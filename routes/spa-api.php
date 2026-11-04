@@ -58,6 +58,7 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
         Route::post('/sop-source', [SopSourceController::class, 'store']);
         // Solo quien administra la SOP concede las funciones de revisor y publicador.
         Route::patch('/users/{user}/sop-roles', [UserController::class, 'updateSopRoles']);
+        Route::patch('/users/{user}/admin', [UserController::class, 'updateAdmin']);
     });
 
     Route::middleware('permission:users.manage')->group(function (): void {

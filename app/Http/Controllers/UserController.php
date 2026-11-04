@@ -83,6 +83,17 @@ class UserController extends Controller
         return response()->json(['ok' => true, 'user' => $updated->toClientArray()]);
     }
 
+    public function updateAdmin(Request $request, User $user): JsonResponse
+    {
+        $data = $request->validate(['admin' => ['required', 'boolean']]);
+
+        $result = $this->access->setAdmin($request->user(), $user, (bool) $data['admin']);
+
+        return $result === 'ok'
+            ? response()->json(['ok' => true, 'user' => $user->fresh(['role.permissions', 'directPermissions'])->toClientArray()])
+            : $this->failure($result);
+    }
+
     private function failure(string $code): JsonResponse
     {
         return response()->json(['ok' => false, 'code' => $code], self::FAILURE_STATUS[$code] ?? 422);
