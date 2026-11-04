@@ -677,6 +677,7 @@ function bindInteractions(app, handlers) {
         state.form.disassemblySheets = [];
       }
       state.formError = "";
+      state.disassemblyOpen = target.value === "RWK";
       render({ focusKey: target.dataset.focusKey });
       return;
     } else if (target.matches("[data-station-code]")) {

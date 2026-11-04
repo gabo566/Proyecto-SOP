@@ -26,10 +26,8 @@ function renderDisassemblyChoice(choice, filter = "", panelOpen = false) {
   const selectedIds = new Set(choice.selected.map((option) => option.id));
   const query = normalizeDisassemblySearch(filter).trim();
   const totalSteps = choice.selected.reduce((total, option) => total + option.steps, 0);
-  const summary = choice.selected.length ? `${choice.selected.length} ${choice.selected.length === 1 ? "hoja" : "hojas"} · ${totalSteps} pasos` : "Elige las hojas que vas a realizar";
-  const trigger = `<button type="button" class="station-disassembly-trigger ${panelOpen ? "is-open" : ""}" data-action="toggle-disassembly-panel" aria-expanded="${panelOpen}" aria-controls="station-disassembly-panel"><span class="material-symbols-rounded" aria-hidden="true">build_circle</span><span class="station-disassembly-trigger-copy"><strong>¿Qué hojas del desensamble vas a realizar?</strong><small>${summary}</small></span><span class="material-symbols-rounded" aria-hidden="true">${panelOpen ? "expand_less" : "expand_more"}</span></button>`;
-  if (!panelOpen) return `<div class="station-disassembly-wrap">${trigger}</div>`;
-  return `<div class="station-disassembly-wrap">${trigger}<fieldset class="station-disassembly station-disassembly--pop" id="station-disassembly-panel" aria-labelledby="station-disassembly-title"><legend id="station-disassembly-title">Hojas del desensamble</legend>
+  if (!panelOpen) return "";
+  return `<div class="station-disassembly-overlay" data-disassembly-overlay><fieldset class="station-disassembly station-disassembly--modal" id="station-disassembly-panel" aria-labelledby="station-disassembly-title"><legend id="station-disassembly-title">Hojas del desensamble</legend>
     <p>Elige una o varias. Solo verás en la SOP las hojas que selecciones.</p>
     <div class="station-disassembly-bar">
       <label class="station-disassembly-search"><span class="material-symbols-rounded" aria-hidden="true">search</span><input type="search" data-disassembly-filter value="${escapeHtml(filter)}" placeholder="Buscar: BF3, busbar, hoja 35…" autocomplete="off" aria-label="Buscar hoja" /></label>
@@ -161,7 +159,15 @@ async function recordCardEvent(record) {
 
 // El panel de hojas del desensamble se cierra al tocar fuera de él o con Escape.
 document.addEventListener("click", (event) => {
-  if (!state.disassemblyOpen || event.target.closest(".station-disassembly-wrap")) return;
+  if (event.target.closest(".station-choice--rwk")) {
+    // Tocar Retrabajo otra vez (ya seleccionado) también abre las hojas.
+    if (!state.disassemblyOpen && getWorkStationAssignment(state.form.stationAssignment)?.type === "RWK") {
+      state.disassemblyOpen = true;
+      render();
+    }
+    return;
+  }
+  if (!state.disassemblyOpen || event.target.closest(".station-disassembly--modal")) return;
   state.disassemblyOpen = false;
   render();
 });

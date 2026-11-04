@@ -70,13 +70,10 @@
 .station-action-option--selected > .material-symbols-rounded { color: #fff; background: #b3261e; }
 .station-action-option:focus-within { outline: 3px solid rgb(38 83 166 / 45%); outline-offset: 2px; }
 
-/* Hojas del desensamble: botón que abre un panel flotante, para no ocupar espacio en la captura */
-.station-disassembly-wrap { position: relative; margin: 10px 0 14px; }
-.station-disassembly-trigger { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 2px solid #c7d3e3; border-radius: 14px; background: #fff; text-align: left; cursor: pointer; }
-.station-disassembly-trigger:hover, .station-disassembly-trigger.is-open { border-color: #2653a6; background: #f5f9ff; }
-.station-disassembly-trigger > .material-symbols-rounded:first-child { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; color: #2653a6; background: #e1edfb; font-size: 22px; }
-.station-disassembly-trigger > .material-symbols-rounded:last-child { margin-left: auto; color: #5f6b7f; font-size: 24px; }
-.station-disassembly-trigger-copy strong { display: block; color: #14223d; font-size: 16px; }
-.station-disassembly-trigger-copy small { display: block; color: #5f6b7f; font-size: 13px; }
-.station-disassembly--pop { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 40; max-height: 70vh; overflow: auto; margin: 0; padding: 16px; border: 1px solid #c7d3e3; border-radius: 16px; background: #fff; box-shadow: 0 18px 40px rgb(20 34 61 / 22%); }
-.station-disassembly-done { display: flex; justify-content: flex-end; padding-top: 12px; border-top: 1px solid #e4e9f2; margin-top: 12px; }
+/* Hojas del desensamble: ventana flotante sobre la pantalla; el fondo se difumina y no mueve el diseño */
+.station-disassembly-overlay { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 16px; background: rgb(20 34 61 / 38%); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); animation: station-disassembly-in 180ms cubic-bezier(.23, 1, .32, 1) both; }
+.station-disassembly--modal { width: min(880px, 100%); max-height: 86vh; overflow: auto; margin: 0; padding: 20px; border: 1px solid #c7d3e3; border-radius: 18px; background: #fff; box-shadow: 0 24px 60px rgb(20 34 61 / 30%); }
+.station-disassembly--modal legend { color: #14223d; font-size: 20px; font-weight: 800; }
+.station-disassembly-done { display: flex; justify-content: flex-end; padding-top: 14px; border-top: 1px solid #e4e9f2; margin-top: 14px; }
+@keyframes station-disassembly-in { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .station-disassembly-overlay { animation: none; } }
