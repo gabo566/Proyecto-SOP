@@ -105,6 +105,11 @@ function renderStationIntake(state) {
       </section>
       <section class="station-asset-section" aria-labelledby="station-asset-title">
         <div class="station-section-title"><span class="station-section-num" aria-hidden="true">2</span><div><h2 id="station-asset-title">Captura los datos del equipo</h2><p>Escanea en orden: PN del nodo, serie del nodo, PN de la tarjeta y serie de la tarjeta. El cursor pasa solo al siguiente campo.</p></div></div>
+        <fieldset class="station-action-choice" aria-label="Qué vas a realizar">
+          <legend>¿Qué vas a realizar?</legend>
+          <label class="station-action-option ${(state.form.actionType ?? "validation") === "validation" ? "station-action-option--selected" : ""}"><input type="radio" name="actionType" value="validation" data-action-type ${(state.form.actionType ?? "validation") === "validation" ? "checked" : ""} /><span class="material-symbols-rounded" aria-hidden="true">fact_check</span><span><strong>Validar una tarjeta</strong><small>Se guarda como validación.</small></span></label>
+          <label class="station-action-option ${state.form.actionType === "replacement" ? "station-action-option--selected" : ""}"><input type="radio" name="actionType" value="replacement" data-action-type ${state.form.actionType === "replacement" ? "checked" : ""} /><span class="material-symbols-rounded" aria-hidden="true">swap_horiz</span><span><strong>Reemplazar una tarjeta</strong><small>Se guarda como reemplazo.</small></span></label>
+        </fieldset>
         <div class="station-asset-grid">
           <label class="station-scan-field"><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">memory</span>PN del nodo <em aria-hidden="true">*</em></span><input data-form-field="nodePartNumber" data-scan-field data-focus-key="intake-node-part" value="${escapeHtml(state.form.nodePartNumber ?? "")}" placeholder="Escanea el PN del nodo" required maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" aria-describedby="scan-error-nodePartNumber" aria-invalid="${state.scanErrors?.nodePartNumber ? "true" : "false"}"  /><small class="station-scan-error" id="scan-error-nodePartNumber" data-scan-error="nodePartNumber" role="alert" ${state.scanErrors?.nodePartNumber ? "" : "hidden"}>${escapeHtml(state.scanErrors?.nodePartNumber ?? "")}</small></label>
           <label class="station-scan-field"><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">qr_code_2</span>Serie del nodo <em aria-hidden="true">*</em></span><input data-form-field="serial" data-scan-field data-focus-key="intake-node-serial" value="${escapeHtml(state.form.serial ?? "")}" placeholder="Escanea la serie del nodo" required maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" aria-describedby="scan-error-serial" aria-invalid="${state.scanErrors?.serial ? "true" : "false"}" inputmode="numeric" pattern="\d{13}" /><small class="station-scan-error" id="scan-error-serial" data-scan-error="serial" role="alert" ${state.scanErrors?.serial ? "" : "hidden"}>${escapeHtml(state.scanErrors?.serial ?? "")}</small></label>
@@ -124,4 +129,25 @@ function renderStationIntake(state) {
     </form>
     <p class="station-intake-footnote">La selección y los identificadores se conservarán en el registro de esta validación.</p>
   </div>${renderToast()}`;
+}
+
+// Envía al historial de tarjetas del nodo lo que se acaba de guardar (validación o reemplazo).
+async function recordCardEvent(record) {
+  const isReplacement = record.actionType === "replacement";
+  const cardType = String(record.repairType ?? "").replace(/^Reemplazo de /, "").trim() || "Sin tipo";
+  const result = await sopApi("POST", "/api/card-events", {
+    type: isReplacement ? "replacement" : "validation",
+    nodeSerial: record.serial,
+    nodePartNumber: record.nodePartNumber,
+    nodeNumber: record.nodeNumber,
+    stationAssignment: record.stationAssignment,
+    cardType,
+    cardPartNumber: record.componentPartNumber,
+    cardSerial: record.componentSerial,
+    result: isReplacement ? undefined : "ok",
+    reason: isReplacement ? "direct" : undefined,
+    removedSerial: record.removedComponentSerial || undefined,
+    sheets: (record.validatedSheets ?? []).map((item) => String(item.sheet)),
+  });
+  return result.ok;
 }

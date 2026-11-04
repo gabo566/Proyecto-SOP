@@ -509,7 +509,9 @@ function saveCompletion() {
     time,
     shift: getShiftForTime(time),
     status: "Completado",
-    recordType: "Validación del operador",
+    recordType: state.form.actionType === "replacement" ? "Reemplazo de tarjeta" : "Validación del operador",
+    actionType: state.form.actionType === "replacement" ? "replacement" : "validation",
+    removedComponentSerial: state.form.removedComponentSerial?.trim() ?? "",
     declared: true,
     observations: run.procedureIds.map((id) => ({ procedureId: id, text: String(state.sheetObservations?.[id] ?? "").trim() })).filter((item) => item.text),
     evidenceFiles: [...state.validationEvidenceFiles],
@@ -517,6 +519,7 @@ function saveCompletion() {
   };
   workflow.prepareCompletionRecord(record);
   const next = [record, ...state.savedRecords];
+  recordCardEvent(record);
   if (!persistSavedRecords(next)) {
     showToast("No se pudo guardar la validación. Inicia sesión de nuevo e inténtalo otra vez.", "warning");
     return;

@@ -633,6 +633,11 @@ function bindInteractions(app, handlers) {
 
   app.addEventListener("change", (event) => {
     const { target } = event;
+    if (target.matches("[data-action-type]")) {
+      state.form.actionType = target.value;
+      render();
+      return;
+    }
     if (target.matches("[data-sop-role-toggle]")) {
       enforceSopRoleExclusive(target);
       void changeUserSopRole(target);

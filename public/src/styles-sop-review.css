@@ -57,3 +57,15 @@
 
 /* Entrada a revisión y publicación para cuentas que no son administradoras */
 .station-intake-review-entry { display: flex; justify-content: center; margin: 4px 0 12px; }
+
+/* Paso 2 de Seguimiento SOP: elegir si se valida o se reemplaza una tarjeta */
+.station-action-choice { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 0 0 14px; padding: 0; border: 0; }
+.station-action-choice legend { grid-column: 1 / -1; margin: 0 0 8px; color: #14223d; font-size: 17px; font-weight: 800; }
+.station-action-option { position: relative; display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 2px solid #c7d3e3; border-radius: 14px; background: #fff; cursor: pointer; transition: border-color 150ms ease, background-color 150ms ease; }
+.station-action-option input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.station-action-option > .material-symbols-rounded { width: 44px; height: 44px; flex: 0 0 44px; display: grid; place-items: center; border-radius: 12px; color: #5f6b7f; background: #f2f4f8; font-size: 24px; }
+.station-action-option strong { display: block; color: #14223d; font-size: 16px; }
+.station-action-option small { display: block; color: #5f6b7f; font-size: 13px; line-height: 1.35; }
+.station-action-option--selected { border-color: #b3261e; background: #fff3f2; box-shadow: 0 0 0 4px rgb(179 38 30 / 10%); }
+.station-action-option--selected > .material-symbols-rounded { color: #fff; background: #b3261e; }
+.station-action-option:focus-within { outline: 3px solid rgb(38 83 166 / 45%); outline-offset: 2px; }
