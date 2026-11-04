@@ -142,3 +142,7 @@
   border: 2.5px solid #2b2112; padding-left: 22px;
   box-shadow: inset 8px 0 0 #f0a020, 0 8px 18px rgb(120 80 10 / 32%);
 }
+
+/* Punto medio: marcado pero discreto (borde 1.5 px, franja de 4 px y sombra ligera). */
+.sop-summary-card { border: 1.5px solid #6f8fc9; padding-left: 18px; box-shadow: inset 4px 0 0 #2653a6, 0 4px 12px rgb(38 83 166 / 18%); }
+.sop-safety-note { border: 1.5px solid #c9a24a; padding-left: 18px; box-shadow: inset 4px 0 0 #e49a1c, 0 4px 12px rgb(150 100 15 / 18%); }
