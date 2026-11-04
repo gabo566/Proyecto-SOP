@@ -1,0 +1,109 @@
+/* C-081 · Confirmación del registro: encabezado de éxito, flujo en 3 pasos, tarjetas con iconos que entran en
+   cascada, declaración que se activa con un clic y botón final que se habilita con aviso. Paleta azul/verde del boceto. */
+.validation-dialog { border: 0; border-radius: 16px; background: #f6f8fc; box-shadow: 0 24px 60px rgb(20 35 64 / 45%); }
+.validation-dialog::backdrop { background: rgb(20 35 64 / 55%); backdrop-filter: blur(3px); }
+.confirm-sheet { --c-navy: #1b2940; --c-blue: #2653a6; --c-green: #4a8840; --c-line: #dde3ee; --c-ink: #172036; --c-muted: #566179; padding: 0; background: #f6f8fc; }
+
+/* Encabezado */
+.confirm-sheet .validation-panel-heading { display: flex; align-items: center; gap: 14px; margin: 0; padding: 18px 22px; border: 0; border-radius: 16px 16px 0 0; color: #fff; background: linear-gradient(100deg, #1b2940, #26395c); }
+.confirm-sheet .validation-panel-heading .heading-icon { display: grid; place-items: center; flex: 0 0 52px; width: 52px; height: 52px; border-radius: 50%; color: #fff; background: linear-gradient(160deg, #5cae4e, #3a7d30); box-shadow: 0 0 0 5px rgb(92 174 78 / 25%); font-size: 32px; font-variation-settings: "FILL" 1; animation: confirm-badge-pop 520ms cubic-bezier(.23, 1, .32, 1) both; }
+.confirm-sheet .validation-panel-heading .eyebrow { color: #f5c66b; font-size: 12px; font-weight: 800; letter-spacing: .06em; }
+.confirm-sheet .validation-panel-heading h2 { margin: 2px 0 0; color: #fff; font-size: 24px; font-weight: 800; }
+.confirm-sheet .validation-dialog-close { margin-left: auto; color: #fff; background: rgb(255 255 255 / 14%); transition: transform 160ms cubic-bezier(.23, 1, .32, 1), background-color 140ms ease; }
+.confirm-sheet .validation-dialog-close:hover { background: rgb(255 255 255 / 26%); }
+.confirm-sheet .validation-dialog-close:active { transform: scale(.94); }
+@keyframes confirm-badge-pop { 0% { transform: scale(.5); opacity: 0; } 60% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); } }
+
+/* Flujo: los pasos 1 y 2 completos y el 3 activo */
+.confirm-sheet > .operator-flow-progress { margin: 14px 22px 0; padding: 8px 16px; border: 1px solid var(--c-line); border-radius: 12px; background: #fff; box-shadow: none; }
+.confirm-sheet .operator-flow-step > span { width: 28px; height: 28px; font-size: 13px; color: var(--c-muted); background: #e6ecf5; }
+.confirm-sheet .operator-flow-step strong { color: var(--c-ink); font-size: 12px; }
+.confirm-sheet .operator-flow-step--active > span { color: #fff; background: var(--c-blue); box-shadow: 0 0 0 4px #e1edfb; }
+.confirm-sheet .operator-flow-step--complete > span { color: #fff; background: var(--c-green); }
+.confirm-sheet .operator-flow-progress > i { height: 3px; margin-top: 13px; background: var(--c-line); }
+
+/* Cuerpo */
+.confirm-sheet .guided-final-confirmation { display: grid; gap: 14px; padding: 16px 22px 20px; border: 0; background: transparent; box-shadow: none; }
+.confirm-sheet .guided-final-confirmation > .eyebrow { margin: 0; color: var(--c-blue); font-size: 12px; font-weight: 800; letter-spacing: .06em; }
+.confirm-sheet .guided-final-confirmation h3 { margin: 0; color: var(--c-ink); font-size: 22px; font-weight: 800; }
+.confirm-sheet .guided-confirmation-copy { margin: 0; color: #2c3852; font-size: 14px; line-height: 1.5; }
+.confirm-sheet .guided-confirmation-warning { margin: 0; padding: 10px 14px; border: 1px solid #f0d48a; border-left: 5px solid #e49a1c; border-radius: 8px; color: #4d3a12; background: #fdf1d0; font-size: 13px; }
+
+/* Tarjetas del resumen con icono; entran en cascada */
+@keyframes confirm-tile-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.confirm-sheet .guided-confirmation-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.confirm-tile { display: flex; align-items: flex-start; gap: 12px; min-width: 0; padding: 12px 14px; border: 1px solid var(--c-line); border-radius: 12px; background: #fff;
+  transition: transform 180ms cubic-bezier(.23, 1, .32, 1), box-shadow 180ms ease, border-color 140ms ease; animation: confirm-tile-in 320ms cubic-bezier(.23, 1, .32, 1) both; }
+.confirm-tile:nth-child(1) { animation-delay: 40ms; } .confirm-tile:nth-child(2) { animation-delay: 90ms; } .confirm-tile:nth-child(3) { animation-delay: 140ms; }
+.confirm-tile:nth-child(4) { animation-delay: 190ms; } .confirm-tile:nth-child(5) { animation-delay: 240ms; } .confirm-tile:nth-child(6) { animation-delay: 290ms; }
+.confirm-tile-icon { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; color: var(--c-blue); background: #e1edfb; font-size: 22px; }
+.confirm-tile:nth-child(3) .confirm-tile-icon { color: #1d4287; background: #dbe7fb; }
+.confirm-tile:nth-child(4) .confirm-tile-icon { color: #6b3fa0; background: #efe7f9; }
+.confirm-tile:nth-child(5) .confirm-tile-icon { color: #2f7d2c; background: #d9efd5; }
+.confirm-tile:nth-child(6) .confirm-tile-icon { color: #8a5a00; background: #fbe9bd; }
+.confirm-tile-copy { display: grid; gap: 1px; min-width: 0; }
+.confirm-tile-copy span { color: var(--c-muted); font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+.confirm-tile-copy strong { color: var(--c-ink); font-size: 14px; font-weight: 800; overflow-wrap: anywhere; }
+.confirm-tile-copy small { color: var(--c-muted); font-size: 12px; }
+@media (hover: hover) and (pointer: fine) { .confirm-tile:hover { transform: translateY(-2px); border-color: #9fb8de; box-shadow: 0 8px 18px rgb(38 83 166 / 16%); } }
+
+/* Declaración: tarjeta que se marca con un clic */
+.confirm-sheet .guided-final-declaration { position: relative; display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px; border: 2px dashed #9fb2cc; border-radius: 12px; background: #fff; cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, transform 160ms cubic-bezier(.23, 1, .32, 1); }
+.confirm-sheet .guided-final-declaration:active { transform: scale(.992); }
+.confirm-sheet .guided-final-declaration > input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.confirm-check-box { display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; border: 2px solid #98a5bd; border-radius: 9px; color: transparent; background: #fff; transition: background-color 160ms ease, border-color 160ms ease, transform 220ms cubic-bezier(.23, 1, .32, 1); }
+.confirm-check-box .material-symbols-rounded { font-size: 24px; font-weight: 700; transform: scale(.4); transition: transform 220ms cubic-bezier(.23, 1, .32, 1); }
+.confirm-check-text { color: #1f2a44; font-size: 14px; line-height: 1.5; }
+.confirm-sheet .guided-final-declaration:hover { border-color: var(--c-blue); }
+.confirm-sheet .guided-final-declaration:has(input:focus-visible) { outline: 3px solid rgb(38 83 166 / 40%); outline-offset: 2px; }
+.confirm-sheet .guided-final-declaration:has(input:checked) { border: 2px solid var(--c-green); background: #f1faee; box-shadow: 0 0 0 4px rgb(74 136 64 / 16%); }
+.confirm-sheet .guided-final-declaration:has(input:checked) .confirm-check-box { color: #fff; background: var(--c-green); border-color: var(--c-green); transform: scale(1.06); }
+.confirm-sheet .guided-final-declaration:has(input:checked) .confirm-check-box .material-symbols-rounded { transform: scale(1); }
+.confirm-sheet .guided-final-declaration > input[aria-invalid="true"] ~ .confirm-check-box { border-color: #c0392b; }
+
+/* Aviso de estado */
+.guided-final-hint { display: flex; align-items: center; gap: 8px; margin: -4px 0 0; color: var(--c-muted); font-size: 13px; font-weight: 600; }
+.guided-final-hint .material-symbols-rounded { font-size: 18px; }
+.guided-final-hint .hint-ready { display: none; }
+.confirm-sheet .guided-final-confirmation:has(.guided-final-declaration input:checked) .guided-final-hint { color: #2f7d2c; }
+.confirm-sheet .guided-final-confirmation:has(.guided-final-declaration input:checked) .hint-pending { display: none; }
+.confirm-sheet .guided-final-confirmation:has(.guided-final-declaration input:checked) .hint-ready { display: inline; }
+
+/* Acciones */
+.confirm-sheet .guided-final-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 0; border: 0; background: none; }
+.confirm-sheet .guided-final-actions .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 22px; border: 0; border-radius: 8px; font-size: 15px; font-weight: 800; cursor: pointer;
+  transition: transform 160ms cubic-bezier(.23, 1, .32, 1), background-color 140ms ease, box-shadow 160ms ease; }
+.confirm-sheet .guided-final-actions .button:active:not(:disabled) { transform: scale(.97); }
+.confirm-sheet .guided-final-actions .button--secondary { color: var(--c-blue); background: #fff; box-shadow: inset 0 0 0 2px var(--c-blue); }
+.confirm-sheet .guided-final-actions .button--secondary:hover { background: #e1edfb; }
+.confirm-sheet .guided-final-actions .validation-submit { min-width: 280px; color: #fff; background: linear-gradient(180deg, #4a9a3d, #377d2c); box-shadow: 0 0 0 4px rgb(74 154 61 / 22%), 0 6px 14px rgb(55 125 44 / 36%); animation: confirm-ready 420ms cubic-bezier(.23, 1, .32, 1); }
+.confirm-sheet .guided-final-actions .validation-submit:hover:not(:disabled) { background: linear-gradient(180deg, #3f8a34, #2f6e26); }
+.confirm-sheet .guided-final-actions .validation-submit:disabled { color: #6d7c93; background: #d6deea; box-shadow: none; cursor: not-allowed; animation: none; }
+@keyframes confirm-ready { 0% { transform: scale(.95); } 55% { transform: scale(1.03); } 100% { transform: scale(1); } }
+.confirm-sheet .validation-note { margin: 0; color: var(--c-muted); font-size: 12px; text-align: center; }
+
+@media (max-width: 900px) { .confirm-sheet .guided-confirmation-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) {
+  .confirm-sheet .guided-confirmation-summary { grid-template-columns: minmax(0, 1fr); }
+  .confirm-sheet .validation-panel-heading { padding: 14px 16px; }
+  .confirm-sheet .validation-panel-heading h2 { font-size: 20px; }
+  .confirm-sheet .guided-final-confirmation { padding: 14px 16px 18px; }
+  .confirm-sheet .guided-final-actions .button { flex: 1 1 100%; }
+  .confirm-sheet .guided-final-actions .validation-submit { order: -1; min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confirm-tile, .confirm-sheet .validation-panel-heading .heading-icon, .confirm-sheet .guided-final-actions .validation-submit { animation: none; }
+  .confirm-sheet .guided-final-declaration, .confirm-check-box, .confirm-check-box .material-symbols-rounded, .confirm-tile { transition: none; }
+}
+
+/* Ajustes tras revisión visual */
+.confirm-sheet .confirm-tile .confirm-tile-icon { font-size: 22px; font-weight: 400; letter-spacing: 0; text-transform: none; line-height: 1; }
+.confirm-sheet .guided-final-confirmation h3:focus, .confirm-sheet .guided-final-confirmation h3:focus-visible { outline: none; }
+.validation-dialog { overflow-x: hidden; }
+.confirm-sheet > .operator-flow-progress { box-sizing: border-box; width: auto; max-width: calc(100% - 44px); }
+.confirm-sheet .operator-flow-progress > i { background: #4a8840; }
+.confirm-sheet .operator-flow-progress > i { background: #4a8840 !important; }
+.confirm-sheet .guided-final-actions { flex-wrap: nowrap; }
+.confirm-sheet .guided-final-actions .validation-submit { flex: 1 1 auto; min-width: 0; }
+@media (max-width: 560px) { .confirm-sheet .guided-final-actions { flex-wrap: wrap; } }

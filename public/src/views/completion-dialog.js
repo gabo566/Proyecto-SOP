@@ -83,16 +83,18 @@ function renderGuidedFinalConfirmation(procedure, state) {
     <p class="guided-confirmation-warning">Cualquier daño, desviación o situación fuera de lo esperado debe reportarse para recibir la retroalimentación correspondiente.</p>
     ${activeWork?.workKind === "rework" ? renderReworkEvidenceSection(activeWork, state) : ""}
     <div class="guided-confirmation-summary">
-      <div><span>Estación</span><strong>${escapeHtml(station)}</strong></div>
-      <div><span>SOP y revisión</span><strong>${escapeHtml(operation)}</strong><small>${escapeHtml(document.id)} · Rev. ${escapeHtml(document.revision)}</small></div>
-      <div class="guided-confirmation-asset"><span>Nodo</span><strong>PN ${escapeHtml(nodePartNumber)}</strong><small>Serie ${escapeHtml(nodeSerial)}</small></div>
-      <div class="guided-confirmation-asset"><span>Tarjeta</span><strong>PN ${escapeHtml(cardPartNumber)}</strong><small>Serie ${escapeHtml(cardSerial)}</small></div>
-      <div><span>Avance validado</span><strong>${run.procedureIds.length} hojas</strong><small>${progress.complete} pasos</small></div>
-      <div><span>${operatorChanged ? "Operadores" : "Operador responsable"}</span><strong>${escapeHtml(originalOperator.name)} · ${escapeHtml(originalOperator.employeeNumber)}</strong><small>${operatorChanged ? `Continúa y finaliza: ${escapeHtml(currentOperator.name)} · ${escapeHtml(currentOperator.employeeNumber)}` : escapeHtml(currentOperator.position || "Técnico de FA")}</small></div>
+      <div class="confirm-tile"><span class="confirm-tile-icon material-symbols-rounded" aria-hidden="true">factory</span><div class="confirm-tile-copy"><span>Estación</span><strong>${escapeHtml(station)}</strong></div></div>
+      <div class="confirm-tile"><span class="confirm-tile-icon material-symbols-rounded" aria-hidden="true">description</span><div class="confirm-tile-copy"><span>SOP y revisión</span><strong>${escapeHtml(operation)}</strong><small>${escapeHtml(document.id)} · Rev. ${escapeHtml(document.revision)}</small></div></div>
+      <div class="confirm-tile guided-confirmation-asset"><span class="confirm-tile-icon material-symbols-rounded" aria-hidden="true">dns</span><div class="confirm-tile-copy"><span>Nodo</span><strong>PN ${escapeHtml(nodePartNumber)}</strong><small>Serie ${escapeHtml(nodeSerial)}</small></div></div>
+      <div class="confirm-tile guided-confirmation-asset"><span class="confirm-tile-icon material-symbols-rounded" aria-hidden="true">memory</span><div class="confirm-tile-copy"><span>Tarjeta</span><strong>PN ${escapeHtml(cardPartNumber)}</strong><small>Serie ${escapeHtml(cardSerial)}</small></div></div>
+      <div class="confirm-tile"><span class="confirm-tile-icon material-symbols-rounded" aria-hidden="true">checklist</span><div class="confirm-tile-copy"><span>Avance validado</span><strong>${run.procedureIds.length} hojas</strong><small>${progress.complete} pasos</small></div></div>
+      <div class="confirm-tile"><span class="confirm-tile-icon material-symbols-rounded" aria-hidden="true">badge</span><div class="confirm-tile-copy"><span>${operatorChanged ? "Operadores" : "Operador responsable"}</span><strong>${escapeHtml(originalOperator.name)} · ${escapeHtml(originalOperator.employeeNumber)}</strong><small>${operatorChanged ? `Continúa y finaliza: ${escapeHtml(currentOperator.name)} · ${escapeHtml(currentOperator.employeeNumber)}` : escapeHtml(currentOperator.position || "Técnico de FA")}</small></div></div>
     </div>
     <label class="declaration-check guided-final-declaration"><input type="checkbox" name="declaration" data-form-field="declaration" ${accepted ? "checked" : ""} ${state.formError.includes("Confirm") ? 'aria-describedby="completion-form-error" aria-invalid="true"' : ""} />
-      <span>Confirmo que realicé todos los pasos de esta SOP para el nodo y la tarjeta identificados, y que reportaré cualquier daño o desviación para recibir la retroalimentación correspondiente.</span>
+      <span class="confirm-check-box" aria-hidden="true"><span class="material-symbols-rounded">check</span></span>
+      <span class="confirm-check-text">Confirmo que realicé todos los pasos de esta SOP para el nodo y la tarjeta identificados, y que reportaré cualquier daño o desviación para recibir la retroalimentación correspondiente.</span>
     </label>
+    <p class="guided-final-hint" role="status"><span class="material-symbols-rounded" aria-hidden="true">lock</span><span class="hint-pending">Marca la confirmación para habilitar el guardado del registro.</span><span class="hint-ready">Todo listo: ya puedes guardar el registro.</span></p>
     <div class="guided-final-actions"><button class="button button--secondary" type="button" data-action="previous-sop-sheet"><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Volver a la última hoja</button><button class="button button--primary validation-submit" type="submit" ${accepted ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">task_alt</span>Finalizar y guardar registro</button></div>
     <p class="validation-note">El registro conservará los datos del nodo y la tarjeta, la SOP y revisión, los pasos confirmados, operadores y fecha.</p>
   </section>`;
@@ -100,11 +102,12 @@ function renderGuidedFinalConfirmation(procedure, state) {
 
 function renderOperatorValidationPanel(procedure, state) {
   const errorHidden = state.formError ? "" : "hidden";
-  return `<section class="validation-panel guided-confirmation-panel" aria-labelledby="validation-heading">
+  return `<section class="validation-panel guided-confirmation-panel confirm-sheet" aria-labelledby="validation-heading">
     <div class="validation-panel-heading"><span class="heading-icon material-symbols-rounded" aria-hidden="true">task_alt</span>
       <div><p class="eyebrow">Recorrido completado · ${escapeHtml(state.sopRun.procedureIds.length)} hojas con pasos</p><h2 id="validation-heading">Confirmación del registro</h2></div>
       <button class="icon-button validation-dialog-close" type="button" data-action="close-validation-dialog" aria-label="Volver al seguimiento SOP"><span class="material-symbols-rounded" aria-hidden="true">close</span></button>
     </div>
+    ${renderOperatorFlowProgress(3)}
     <form id="completion-form" novalidate>
       ${renderGuidedFinalConfirmation(procedure, state)}
       <p class="form-error" id="completion-form-error" role="alert" aria-live="polite" ${errorHidden}>${escapeHtml(state.formError)}</p>
