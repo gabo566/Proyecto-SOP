@@ -127,6 +127,31 @@ class UserAccessService
         return 'ok';
     }
 
+    /**
+     * Elimina la cuenta. Los registros conservan el nombre de quien los hizo; el historial no se borra.
+     */
+    public function delete(User $actor, User $target): string
+    {
+        if ($actor->is($target)) {
+            return 'active-user';
+        }
+
+        if ($target->is_active && $target->role->key === Role::ADMIN) {
+            $activeAdmins = User::where('is_active', true)
+                ->whereHas('role', fn ($query) => $query->where('key', Role::ADMIN))
+                ->count();
+
+            if ($activeAdmins <= 1) {
+                return 'last-admin';
+            }
+        }
+
+        $target->directPermissions()->detach();
+        $target->delete();
+
+        return 'ok';
+    }
+
     public function setActive(User $actor, User $target, bool $active): string
     {
         if (! $active && $actor->is($target)) {

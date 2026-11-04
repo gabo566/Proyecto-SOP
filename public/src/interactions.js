@@ -444,6 +444,9 @@ function bindInteractions(app, handlers) {
         setUsersSopOpen(wasOpen ? null : id);
         break;
       }
+      case "delete-local-user":
+        void deleteUserFromCard(action.dataset.userId);
+        break;
       case "users-new-toggle":
         state.usersNewOpen = !state.usersNewOpen;
         state.usersPasswordFor = null;
@@ -936,6 +939,23 @@ function setUsersSopOpen(id) {
     const body = box.querySelector(".uh-sop-body");
     if (body) body.hidden = !open;
   });
+}
+
+// Pide confirmación y elimina la cuenta desde su tarjeta.
+async function deleteUserFromCard(userId) {
+  const card = app.querySelector(`[data-user-card][data-user-id="${CSS.escape(String(userId))}"]`);
+  const name = card?.querySelector(".uh-card-id strong")?.textContent ?? "esta persona";
+  if (!window.confirm(`¿Eliminar la cuenta de ${name}? No se puede deshacer. Sus registros y su historial se conservan.`)) return;
+  const result = await deleteLocalUser(userId);
+  const messages = {
+    "active-user": "No puedes eliminar tu propia cuenta.",
+    "last-admin": "Debe quedar al menos un administrador activo.",
+    forbidden: "Solo un administrador puede eliminar cuentas.",
+    missing: "La cuenta ya no existe.",
+  };
+  if (result === "ok") showToast("Cuenta eliminada.", "success");
+  else showToast(messages[result] ?? "No se pudo eliminar la cuenta; intenta de nuevo.", "warning");
+  render();
 }
 
 // Habilita o quita el rol de administrador desde la tarjeta de una persona.

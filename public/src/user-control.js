@@ -136,6 +136,17 @@ async function setLocalUserSopRoles(userId, { review, publish }) {
   return "ok";
 }
 
+// Elimina la cuenta (solo administradores). La confirmación la pide la pantalla antes de llamar aquí.
+async function deleteLocalUser(userId) {
+  if (getActiveLocalUser().role !== "admin") return "forbidden";
+  const target = listLocalUsers().find((user) => String(user.id) === String(userId));
+  const result = await sopApi("DELETE", `/api/users/${encodeURIComponent(userId)}`);
+  if (!result.ok) return failureCode(result);
+  await refreshLocalUsers();
+  recordLocalAuditEvent("local_user_deleted", { targetUserId: userId, targetUserName: target?.name, targetRole: target?.role, details: `Eliminó la cuenta N.º ${target?.employeeNumber ?? ""}` });
+  return "ok";
+}
+
 // Habilita o quita el rol de administrador (solo quien administra la SOP, cuenta 140784).
 async function setLocalUserAdmin(userId, admin) {
   if (!canManageSopVersions()) return "forbidden";
@@ -262,7 +273,7 @@ function renderUserCard(user, view, canGrant) {
   return `<article class="uh-card ${user.active ? "" : "is-inactive"}" data-user-card data-user-id="${escapeHtml(user.id)}" data-search="${escapeHtml(search)}" data-role="${escapeHtml(user.role)}" data-active="${user.active}" data-review="${flags.review}" data-publish="${flags.publish}">
     <header class="uh-card-head">${renderProfileAvatar(user, "profile-avatar uh-avatar")}
       <div class="uh-card-id"><strong>${escapeHtml(user.name)}</strong><span>N.º ${escapeHtml(user.employeeNumber)} · ${escapeHtml(user.position || "Técnico de FA")}</span></div>
-      <span class="uh-status ${user.active ? "is-active" : ""}"><i aria-hidden="true"></i>${user.active ? "Activo" : "Desactivado"}</span></header>
+      <span class="uh-status ${user.active ? "is-active" : ""}"><i aria-hidden="true"></i>${user.active ? "Activo" : "Desactivado"}</span><button class="uh-icon uh-icon--danger" type="button" data-action="delete-local-user" data-user-id="${escapeHtml(user.id)}" aria-label="Eliminar a ${escapeHtml(user.name)}" title="Eliminar usuario" ${String(getActiveLocalUser()?.id) === String(user.id) ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">delete</span></button></header>
     <div class="uh-badges"><span class="uh-chip uh-chip--role ${user.role === "admin" ? "is-admin" : ""}">${escapeHtml(roleLabel)}</span>${flags.edit ? '<span class="uh-chip uh-chip--edit"><span class="material-symbols-rounded" aria-hidden="true">edit_document</span>Editor</span>' : ""}${flags.review ? '<span class="uh-chip uh-chip--review"><span class="material-symbols-rounded" aria-hidden="true">rate_review</span>Revisor</span>' : ""}${flags.publish ? '<span class="uh-chip uh-chip--publish"><span class="material-symbols-rounded" aria-hidden="true">rocket_launch</span>Publicador</span>' : ""}</div>
     <section class="uh-sop uh-sop--tab ${sopOpen ? "is-open" : ""}" aria-label="Funciones en la SOP de ${escapeHtml(user.name)}">
       <button class="uh-sop-toggle" type="button" data-action="users-sop-toggle" data-user-id="${escapeHtml(user.id)}" aria-expanded="${sopOpen}" aria-controls="uh-sop-${escapeHtml(user.id)}"><span class="material-symbols-rounded" aria-hidden="true">verified_user</span>Funciones en la SOP<span class="material-symbols-rounded uh-sop-chevron" aria-hidden="true">expand_more</span></button>
@@ -384,6 +395,7 @@ function renderLocalAuditTable() {
     sop_version_published: "Publicó una revisión de SOP",
     user_sop_roles_changed: "Cambió las funciones de SOP de un usuario",
     user_admin_changed: "Cambió el rol de administrador de un usuario",
+    local_user_deleted: "Eliminó una cuenta de usuario",
     local_login: "Ingresó al sistema",
     local_logout: "Cerró sesión",
     local_user_password_changed: "Cambió la contraseña de un usuario",

@@ -94,6 +94,13 @@ class UserController extends Controller
             : $this->failure($result);
     }
 
+    public function destroy(Request $request, User $user): JsonResponse
+    {
+        $result = $this->access->delete($request->user(), $user);
+
+        return $result === 'ok' ? response()->json(['ok' => true]) : $this->failure($result);
+    }
+
     private function failure(string $code): JsonResponse
     {
         return response()->json(['ok' => false, 'code' => $code], self::FAILURE_STATUS[$code] ?? 422);

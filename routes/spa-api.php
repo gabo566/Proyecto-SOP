@@ -66,5 +66,6 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
         Route::post('/users', [UserController::class, 'store']);
         Route::patch('/users/{user}/password', [UserController::class, 'updatePassword']);
         Route::patch('/users/{user}/active', [UserController::class, 'updateActive']);
+        Route::delete('/users/{user}', [UserController::class, 'destroy']);
     });
 });
