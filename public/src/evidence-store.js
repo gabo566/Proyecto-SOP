@@ -29,32 +29,21 @@ async function storeSopSourcePdf(file) {
   if (!file || (!filenameIsPdf && file.type !== "application/pdf") || !file.size) {
     throw new Error("Selecciona un archivo PDF válido.");
   }
-  const metadata = {
-    id: ACTIVE_SOP_SOURCE_ID,
-    blob: file,
-    name: file.name,
-    type: "application/pdf",
-    size: file.size,
-    updatedAt: new Date().toISOString(),
-  };
-  const database = await openEvidenceDatabase();
-  return new Promise((resolve, reject) => {
-    const transaction = database.transaction(SOP_SOURCE_STORE, "readwrite");
-    transaction.objectStore(SOP_SOURCE_STORE).put(metadata);
-    transaction.oncomplete = () => { database.close(); resolve(metadata); };
-    transaction.onerror = () => { database.close(); reject(transaction.error); };
-    transaction.onabort = () => { database.close(); reject(transaction.error); };
-  });
+  const body = new FormData();
+  body.set("pdf", file, file.name);
+  const result = await sopApi("POST", "/api/sop-source", body);
+  if (!result.ok) {
+    const validation = result.data?.errors ? Object.values(result.data.errors).flat()[0] : "";
+    throw new Error(result.status === 413 ? "El PDF es demasiado grande para el servidor."
+      : result.status === 403 ? "Tu cuenta no tiene permiso para reemplazar el PDF de la SOP."
+      : validation || "No se pudo guardar el PDF en el servidor.");
+  }
+  return result.data.source;
 }
 
 async function loadSopSourcePdf() {
-  const database = await openEvidenceDatabase();
-  return new Promise((resolve, reject) => {
-    const transaction = database.transaction(SOP_SOURCE_STORE, "readonly");
-    const request = transaction.objectStore(SOP_SOURCE_STORE).get(ACTIVE_SOP_SOURCE_ID);
-    request.onsuccess = () => { database.close(); resolve(request.result ?? null); };
-    request.onerror = () => { database.close(); reject(request.error); };
-  });
+  const result = await sopApi("GET", "/api/sop-source");
+  return result.ok ? result.data.source : null;
 }
 
 async function storeEvidenceFile(id, file) {

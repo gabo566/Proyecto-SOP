@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\SopCatalogController;
+use App\Http\Controllers\SopSourceController;
+use App\Http\Controllers\SopVersionController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +19,19 @@ Route::get('/me', [AuthController::class, 'me']);
 Route::middleware(['auth', 'account.active'])->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/users/verify', [AuthController::class, 'verify'])->middleware('throttle:login');
+
+    Route::get('/sop-versions', [SopVersionController::class, 'index']);
+    Route::get('/sop-versions/{version}/pdf', [SopVersionController::class, 'pdf']);
+    Route::get('/sop-catalog', [SopCatalogController::class, 'index']);
+    Route::get('/sop-source', [SopSourceController::class, 'show']);
+    Route::get('/sop-source/file', [SopSourceController::class, 'file']);
+
+    Route::middleware('permission:sop.manage')->group(function (): void {
+        Route::post('/sop-versions', [SopVersionController::class, 'store']);
+        Route::delete('/sop-versions/{version}', [SopVersionController::class, 'destroy']);
+        Route::put('/sop-catalog', [SopCatalogController::class, 'update']);
+        Route::post('/sop-source', [SopSourceController::class, 'store']);
+    });
 
     Route::middleware('permission:users.manage')->group(function (): void {
         Route::get('/users', [UserController::class, 'index']);

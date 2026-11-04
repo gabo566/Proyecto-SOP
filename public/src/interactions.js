@@ -684,6 +684,7 @@ function bindInteractions(app, handlers) {
         render();
         return;
       }
+      await loadSopData({ silent: true });
       state.loginError = "";
       state.loginUsername = "";
       state.activeSection = "overview";

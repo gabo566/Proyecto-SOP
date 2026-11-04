@@ -1,8 +1,8 @@
 async function restoreStoredSopSource(state) {
   const saved = await loadSopSourcePdf();
-  if (!saved?.blob) return false;
+  if (!saved?.url) return false;
   if (state.sopPdfUrl) URL.revokeObjectURL(state.sopPdfUrl);
-  state.sopPdfUrl = URL.createObjectURL(saved.blob);
+  state.sopPdfUrl = saved.url;
   state.sopPdfName = saved.name;
   state.sopPdfUpdatedAt = saved.updatedAt;
   return true;
@@ -27,15 +27,15 @@ function bindSopSourceInteractions(app, { state, render, showToast }) {
     render();
     try {
       const saved = await storeSopSourcePdf(file);
-      state.sopPdfUrl = URL.createObjectURL(saved.blob);
+      state.sopPdfUrl = saved.url;
       state.sopPdfName = saved.name;
       state.sopPdfUpdatedAt = saved.updatedAt;
       if (previousUrl) URL.revokeObjectURL(previousUrl);
       state.sopPdfUpdating = false;
-      showToast("PDF SOP guardado en este navegador. Los pasos requieren cotejo manual.", "warning");
+      showToast("PDF SOP guardado en el servidor. Los pasos requieren cotejo manual.", "warning");
     } catch (error) {
       state.sopPdfUpdating = false;
-      showToast(error?.message || "No se pudo guardar el PDF en el almacenamiento local.", "warning");
+      showToast(error?.message || "No se pudo guardar el PDF en el servidor.", "warning");
     }
   });
 }

@@ -11,13 +11,14 @@ async function sopApi(method, path, body) {
   const headers = { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" };
   const token = readXsrfToken();
   if (token) headers["X-XSRF-TOKEN"] = token;
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const isForm = body instanceof FormData;
+  if (body !== undefined && !isForm) headers["Content-Type"] = "application/json";
   try {
     const response = await fetch(path, {
       method,
       headers,
       credentials: "same-origin",
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined || isForm ? body : JSON.stringify(body),
     });
     const data = await response.json().catch(() => ({}));
     if (response.status === 401 && path !== "/api/login" && path !== "/api/me") {

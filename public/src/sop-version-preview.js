@@ -4,7 +4,7 @@ let sopDraftPreviewSequence = 0;
 
 async function getSopDraftPdfDocument(version) {
   const pdfBlob = version.pdf?.blob instanceof Blob ? version.pdf.blob : null;
-  const sourcePath = String(version.document.pdfPath ?? "").trim();
+  const sourcePath = String(version.pdf?.url || version.document.pdfPath || "").trim();
   if (!pdfBlob && !sourcePath) throw new Error("Esta SOP no tiene un PDF disponible para previsualizar.");
   const source = pdfBlob ?? new URL(sourcePath, document.baseURI).href;
   if (source !== sopDraftPdfReference) {

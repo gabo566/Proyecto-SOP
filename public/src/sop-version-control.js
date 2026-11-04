@@ -1,9 +1,4 @@
-const SOP_VERSION_DATABASE = "sop-operador-sop-versions-v1";
-const SOP_VERSION_STORE = "versions";
-const SOP_VERSION_SETTINGS = "settings";
-const SOP_VERSION_ACTIVE_KEY = "active-version";
-const SOP_STATION_ASSIGNMENT_KEY_PREFIX = "station-sop:";
-const SOP_CATALOG_KEY_PREFIX = "sop-catalog:";
+const SOP_ACTIVE_VERSION_STORAGE_KEY = "sop-operador-active-sop-version-v1";
 
 function clampSopAnnotationCoordinate(value) {
   return Math.max(0, Math.min(1000, Math.round(Number(value) || 0)));
@@ -388,159 +383,90 @@ function canManageSopVersions(user = getActiveLocalUser()) {
   return canUserDo("sop.manage", user);
 }
 
-function openSopVersionDatabase() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(SOP_VERSION_DATABASE, 1);
-    request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains(SOP_VERSION_STORE)) {
-        request.result.createObjectStore(SOP_VERSION_STORE, { keyPath: "id" });
-      }
-      if (!request.result.objectStoreNames.contains(SOP_VERSION_SETTINGS)) {
-        request.result.createObjectStore(SOP_VERSION_SETTINGS, { keyPath: "id" });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+// Las revisiones y el catálogo viven en el servidor (tablas sop_versions y
+// sop_catalog). Solo la revisión activa se recuerda por navegador: cada
+// operador trabaja con la SOP de su estación, no con una global.
+function readSopApiError(result, fallback) {
+  if (result.status === 0) return "No se pudo conectar con el servidor.";
+  if (result.status === 413) return "El archivo es demasiado grande para el servidor.";
+  if (result.status === 403) return "Tu cuenta no tiene permiso para modificar la SOP.";
+  const validation = result.data?.errors ? Object.values(result.data.errors).flat()[0] : "";
+  return validation || result.data?.message || fallback;
 }
 
 async function listStoredSopVersions() {
-  const database = await openSopVersionDatabase();
-  return new Promise((resolve, reject) => {
-    const transaction = database.transaction(SOP_VERSION_STORE, "readonly");
-    const request = transaction.objectStore(SOP_VERSION_STORE).getAll();
-    request.onsuccess = () => {
-      database.close();
-      resolve(request.result.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
-    };
-    request.onerror = () => { database.close(); reject(request.error); };
-  });
+  const result = await sopApi("GET", "/api/sop-versions");
+  if (!result.ok) throw new Error(readSopApiError(result, "No se pudieron leer las revisiones de la SOP."));
+  return result.data.versions.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
 }
 
 async function getActiveStoredSopVersionId() {
-  const database = await openSopVersionDatabase();
-  return new Promise((resolve, reject) => {
-    const transaction = database.transaction(SOP_VERSION_SETTINGS, "readonly");
-    const request = transaction.objectStore(SOP_VERSION_SETTINGS).get(SOP_VERSION_ACTIVE_KEY);
-    request.onsuccess = () => { database.close(); resolve(request.result?.versionId ?? BUILT_IN_SOP_VERSION_ID); };
-    request.onerror = () => { database.close(); reject(request.error); };
-  });
-}
-
-async function saveSopVersion(version) {
-  const database = await openSopVersionDatabase();
-  return new Promise((resolve, reject) => {
-    const transaction = database.transaction(SOP_VERSION_STORE, "readwrite");
-    transaction.objectStore(SOP_VERSION_STORE).put(version);
-    transaction.oncomplete = () => { database.close(); resolve(); };
-    transaction.onerror = () => { database.close(); reject(transaction.error); };
-    transaction.onabort = () => { database.close(); reject(transaction.error); };
-  });
-}
-
-async function deleteStoredSopVersion(versionId) {
-  const database = await openSopVersionDatabase();
-  return new Promise((resolve, reject) => {
-    const transaction = database.transaction([SOP_VERSION_STORE, SOP_VERSION_SETTINGS], "readwrite");
-    transaction.objectStore(SOP_VERSION_STORE).delete(versionId);
-    const settings = transaction.objectStore(SOP_VERSION_SETTINGS);
-    const request = settings.getAll();
-    request.onsuccess = () => {
-      for (const row of request.result) {
-        const isStationAssignment = row.id?.startsWith(SOP_STATION_ASSIGNMENT_KEY_PREFIX);
-        const isCatalogSetting = row.id?.startsWith(SOP_CATALOG_KEY_PREFIX);
-        if (row.id === SOP_VERSION_ACTIVE_KEY && row.versionId === versionId) {
-          settings.put({ id: SOP_VERSION_ACTIVE_KEY, versionId: BUILT_IN_SOP_VERSION_ID });
-        } else if (row.versionId === versionId && (isStationAssignment || isCatalogSetting)) {
-          settings.delete(row.id);
-        }
-      }
-      settings.delete(`${SOP_CATALOG_KEY_PREFIX}${versionId}`);
-    };
-    transaction.oncomplete = () => { database.close(); resolve(); };
-    transaction.onerror = () => { database.close(); reject(transaction.error); };
-    transaction.onabort = () => { database.close(); reject(transaction.error); };
-  });
+  try {
+    return localStorage.getItem(SOP_ACTIVE_VERSION_STORAGE_KEY) || BUILT_IN_SOP_VERSION_ID;
+  } catch {
+    return BUILT_IN_SOP_VERSION_ID;
+  }
 }
 
 async function setActiveSopVersionId(versionId) {
-  const database = await openSopVersionDatabase();
-  return new Promise((resolve, reject) => {
-    const transaction = database.transaction(SOP_VERSION_SETTINGS, "readwrite");
-    transaction.objectStore(SOP_VERSION_SETTINGS).put({ id: SOP_VERSION_ACTIVE_KEY, versionId });
-    transaction.oncomplete = () => { database.close(); resolve(); };
-    transaction.onerror = () => { database.close(); reject(transaction.error); };
-    transaction.onabort = () => { database.close(); reject(transaction.error); };
-  });
+  try {
+    localStorage.setItem(SOP_ACTIVE_VERSION_STORAGE_KEY, versionId);
+  } catch {
+    throw new Error("No se pudo recordar la SOP activa en este navegador.");
+  }
+}
+
+async function saveSopVersion(version) {
+  const { pdf, ...data } = version;
+  const body = new FormData();
+  body.set("version", JSON.stringify(data));
+  if (pdf?.blob instanceof Blob) body.set("pdf", pdf.blob, pdf.name || "sop.pdf");
+  else if (pdf?.versionId && pdf.versionId !== version.id) body.set("pdfCopyFrom", pdf.versionId);
+  const result = await sopApi("POST", "/api/sop-versions", body);
+  if (!result.ok) throw new Error(readSopApiError(result, "No se pudo guardar la revisión en el servidor."));
+}
+
+async function deleteStoredSopVersion(versionId) {
+  const result = await sopApi("DELETE", `/api/sop-versions/${encodeURIComponent(versionId)}`);
+  if (!result.ok) throw new Error(readSopApiError(result, "No se pudo eliminar la revisión en el servidor."));
+  if (await getActiveStoredSopVersionId() === versionId) await setActiveSopVersionId(BUILT_IN_SOP_VERSION_ID);
 }
 
 async function saveStoredSopCatalog(catalog) {
-  const database = await openSopVersionDatabase();
-  return new Promise((resolve, reject) => {
-    const transaction = database.transaction(SOP_VERSION_SETTINGS, "readwrite");
-    const store = transaction.objectStore(SOP_VERSION_SETTINGS);
-    for (const [versionId, config] of Object.entries(catalog)) {
-      store.put({
-        id: `${SOP_CATALOG_KEY_PREFIX}${versionId}`,
-        versionId,
-        stationAssignment: config.stationAssignment,
-        enabled: Boolean(config.enabled),
-        updatedAt: new Date().toISOString(),
-        updatedBy: getAuthenticatedLocalUser()?.employeeNumber ?? "migración local",
-      });
-    }
-    transaction.oncomplete = () => { database.close(); resolve(); };
-    transaction.onerror = () => { database.close(); reject(transaction.error); };
-    transaction.onabort = () => { database.close(); reject(transaction.error); };
-  });
+  const payload = {};
+  for (const [versionId, config] of Object.entries(catalog)) {
+    payload[versionId] = { stationAssignment: config.stationAssignment ?? "", enabled: Boolean(config.enabled) };
+  }
+  const result = await sopApi("PUT", "/api/sop-catalog", { catalog: payload });
+  if (!result.ok) throw new Error(readSopApiError(result, "No se pudo guardar el catálogo de SOP en el servidor."));
 }
 
 async function restoreStoredSopCatalog(state) {
-  const database = await openSopVersionDatabase();
-  const rows = await new Promise((resolve, reject) => {
-    const transaction = database.transaction(SOP_VERSION_SETTINGS, "readonly");
-    const request = transaction.objectStore(SOP_VERSION_SETTINGS).getAll();
-    let result = [];
-    request.onsuccess = () => { result = request.result; };
-    transaction.oncomplete = () => { database.close(); resolve(result); };
-    transaction.onerror = () => { database.close(); reject(transaction.error); };
-    transaction.onabort = () => { database.close(); reject(transaction.error); };
-  });
+  const result = await sopApi("GET", "/api/sop-catalog");
+  if (!result.ok) throw new Error(readSopApiError(result, "No se pudo leer el catálogo de SOP."));
+  const stored = result.data.catalog ?? {};
   const versionsById = new Map([
     [BUILT_IN_SOP_VERSION.id, BUILT_IN_SOP_VERSION],
     ...(state.sopVersionHistory ?? []).map((version) => [version.id, version]),
   ]);
-  const catalogRowsById = new Map(rows
-    .filter((row) => row.id?.startsWith(SOP_CATALOG_KEY_PREFIX))
-    .map((row) => [row.versionId, row]));
-  const legacyRowsByAssignment = new Map(rows
-    .filter((row) => row.id?.startsWith(SOP_STATION_ASSIGNMENT_KEY_PREFIX))
-    .map((row) => [row.assignmentValue, row]));
-  const hasLegacyStationSettings = legacyRowsByAssignment.size > 0;
   const catalog = {};
 
   for (const version of versionsById.values()) {
-    const stored = catalogRowsById.get(version.id);
-    const stationAssignment = stored
-      ? getWorkStationAssignment(stored.stationAssignment)?.value ?? ""
-      : getWorkStationAssignment(version.document?.stationAssignment)?.value ?? "";
-    if (stored) {
-      catalog[version.id] = { stationAssignment, enabled: Boolean(stored.enabled && stationAssignment) };
+    const row = stored[version.id];
+    if (row) {
+      const stationAssignment = getWorkStationAssignment(row.stationAssignment)?.value ?? "";
+      catalog[version.id] = { stationAssignment, enabled: Boolean(row.enabled && stationAssignment) };
       continue;
     }
-
-    const legacyAssignment = [...legacyRowsByAssignment.values()].find((row) => row.enabled
-      && row.versionId === version.id
-      && row.assignmentValue === stationAssignment);
-    const enabled = legacyAssignment
-      ? true
-      : !hasLegacyStationSettings && version.id === BUILT_IN_SOP_VERSION_ID && stationAssignment === "RWK:RWK";
-    catalog[version.id] = { stationAssignment, enabled };
+    // Revisión sin fila en el catálogo: se propone la estación del documento y
+    // solo la SOP incluida en el proyecto arranca habilitada.
+    const stationAssignment = getWorkStationAssignment(version.document?.stationAssignment)?.value ?? "";
+    catalog[version.id] = { stationAssignment, enabled: version.id === BUILT_IN_SOP_VERSION_ID && stationAssignment === "RWK:RWK" };
   }
 
   state.sopVersionCatalog = catalog;
-  const hasAllCatalogSettings = [...versionsById.keys()].every((id) => catalogRowsById.has(id));
-  if (!hasAllCatalogSettings) await saveStoredSopCatalog(catalog);
+  const missingRows = [...versionsById.keys()].some((id) => !stored[id]);
+  if (missingRows && canManageSopVersions()) await saveStoredSopCatalog(catalog).catch(() => {});
   state.sopCatalogLoaded = true;
 }
 
@@ -588,6 +514,9 @@ function applySopVersion(version, state, builtIn = false) {
     state.sopPdfUrl = URL.createObjectURL(version.pdf.blob);
     state.sopPdfName = version.pdf.name;
     activeSopImageUrls.push(state.sopPdfUrl);
+  } else if (version.pdf?.url) {
+    state.sopPdfUrl = version.pdf.url;
+    state.sopPdfName = version.pdf.name;
   } else {
     state.sopPdfUrl = "";
     state.sopPdfName = "";
@@ -1319,7 +1248,7 @@ function renderSopVersionManager(state) {
       ${error}</form></div>
     ${renderSopCatalog(state)}
     ${preview}
-    <p class="sop-version-warning">Las revisiones, estaciones y disponibilidad se guardan en este navegador. Otros perfiles o equipos no se sincronizan automáticamente. Las evidencias anteriores conservan la versión utilizada.</p>
+    <p class="sop-version-warning">Las revisiones, estaciones y disponibilidad se guardan en el servidor y las ven todos los equipos. Las evidencias anteriores conservan la versión utilizada.</p>
   </section>`;
 }
 
@@ -2018,7 +1947,7 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
         }
         state.sopVersionBusy = false;
         recordLocalAuditEvent("sop_version_deleted", { details: `Rev. ${version.document.revision} · ${version.document.id}` });
-        showToast(`SOP Rev. ${version.document.revision} eliminada del catálogo local.`);
+        showToast(`SOP Rev. ${version.document.revision} eliminada del catálogo.`);
         render();
       } catch (error) {
         state.sopVersionBusy = false;
@@ -2095,7 +2024,7 @@ function bindSopVersionInteractions(app, { state, render, showToast }) {
         showToast(`SOP Rev. ${version.document.revision} guardada y deshabilitada. Asigna la estación y habilítala cuando esté lista.`);
       } catch (error) {
         state.sopVersionBusy = false;
-        state.sopDraftError = error?.message || "No se pudo guardar la revisión en IndexedDB.";
+        state.sopDraftError = error?.message || "No se pudo guardar la revisión en el servidor.";
         render();
       }
     }

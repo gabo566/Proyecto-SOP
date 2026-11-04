@@ -660,24 +660,29 @@ document.addEventListener("sop:session-expired", (event) => {
   state.loginError = event.detail?.code === "inactive" ? "Tu cuenta fue desactivada." : "Tu sesión terminó. Inicia sesión de nuevo.";
   render();
 });
-loadLocalSession().then(() => {
-render({ initial: true });
-window.setTimeout(() => document.documentElement.classList.remove("app-boot"), 600);
-return restoreCurrentSopVersion(state);
-}).then(async () => {
-  if (state.sopVersionMeta?.builtIn) {
-    await restoreStoredSopSource(state);
+// Revisiones, catálogo y PDF fuente vienen del servidor, así que solo se piden
+// con una sesión abierta (al arrancar si ya hay una y justo después de iniciar sesión).
+async function loadSopData({ silent = false } = {}) {
+  state.sopStorageReady = false;
+  try {
+    await restoreCurrentSopVersion(state);
+    if (state.sopVersionMeta?.builtIn) {
+      await restoreStoredSopSource(state);
+    }
+  } catch (error) {
+    console.error("No se pudo restaurar la versión de la SOP.", error);
+    state.sopVersionCatalog = { [BUILT_IN_SOP_VERSION_ID]: { stationAssignment: "RWK:RWK", enabled: true } };
+    state.sopCatalogLoaded = true;
   }
   restoreOperatorFlowForSession();
   state.sopStorageReady = true;
-  render();
-}).catch((error) => {
-  console.error("No se pudo restaurar la versión local de la SOP.", error);
-  state.sopVersionCatalog = { [BUILT_IN_SOP_VERSION_ID]: { stationAssignment: "RWK:RWK", enabled: true } };
-  state.sopCatalogLoaded = true;
-  restoreOperatorFlowForSession();
-  state.sopStorageReady = true;
-  render();
+  if (!silent) render();
+}
+
+loadLocalSession().then(() => {
+  render({ initial: true });
+  window.setTimeout(() => document.documentElement.classList.remove("app-boot"), 600);
+  if (getAuthenticatedLocalUser()) return loadSopData();
 });
 
 var ACTIVE_SECTION_KEY = "sop-operador-active-section";
