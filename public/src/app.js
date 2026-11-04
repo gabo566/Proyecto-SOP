@@ -185,7 +185,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     : state.activeSection === "reports"
     ? renderReportsView(allRecords, state, state.workItems)
     : state.activeSection === "users"
-    ? renderLocalUsersPanel({ filter: state.usersFilter, search: state.usersSearch, newOpen: state.usersNewOpen, passwordFor: state.usersPasswordFor })
+    ? renderLocalUsersPanel({ filter: state.usersFilter, search: state.usersSearch, newOpen: state.usersNewOpen, passwordFor: state.usersPasswordFor, sopOpen: state.usersSopOpen })
     : state.activeSection === "sop-admin"
     ? renderSopVersionManager(state)
     : renderSummaryMetrics(todayRecords, state);

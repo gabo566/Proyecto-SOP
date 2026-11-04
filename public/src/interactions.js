@@ -438,6 +438,18 @@ function bindInteractions(app, handlers) {
         state.usersFilter = action.dataset.filter;
         applyUsersFilter(app.querySelector("#users-panel"), state.usersFilter, state.usersSearch);
         break;
+      case "users-sop-toggle": {
+        const id = String(action.dataset.userId);
+        const open = new Set((state.usersSopOpen ?? []).map(String));
+        if (open.has(id)) open.delete(id); else open.add(id);
+        state.usersSopOpen = [...open];
+        const expanded = open.has(id);
+        action.setAttribute("aria-expanded", String(expanded));
+        action.closest(".uh-sop")?.classList.toggle("is-open", expanded);
+        const body = action.closest(".uh-sop")?.querySelector(".uh-sop-body");
+        if (body) body.hidden = !expanded;
+        break;
+      }
       case "users-new-toggle":
         state.usersNewOpen = !state.usersNewOpen;
         state.usersPasswordFor = null;

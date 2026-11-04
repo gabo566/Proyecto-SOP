@@ -161,3 +161,15 @@
 .uh .uh-search input[type="search"] { height: auto; min-height: 0; padding: 0; border: 0 !important; border-radius: 0; background: transparent !important; box-shadow: none !important; outline: 0 !important; }
 .uh .uh-search { border: 1.5px solid #c7d3e3; }
 .uh .uh-search:focus-within { border-color: #2653a6; }
+
+/* Funciones en la SOP: pestaña plegable, cerrada por defecto */
+.uh-sop--tab { gap: 0; padding: 0; overflow: hidden; }
+.uh-sop-toggle { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 12px; border: 0; color: var(--u-ink); background: transparent; font: inherit; font-size: 13px; font-weight: 800; text-align: left; cursor: pointer; transition: background-color 140ms ease; }
+.uh-sop-toggle:hover { background: #e4ebf7; }
+.uh-sop-toggle:focus-visible { outline: 3px solid rgb(38 83 166 / 45%); outline-offset: -3px; }
+.uh-sop-toggle > .material-symbols-rounded:first-child { color: var(--u-blue); font-size: 20px; }
+.uh-sop-chevron { margin-left: auto; color: var(--u-muted); transition: transform 200ms cubic-bezier(.23, 1, .32, 1); }
+.uh-sop.is-open .uh-sop-chevron { transform: rotate(180deg); }
+.uh-sop-body { display: grid; gap: 8px; padding: 0 12px 12px; animation: uh-in 200ms cubic-bezier(.23, 1, .32, 1) both; }
+.uh-sop-body[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { .uh-sop-body, .uh-sop-chevron { animation: none; transition: none; } }
