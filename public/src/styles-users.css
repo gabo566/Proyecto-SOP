@@ -194,3 +194,16 @@
 #audit-panel td strong { display: block; margin-bottom: 4px; line-height: 1.35; }
 #audit-panel td small { display: block; margin: 0; line-height: 1.4; }
 #audit-panel .section-heading { gap: 8px 20px; }
+
+/* Funciones en la SOP: ventana flotante anclada al botón, sin empujar ni desbordar la tarjeta */
+.uh-card { overflow: visible; }
+.uh-card:has(.uh-sop.is-open) { position: relative; z-index: 30; }
+.uh-sop--tab { position: relative; overflow: visible; border: 1px solid #dde3ee; background: var(--u-soft); }
+.uh-sop--tab .uh-sop-toggle { border-radius: 12px; }
+.uh-sop--tab.is-open .uh-sop-toggle { background: #e4ebf7; }
+.uh-sop--tab .uh-sop-body { position: absolute; top: calc(100% + 8px); right: 0; left: 0; z-index: 40; max-width: min(100%, 420px); padding: 12px; border: 1px solid #c7d3e3; border-radius: 14px; background: #fff; box-shadow: 0 16px 36px rgb(27 41 64 / 24%), 0 2px 6px rgb(27 41 64 / 10%); transform-origin: top center; animation: uh-pop 170ms cubic-bezier(.23, 1, .32, 1) both; }
+.uh-sop--tab .uh-sop-body::before { content: ""; position: absolute; top: -7px; left: 28px; width: 12px; height: 12px; border-top: 1px solid #c7d3e3; border-left: 1px solid #c7d3e3; background: #fff; transform: rotate(45deg); }
+.uh-sop--tab .uh-sop-body[hidden] { display: none; }
+.uh-sop--tab .uh-switch { background: var(--u-soft); }
+@keyframes uh-pop { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .uh-sop--tab .uh-sop-body { animation: none; } }

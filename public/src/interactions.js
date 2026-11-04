@@ -440,14 +440,8 @@ function bindInteractions(app, handlers) {
         break;
       case "users-sop-toggle": {
         const id = String(action.dataset.userId);
-        const open = new Set((state.usersSopOpen ?? []).map(String));
-        if (open.has(id)) open.delete(id); else open.add(id);
-        state.usersSopOpen = [...open];
-        const expanded = open.has(id);
-        action.setAttribute("aria-expanded", String(expanded));
-        action.closest(".uh-sop")?.classList.toggle("is-open", expanded);
-        const body = action.closest(".uh-sop")?.querySelector(".uh-sop-body");
-        if (body) body.hidden = !expanded;
+        const wasOpen = (state.usersSopOpen ?? []).map(String).includes(id);
+        setUsersSopOpen(wasOpen ? null : id);
         break;
       }
       case "users-new-toggle":
@@ -621,6 +615,17 @@ function bindInteractions(app, handlers) {
       case "close-toast": state.toast = null; render(); break;
       default: break;
     }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!state.usersSopOpen?.length || event.target.closest(".uh-sop--tab")) return;
+    setUsersSopOpen(null);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !state.usersSopOpen?.length) return;
+    const toggle = app.querySelector(".uh-sop--tab.is-open .uh-sop-toggle");
+    setUsersSopOpen(null);
+    toggle?.focus();
   });
 
   app.addEventListener("change", (event) => {
@@ -918,6 +923,19 @@ async function changeUserSopRole(toggle) {
     showToast(result === "forbidden" ? "Solo la cuenta 140784 puede asignar estas funciones." : "No se pudo cambiar la función; intenta de nuevo.", "warning");
   }
   render();
+}
+
+// Solo una ventana de "Funciones en la SOP" abierta a la vez; se cierra al tocar fuera o con Escape.
+function setUsersSopOpen(id) {
+  state.usersSopOpen = id === null ? [] : [String(id)];
+  app.querySelectorAll(".uh-sop--tab").forEach((box) => {
+    const toggle = box.querySelector(".uh-sop-toggle");
+    const open = id !== null && String(toggle?.dataset.userId) === String(id);
+    toggle?.setAttribute("aria-expanded", String(open));
+    box.classList.toggle("is-open", open);
+    const body = box.querySelector(".uh-sop-body");
+    if (body) body.hidden = !open;
+  });
 }
 
 // Habilita o quita el rol de administrador desde la tarjeta de una persona.
