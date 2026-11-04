@@ -1,0 +1,20 @@
+/* Barra de acciones de la hoja SOP: todos los botones en una sola fila, sin desbordarse. */
+.sop-action-bar { display: flex !important; flex-wrap: nowrap !important; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+.sop-action-bar .sop-action-side { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; min-width: 0; }
+.sop-action-bar .sop-action-side--left { flex: 0 1 auto; }
+.sop-action-bar .sop-action-side--right { flex: 0 0 auto; margin-left: auto; }
+.sop-action-bar .button { position: relative; flex: 0 0 auto; width: auto; min-width: 0; white-space: nowrap; }
+.sop-action-bar .sop-action-confirm { order: 0 !important; flex-basis: auto !important; width: auto !important; min-width: 0 !important; }
+.sop-action-bar .sop-action-label { display: inline; }
+@media (max-width: 1280px) {
+  .sop-action-bar .sop-action-previous .sop-action-label,
+  .sop-action-bar .sop-action-return .sop-action-label,
+  .sop-action-bar .sop-action-handoff .sop-action-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .sop-action-bar .button { padding-inline: 12px; }
+}
+@media (max-width: 640px) {
+  .sop-action-bar { gap: 6px; }
+  .sop-action-bar .sop-action-side { gap: 6px; }
+  .sop-action-bar .sop-action-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .sop-action-bar .button { padding-inline: 10px; min-height: 44px; }
+}
