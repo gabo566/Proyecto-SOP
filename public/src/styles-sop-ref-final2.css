@@ -132,3 +132,13 @@
   .topbar .topbar-title-text::before { left: -24px; } .topbar .topbar-title-text::after { right: -24px; }
 }
 @media (prefers-reduced-motion: reduce) { .topbar .topbar-title-text { animation: none; background-position: 0 0; } }
+
+/* ---- Procedimiento y nota de seguridad: contorno fuerte, franja lateral y sombra marcada ---- */
+.sop-summary-card {
+  border: 2.5px solid #1f4a99; padding-left: 22px;
+  box-shadow: inset 8px 0 0 #2653a6, 0 8px 18px rgb(38 83 166 / 32%);
+}
+.sop-safety-note {
+  border: 2.5px solid #2b2112; padding-left: 22px;
+  box-shadow: inset 8px 0 0 #f0a020, 0 8px 18px rgb(120 80 10 / 32%);
+}
