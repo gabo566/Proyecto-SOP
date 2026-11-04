@@ -553,6 +553,15 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Cambios:** `src/interactions.js`: dentro de la actualización (y por tanto dentro de la View Transition) se hace `window.scrollTo({ top: 0, behavior: "instant" })` tras `render()`; se elimina el `scrollIntoView` al título. `index.html` (`?v=md3-c063`).
 - **Verificación:** desde la parte baja de cada sección (hasta 7389 px) el clic en cualquier opción del sidebar deja `scrollY = 0`; 9/9 pruebas.
 
+### C-064 (2026-11-03) — Historial sin la línea «Co-Authored-By: Claude»
+
+- **Motivo:** GitHub mostraba «gabo566 and claude» en los commits y a «claude» en Contributors por el trailer `Co-Authored-By` de 22 commits. El autor y el committer reales ya eran Gabo.
+- **Qué se hizo:** se eliminó solo esa línea de los mensajes de los 22 commits (`git filter-branch --msg-filter` en un clon limpio) y se publicó con `git push --force-with-lease` en `main` y en las 11 ramas remotas. Autores, committers, fechas y contenido de archivos no cambian (`git diff --stat` entre el `main` viejo y el nuevo: vacío; 90 commits antes y después).
+- **Hashes:** `main` pasó de `b70d3b1` a `7be6385`; los commits desde `8e03446` y todos sus descendientes tienen hash nuevo. Respaldo previo: `respaldo-antes.bundle` (scratchpad de la sesión).
+- **Efectos:** enlaces antiguos a esos commits dejan de existir; las copias locales ajenas deben hacer `git fetch` + `git reset --hard origin/main`. Las ramas locales `feat/captura-escaneo`, `fix/validacion-scroll` y `ui/validacion-hoja-rediseno` (solo locales, ya fusionadas) conservan los commits viejos.
+- **Regla desde ahora:** los commits y PRs de este proyecto no llevan `Co-Authored-By` ni atribución a Claude.
+- **Limpieza local:** se borraron los `desktop.ini` de Google Drive dentro de `.git/refs` que rompían `git fetch` («did not send all necessary objects»).
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.
