@@ -23,8 +23,8 @@ test("una revisión sin estado se considera publicada", () => {
   assert.equal(context.getSopVersionStatus(version()), "pending_review");
 });
 
-test("quien edita no puede revisar su propia revisión", () => {
-  assert.match(context.getSopWorkflowBlock(version(), "review", user(1, "sop.review")), /otra persona/);
+test("quien sube la revisión también puede revisarla", () => {
+  assert.equal(context.getSopWorkflowBlock(version(), "review", user(1, "sop.review")), "");
   assert.equal(context.getSopWorkflowBlock(version(), "review", user(2, "sop.review")), "");
 });
 
@@ -35,7 +35,7 @@ test("sin la función de revisor o publicador no se puede revisar ni publicar", 
 
 test("publica una tercera persona: ni quien editó ni quien revisó", () => {
   const approved = version({ status: "approved", reviewedById: 2 });
-  assert.match(context.getSopWorkflowBlock(approved, "publish", user(1, "sop.publish")), /editaste/);
+  assert.match(context.getSopWorkflowBlock(approved, "publish", user(1, "sop.publish")), /subiste/);
   assert.match(context.getSopWorkflowBlock(approved, "publish", user(2, "sop.publish")), /tercera persona/);
   assert.equal(context.getSopWorkflowBlock(approved, "publish", user(3, "sop.publish")), "");
 });

@@ -259,7 +259,7 @@ function renderUserStrengthMeter() {
 }
 
 function renderUserSopSwitch(role, checked, disabled, userId = "", name = "") {
-  const text = role === "admin" ? ["Administrador", "Gestiona cuentas, contraseñas y reportes"] : role === "review" ? ["Revisor", "Aprueba o devuelve las revisiones que edita otra persona"] : ["Publicador", "Publica las revisiones ya aprobadas"];
+  const text = role === "admin" ? ["Administrador", "Gestiona cuentas, contraseñas y reportes"] : role === "review" ? ["Revisor", "Sube y revisa las revisiones de la SOP"] : ["Publicador", "Solo publica las revisiones ya aprobadas"];
   const hook = role === "admin" ? "data-admin-toggle" : "data-sop-role-toggle";
   return `<label class="uh-switch ${disabled ? "is-locked" : ""}"><input type="checkbox" ${userId ? `${hook} data-role="${role}" data-user-id="${escapeHtml(userId)}"` : `name="${name}"`} ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} /><span class="uh-switch-track" aria-hidden="true"></span><span class="uh-switch-text"><b>${text[0]}</b><small>${text[1]}</small></span></label>`;
 }

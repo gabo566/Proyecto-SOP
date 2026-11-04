@@ -95,7 +95,7 @@ function renderSopSelector(selectedId, pageZoom = 110, state = {}) {
   const procedure = SOP_SHEETS.find((item) => item.id === selectedId) ?? SOP_SHEETS[0];
   const pdfPath = state.sopPdfUrl || SOP_DOCUMENT.pdfPath;
   const sourceUrl = pdfPath ? `${pdfPath}#page=${procedure.sheet}` : "";
-  const canUpdateSop = canManageSopVersions();
+  const canUpdateSop = canUploadSop();
 
   return `<section class="selector-panel procedure-selector-panel" aria-label="Selección de SOP y hoja">
     <div class="selector-fields"><label for="procedure-select">Seleccionar SOP</label>

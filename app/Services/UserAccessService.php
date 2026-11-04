@@ -75,8 +75,13 @@ class UserAccessService
     /**
      * Concede o retira las funciones de revisor y publicador de SOP (permisos directos de la persona).
      */
-    public function setSopRoles(User $target, bool $review, bool $publish): User
+    public function setSopRoles(User $target, bool $review, bool $publish): string|User
     {
+        // Revisor y publicador se excluyen: quien sube y revisa no publica, y quien publica no sube.
+        if ($review && $publish) {
+            return 'roles-exclusive';
+        }
+
         $ids = Permission::whereIn('key', [Permission::SOP_REVIEW, Permission::SOP_PUBLISH])->pluck('id', 'key');
         $target->directPermissions()->detach($ids->values());
 

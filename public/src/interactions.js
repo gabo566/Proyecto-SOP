@@ -634,7 +634,12 @@ function bindInteractions(app, handlers) {
   app.addEventListener("change", (event) => {
     const { target } = event;
     if (target.matches("[data-sop-role-toggle]")) {
+      enforceSopRoleExclusive(target);
       void changeUserSopRole(target);
+      return;
+    }
+    if (target.matches('[name="sopReview"], [name="sopPublish"]')) {
+      enforceSopRoleExclusive(target);
       return;
     }
     if (target.matches("[data-admin-toggle]")) {
@@ -939,6 +944,15 @@ function setUsersSopOpen(id) {
     const body = box.querySelector(".uh-sop-body");
     if (body) body.hidden = !open;
   });
+}
+
+// Revisor y publicador no pueden estar activos a la vez: al activar uno se apaga el otro.
+function enforceSopRoleExclusive(input) {
+  if (!input.checked) return;
+  const scope = input.closest("[data-user-card]") ?? input.closest("#local-user-form");
+  const reviewing = input.dataset.role === "review" || input.name === "sopReview";
+  const other = scope?.querySelector(reviewing ? '[data-role="publish"], [name="sopPublish"]' : '[data-role="review"], [name="sopReview"]');
+  if (other) other.checked = false;
 }
 
 // Pide confirmación y elimina la cuenta desde su tarjeta.

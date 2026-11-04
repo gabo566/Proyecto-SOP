@@ -73,10 +73,6 @@ class SopVersionService
             return 'not-pending';
         }
 
-        if ($version->submitted_by === $actor->id) {
-            return 'same-person';
-        }
-
         $note = trim((string) $note);
 
         if ($decision === 'reject' && $note === '') {

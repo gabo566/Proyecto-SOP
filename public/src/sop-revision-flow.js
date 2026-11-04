@@ -205,7 +205,7 @@ function bindSopRevisionFlow(app, env) {
       env.state.sopFlowShowAll = !env.state.sopFlowShowAll;
       env.render();
     } else if (name === "sop-flow-upload-other") {
-      if (!canManageSopVersions() || env.state.sopVersionBusy) return;
+      if (!canUploadSop() || env.state.sopVersionBusy) return;
       env.state.sopDraft = null;
       env.state.sopDraftStage = 1;
       env.state.sopDraftError = "";

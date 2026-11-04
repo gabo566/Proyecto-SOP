@@ -70,17 +70,32 @@ class SopReviewWorkflowTest extends TestCase
         $this->getJson('/api/sop-versions')->assertJsonPath('versions.0.submittedBy', 'Persona 140784');
     }
 
-    public function test_el_editor_no_puede_revisar_su_propia_revision_ni_publicarla(): void
+    public function test_quien_sube_la_revision_tambien_puede_revisarla_pero_no_publicarla(): void
     {
         ['editor' => $editor, 'version' => $id] = $this->submittedVersion();
-        $editor->directPermissions()->attach(Permission::whereIn('key', [Permission::SOP_REVIEW, Permission::SOP_PUBLISH])->pluck('id'));
-        $editor = $editor->fresh();
 
-        $this->actingAs($editor)->postJson("/api/sop-versions/{$id}/review", ['decision' => 'approve'])
-            ->assertForbidden()->assertJsonPath('code', 'same-person');
-        $this->actingAs($editor)->postJson("/api/sop-versions/{$id}/publish")
-            ->assertStatus(422)->assertJsonPath('code', 'not-approved');
-        $this->assertSame('pending_review', SopVersion::find($id)->status);
+        $this->actingAs($editor)->postJson("/api/sop-versions/{$id}/review", ['decision' => 'approve'])->assertOk();
+        $this->actingAs($editor)->postJson("/api/sop-versions/{$id}/publish")->assertForbidden();
+        $this->assertSame('approved', SopVersion::find($id)->status);
+    }
+
+    public function test_el_publicador_no_sube_ni_revisa(): void
+    {
+        ['version' => $id] = $this->submittedVersion();
+        $publisher = $this->person('200009', [Permission::SOP_PUBLISH]);
+
+        $this->actingAs($publisher)->postJson('/api/sop-versions', ['version' => '{}'])->assertForbidden();
+        $this->actingAs($publisher)->postJson("/api/sop-versions/{$id}/review", ['decision' => 'approve'])->assertForbidden();
+    }
+
+    public function test_revisor_y_publicador_son_funciones_excluyentes(): void
+    {
+        $owner = $this->person('140784', [Permission::SOP_MANAGE, Permission::USERS_MANAGE]);
+        $target = $this->person('500020');
+
+        $this->actingAs($owner)->patchJson("/api/users/{$target->id}/sop-roles", ['review' => true, 'publish' => true])
+            ->assertStatus(422)->assertJsonPath('code', 'roles-exclusive');
+        $this->assertCount(0, $target->fresh()->directPermissions);
     }
 
     public function test_sin_el_permiso_no_se_puede_revisar_ni_publicar(): void
@@ -149,10 +164,12 @@ class SopReviewWorkflowTest extends TestCase
 
         $this->actingAs($other)->patchJson("/api/users/{$target->id}/sop-roles", ['review' => true, 'publish' => false])->assertForbidden();
 
-        $this->actingAs($owner)->patchJson("/api/users/{$target->id}/sop-roles", ['review' => true, 'publish' => true])
-            ->assertOk()->assertJsonFragment(['permissions' => ['sop.review', 'sop.publish']]);
+        $this->actingAs($owner)->patchJson("/api/users/{$target->id}/sop-roles", ['review' => true, 'publish' => false])
+            ->assertOk()->assertJsonFragment(['permissions' => ['sop.review']]);
         $this->patchJson("/api/users/{$target->id}/sop-roles", ['review' => false, 'publish' => true])
             ->assertOk()->assertJsonPath('user.permissions', ['sop.publish']);
+        $this->patchJson("/api/users/{$target->id}/sop-roles", ['review' => true, 'publish' => false])
+            ->assertOk()->assertJsonPath('user.permissions', ['sop.review']);
         $this->patchJson("/api/users/{$target->id}/sop-roles", ['review' => false, 'publish' => false])
             ->assertOk()->assertJsonPath('user.permissions', []);
     }

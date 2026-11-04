@@ -48,11 +48,13 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
     Route::get('/audit-events', [AuditEventController::class, 'index']);
     Route::post('/audit-events', [AuditEventController::class, 'store']);
 
-    Route::post('/sop-versions/{version}/review', [SopVersionController::class, 'review'])->middleware('permission:sop.review');
+    // Editor y revisor pueden revisar; la guarda está en SopVersionController::canReview.
+    // Subir una revisión: editor o revisor (guarda en SopVersionController::canUpload).
+    Route::post('/sop-versions', [SopVersionController::class, 'store']);
+    Route::post('/sop-versions/{version}/review', [SopVersionController::class, 'review']);
     Route::post('/sop-versions/{version}/publish', [SopVersionController::class, 'publish'])->middleware('permission:sop.publish');
 
     Route::middleware('permission:sop.manage')->group(function (): void {
-        Route::post('/sop-versions', [SopVersionController::class, 'store']);
         Route::delete('/sop-versions/{version}', [SopVersionController::class, 'destroy']);
         Route::put('/sop-catalog', [SopCatalogController::class, 'update']);
         Route::post('/sop-source', [SopSourceController::class, 'store']);

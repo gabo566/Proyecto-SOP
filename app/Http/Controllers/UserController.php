@@ -80,7 +80,9 @@ class UserController extends Controller
 
         $updated = $this->access->setSopRoles($user, (bool) $data['review'], (bool) $data['publish']);
 
-        return response()->json(['ok' => true, 'user' => $updated->toClientArray()]);
+        return is_string($updated)
+            ? $this->failure($updated)
+            : response()->json(['ok' => true, 'user' => $updated->toClientArray()]);
     }
 
     public function updateAdmin(Request $request, User $user): JsonResponse

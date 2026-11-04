@@ -30,8 +30,22 @@ class SopVersionController extends Controller
      * Alta o actualización (upsert por id). La revisión viaja como multipart:
      * `version` (JSON) y, solo si cambia, `pdf`.
      */
+    /** Quien sube la SOP: el editor o el revisor (el publicador solo publica). */
+    private function canUpload(?User $user): bool
+    {
+        return $user !== null && ($user->hasPermissionTo(Permission::SOP_MANAGE) || $user->hasPermissionTo(Permission::SOP_REVIEW));
+    }
+
+    /** Quien revisa: el editor o el revisor, también sobre lo que él mismo subió. */
+    private function canReview(?User $user): bool
+    {
+        return $this->canUpload($user);
+    }
+
     public function store(Request $request): JsonResponse
     {
+        abort_unless($this->canUpload($request->user()), 403);
+
         $request->validate([
             'version' => ['required', 'string', 'max:'.self::MAX_JSON_BYTES],
             'pdf' => ['nullable', 'file', 'mimes:pdf', 'max:30720'],
@@ -65,6 +79,8 @@ class SopVersionController extends Controller
 
     public function review(Request $request, SopVersion $version): JsonResponse
     {
+        abort_unless($this->canReview($request->user()), 403);
+
         $data = $request->validate([
             'decision' => ['required', 'string', 'in:approve,reject'],
             'note' => ['nullable', 'string', 'max:1000'],

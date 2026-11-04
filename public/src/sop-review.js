@@ -13,8 +13,14 @@ function getSopVersionStatus(version) {
   return version?.status ?? "published";
 }
 
+// Revisar: el revisor y el editor (también sobre lo que ellos mismos suben).
 function canReviewSop(user = getActiveLocalUser()) {
-  return canUserDo("sop.review", user);
+  return canUserDo("sop.review", user) || canManageSopVersions(user);
+}
+
+// Subir una revisión: el editor o el revisor. El publicador no sube.
+function canUploadSop(user = getActiveLocalUser()) {
+  return canUserDo("sop.review", user) || canManageSopVersions(user);
 }
 
 function canPublishSop(user = getActiveLocalUser()) {
@@ -36,12 +42,11 @@ function getSopWorkflowBlock(version, action, user = getActiveLocalUser()) {
   if (action === "review") {
     if (!canReviewSop(user)) return "Tu cuenta no tiene la función de revisor.";
     if (status !== "pending_review") return "Esta revisión ya no está pendiente de revisión.";
-    if (sameSopPerson(user.id, version.submittedById)) return "Tú enviaste esta revisión: la debe revisar otra persona.";
     return "";
   }
   if (!canPublishSop(user)) return "Tu cuenta no tiene la función de publicador.";
   if (status !== "approved") return "Solo se publican revisiones aprobadas.";
-  if (sameSopPerson(user.id, version.submittedById)) return "Tú editaste esta revisión: la debe publicar otra persona.";
+  if (sameSopPerson(user.id, version.submittedById)) return "Tú subiste esta revisión: la debe publicar otra persona.";
   if (sameSopPerson(user.id, version.reviewedById)) return "Tú la revisaste: la debe publicar una tercera persona.";
   return "";
 }
