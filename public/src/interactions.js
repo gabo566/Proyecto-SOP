@@ -276,6 +276,8 @@ function bindInteractions(app, handlers) {
     if (image.complete) updateStepImageZoom();
   }
 
+  const SOP_PAGE_DEFAULT_ZOOM = 110;
+
   function setSopPageZoom(zoom, anchor = null) {
     state.sopPageZoom = Math.max(50, Math.min(500, zoom));
     const viewport = document.querySelector("#sop-page-preview");
@@ -306,6 +308,7 @@ function bindInteractions(app, handlers) {
     }
     const selectionOverlay = viewport?.querySelector("[data-sop-zoom-selection-overlay]");
     if (selectionOverlay) selectionOverlay.hidden = true;
+    if (!state.sopFocusedZoom && state.sopPageZoom !== SOP_PAGE_DEFAULT_ZOOM) setSopPageZoom(SOP_PAGE_DEFAULT_ZOOM);
   }
 
   function getSopSelectionPoint(event, selection) {
@@ -383,8 +386,11 @@ function bindInteractions(app, handlers) {
       pointerX: selection.viewport.clientWidth / 2,
       pointerY: selection.viewport.clientHeight / 2,
     };
-    toggleSopFocusZoom();
     setSopPageZoom(nextZoom, anchor);
+    if (hint) {
+      hint.textContent = "Zona ampliada. Selecciona otra zona o desactiva «Acercar a una zona» para volver a la hoja completa.";
+      hint.hidden = false;
+    }
   }
 
   function cancelSopAreaSelection(event) {

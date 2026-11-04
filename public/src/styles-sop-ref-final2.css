@@ -1,0 +1,17 @@
+/* C-072 · Realce de recuadros: paso en curso con contorno y sombra, y tarjetas de procedimiento, nota,
+   observaciones y registro con borde y sombra suaves. Se carga después de styles-sop-ref-final.css. */
+
+/* Paso en curso: contorno azul definido + halo + sombra de profundidad. */
+.sop-execution-panel .sop-page-checklist-layout .guided-check-item:has(.guided-check-status--current) {
+  border: 2px solid #2653a6; padding: 8px 13px; background: #e1edfb;
+  box-shadow: 0 0 0 4px rgb(38 83 166 / 16%), 0 8px 18px rgb(27 41 64 / 20%);
+}
+.sop-execution-panel .sop-page-checklist-layout .guided-check-item { box-shadow: 0 1px 3px rgb(27 41 64 / 8%); }
+.sop-execution-panel .sop-page-checklist-layout .guided-check-item--checked { box-shadow: none; }
+
+/* Procedimiento, observaciones y registro: borde azul grisáceo + sombra suave. */
+.sop-info-card { border: 1.5px solid #b9c6de; box-shadow: 0 4px 12px rgb(27 41 64 / 12%); }
+.sop-summary-card { border-color: #a9bbdb; box-shadow: 0 4px 14px rgb(38 83 166 / 16%); }
+
+/* Nota de seguridad: borde ámbar + sombra cálida. */
+.sop-safety-note { border: 1.5px solid #e3c26a; box-shadow: 0 4px 14px rgb(176 126 20 / 22%); }
