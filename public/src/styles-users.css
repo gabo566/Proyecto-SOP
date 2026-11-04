@@ -51,7 +51,7 @@
 
 /* Tarjetas de personas */
 .uh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; align-items: start; }
-.uh-card { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--u-line); border-radius: 14px; background: #fff; box-shadow: 0 1px 3px rgb(27 41 64 / 8%); animation: uh-in 300ms cubic-bezier(.23, 1, .32, 1) backwards;
+.uh-card { display: grid; gap: 12px; padding: 16px; border: 1px solid #c9d8ee; border-radius: 14px; background: #eef4fc; box-shadow: 0 1px 3px rgb(27 41 64 / 8%); animation: uh-in 300ms cubic-bezier(.23, 1, .32, 1) backwards;
   transition: box-shadow 160ms ease, border-color 140ms ease; }
 .uh-card:hover { border-color: #b4c4de; box-shadow: 0 8px 20px rgb(27 41 64 / 12%); }
 .uh-card[hidden] { display: none; }
@@ -79,7 +79,7 @@
 .uh-chip--publish { color: #fff; background: #d4830a; }
 
 /* Funciones de SOP con interruptores */
-.uh-sop { display: grid; gap: 8px; padding: 12px; border: 1px solid #dde3ee; border-radius: 12px; background: var(--u-soft); }
+.uh-sop { display: grid; gap: 8px; padding: 12px; border: 1px solid #d3deee; border-radius: 12px; background: #fff; }
 .uh-sop-title { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--u-ink); font-size: 13px; font-weight: 800; }
 .uh-sop-title small { color: var(--u-muted); font-weight: 600; }
 .uh-sop-title .material-symbols-rounded { color: var(--u-blue); font-size: 20px; }
@@ -163,9 +163,9 @@
 .uh .uh-search:focus-within { border-color: #2653a6; }
 
 /* Funciones en la SOP: pestaña plegable, cerrada por defecto */
-.uh-sop--tab { gap: 0; padding: 0; overflow: hidden; }
+.uh-sop--tab { gap: 0; padding: 0; overflow: hidden; background: #fff; }
 .uh-sop-toggle { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 12px; border: 0; color: var(--u-ink); background: transparent; font: inherit; font-size: 13px; font-weight: 800; text-align: left; cursor: pointer; transition: background-color 140ms ease; }
-.uh-sop-toggle:hover { background: #e4ebf7; }
+.uh-sop-toggle:hover { background: #eef4fc; }
 .uh-sop-toggle:focus-visible { outline: 3px solid rgb(38 83 166 / 45%); outline-offset: -3px; }
 .uh-sop-toggle > .material-symbols-rounded:first-child { color: var(--u-blue); font-size: 20px; }
 .uh-sop-chevron { margin-left: auto; color: var(--u-muted); transition: transform 200ms cubic-bezier(.23, 1, .32, 1); }
