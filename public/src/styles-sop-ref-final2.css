@@ -22,3 +22,22 @@
 .sop-total-progress-track { height: 16px; }
 .sop-total-progress > strong { font-size: 24px; line-height: 1; }
 @media (max-width: 650px) { .sop-total-progress { flex-basis: 100%; min-width: 0; } .sop-total-progress-track { height: 14px; } }
+
+/* «Progreso de la SOP» centrado sobre la barra. */
+.sop-total-progress > span { text-align: center; }
+
+/* Barra de acciones: Anterior · Regresar · Cambiar operador a la izquierda; Confirmar paso junto a Continuar a la derecha. */
+.sop-action-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px; }
+.sop-action-bar .sop-action-side { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.sop-action-bar .sop-action-side--left { justify-content: flex-start; }
+.sop-action-bar .sop-action-side--right { justify-content: flex-end; margin-left: auto; }
+.sop-action-bar .sop-action-confirm { width: auto; min-width: 220px; }
+.sop-action-bar .sop-action-side .button { flex: 0 0 auto; width: auto; }
+@media (max-width: 900px) {
+  .sop-action-bar .sop-action-side { flex: 1 1 100%; }
+  .sop-action-bar .sop-action-side .button { flex: 1 1 150px; }
+}
+@media (max-width: 650px) {
+  .sop-action-bar .sop-action-side .button { flex-basis: calc(50% - 5px); white-space: normal; }
+  .sop-action-bar .sop-action-confirm { flex-basis: 100%; order: -1; }
+}

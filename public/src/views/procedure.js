@@ -153,10 +153,10 @@ function renderProcedurePanel(procedure, state) {
       <div class="sop-action-side sop-action-side--left">
         ${!isFirstPage ? `<button class="button sop-action-previous guided-previous-button" type="button" data-action="previous-sop-sheet" data-focus-key="previous-sop-sheet" ${canOperate ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Anterior</button>` : ""}
         <button class="button sop-action-return guided-return-selection" type="button" data-action="return-to-sop-selection" ${canOperate ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">undo</span>Regresar a selección de SOP</button>
-      </div>
-      <button class="button sop-action-confirm" type="button" data-action="confirm-current-step" data-focus-key="confirm-current-step" ${!canOperate || isComplete ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><span data-confirm-label>${confirmLabel}</span></button>
-      <div class="sop-action-side sop-action-side--right">
         ${canHandoffOperator ? `<button class="button sop-action-handoff guided-handoff-button" type="button" data-action="open-operator-handoff" data-focus-key="change-operator" ${state.evidenceBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.evidenceBusy ? "hourglass_top" : "swap_horiz"}</span>${state.evidenceBusy ? "Guardando avance…" : "Cambiar operador"}</button>` : ""}
+      </div>
+      <div class="sop-action-side sop-action-side--right">
+        <button class="button sop-action-confirm" type="button" data-action="confirm-current-step" data-focus-key="confirm-current-step" ${!canOperate || isComplete ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><span data-confirm-label>${confirmLabel}</span></button>
         <button class="button sop-action-next guided-continue-button" type="button" data-action="${nextAction}" data-focus-key="continue-sop-sheet" ${!canOperate || run.stage !== "confirmation" && !isComplete ? "disabled" : ""}>${nextLabel}<span class="material-symbols-rounded" aria-hidden="true">${run.stage === "confirmation" ? "fact_check" : "arrow_forward"}</span></button>
       </div>
     </div>
