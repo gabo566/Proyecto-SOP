@@ -78,6 +78,22 @@ function renderSopReviewTracker(version) {
   return `<ol class="sop-review-track">${steps.map((step, index) => `<li class="${step.done ? "is-done" : ""} ${step.tone ? `is-${step.tone}` : ""}"><span class="sop-review-track-icon material-symbols-rounded" aria-hidden="true">${step.done ? step.icon : "radio_button_unchecked"}</span><div><strong>${step.title}</strong><span>${escapeHtml(step.who)}</span>${step.at ? `<small>${escapeHtml(formatSopWorkflowDate(step.at))}</small>` : ""}</div></li>`).join("")}</ol>`;
 }
 
+// Barra de acciones rápidas: reutiliza los mismos botones y reglas de la pantalla de revisión.
+function renderSopQuickBar(version, mode, block, state) {
+  const busy = state.sopVersionBusy;
+  const disabled = block || busy ? "disabled" : "";
+  const decide = mode === "review" ? `
+    <button class="sop-flow-btn sop-flow-btn--green" type="button" data-action="sop-review-decide" data-decision="approve" ${disabled}><span class="material-symbols-rounded" aria-hidden="true">task_alt</span>Terminar revisión · Aprobar</button>
+    <button class="sop-flow-btn sop-flow-btn--amber" type="button" data-action="sop-review-decide" data-decision="reject" ${disabled}><span class="material-symbols-rounded" aria-hidden="true">undo</span>Devolver</button>` : "";
+  const publish = mode === "publish" ? `
+    <button class="sop-flow-btn sop-flow-btn--green" type="button" data-action="sop-publish-version" ${disabled}><span class="material-symbols-rounded" aria-hidden="true">rocket_launch</span>${busy ? "Publicando…" : `Publicar Rev. ${escapeHtml(version.document.revision)}`}</button>` : "";
+  return `<div class="sop-quick-bar" role="toolbar" aria-label="Acciones rápidas de la revisión">
+    ${decide}${publish}
+    <button class="sop-flow-btn" type="button" data-action="sop-review-export" data-kind="pdf"><span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>PDF con anotaciones</button>
+    ${block ? `<small class="sop-quick-note"><span class="material-symbols-rounded" aria-hidden="true">block</span>${escapeHtml(block)}</small>` : ""}
+  </div>`;
+}
+
 function renderSopReviewScreen(state) {
   const request = state.sopReview;
   const version = state.sopVersionHistory?.find((item) => item.id === request?.id);
@@ -110,6 +126,7 @@ function renderSopReviewScreen(state) {
   return `<section class="sop-flow sop-review" aria-label="Revisión de la SOP">
     <button class="sop-flow-link sop-review-back" type="button" data-action="sop-review-close"><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Volver al catálogo</button>
     <section class="sop-flow-card sop-flow-card--head"><div><h2 class="sop-flow-title">${escapeHtml(version.document.title)} · Rev. ${escapeHtml(version.document.revision)}</h2><p class="sop-flow-sub">${escapeHtml(version.document.id)} · Estación ${escapeHtml(formatWorkStationAssignment(version.document.stationAssignment) || "sin asignar")}</p></div>${renderSopStatusChip(version)}</section>
+    ${renderSopQuickBar(version, mode, block, state)}
     ${state.sopDraftError ? `<p class="form-error sop-flow-error" role="alert">${escapeHtml(state.sopDraftError)}</p>` : ""}
     <section class="sop-flow-card">${renderSopReviewTracker(version)}</section>
     <div class="sop-flow-kpis"><div class="sop-flow-kpi"><span>Cambios en total</span><strong>${summary.total ?? rows.length}</strong></div><div class="sop-flow-kpi"><span>Textos y números de pasos</span><strong>${summary.stepRows ?? 0}</strong></div><div class="sop-flow-kpi"><span>Marcas sobre las hojas</span><strong>${summary.markRows ?? 0}</strong></div><div class="sop-flow-kpi"><span>Hojas con pasos</span><strong>${version.procedures.length}</strong></div></div>

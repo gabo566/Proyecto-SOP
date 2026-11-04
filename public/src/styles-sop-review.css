@@ -47,3 +47,10 @@
 .sop-flow-btn:disabled .material-symbols-rounded { opacity: .7; }
 
 @media (max-width: 820px) { .sop-review-track { grid-template-columns: minmax(0, 1fr); } }
+
+/* Barra de acciones rápidas de la revisión: aprobar, devolver, publicar y abrir el PDF sin bajar por la pantalla */
+.sop-quick-bar { position: sticky; top: 8px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #dce5ee; border-radius: 14px; background: rgb(255 255 255 / 96%); box-shadow: 0 6px 16px rgb(27 41 64 / 10%); backdrop-filter: blur(6px); }
+.sop-quick-bar .sop-flow-btn { min-height: 42px; flex: 0 1 auto; }
+.sop-quick-bar .sop-flow-btn:disabled { opacity: .5; cursor: not-allowed; }
+.sop-quick-note { display: flex; align-items: center; gap: 6px; flex-basis: 100%; color: #8a4b00; font-size: 12px; font-weight: 700; }
+.sop-quick-note .material-symbols-rounded { font-size: 18px; }
