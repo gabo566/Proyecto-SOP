@@ -78,6 +78,7 @@ function renderStationIntake(state) {
       </a>
       <div class="station-intake-banner-heading"><span class="station-intake-banner-icon" aria-hidden="true"><span class="material-symbols-rounded">fact_check</span></span><div><h1 id="station-intake-title">Registrar validación</h1></div></div>
     </section>
+    ${canAccessSopAdmin() && getActiveLocalUser()?.role !== "admin" ? '<div class="station-intake-review-entry"><button class="button button--outlined" type="button" data-action="open-sop-admin-from-intake"><span class="material-symbols-rounded" aria-hidden="true">rate_review</span>Revisar o publicar SOP</button></div>' : ""}
     <nav class="operator-flow-progress" aria-label="Progreso del registro">
       <div class="operator-flow-step operator-flow-step--active" aria-current="step"><span>1</span><strong>Seleccionar estación</strong></div><i></i>
       <div class="operator-flow-step"><span>2</span><strong>Ver SOP asignada</strong></div><i></i>

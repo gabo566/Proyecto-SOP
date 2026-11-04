@@ -54,3 +54,6 @@
 .sop-quick-bar .sop-flow-btn:disabled { opacity: .5; cursor: not-allowed; }
 .sop-quick-note { display: flex; align-items: center; gap: 6px; flex-basis: 100%; color: #8a4b00; font-size: 12px; font-weight: 700; }
 .sop-quick-note .material-symbols-rounded { font-size: 18px; }
+
+/* Entrada a revisión y publicación para cuentas que no son administradoras */
+.station-intake-review-entry { display: flex; justify-content: center; margin: 4px 0 12px; }
