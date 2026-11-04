@@ -18,6 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // en X-Forwarded-* para que los límites de intentos usen la IP real.
         $middleware->trustProxies(at: ['127.0.0.1', '::1']);
 
+        // Los documentos de trabajos, registros y revisiones se guardan tal como los arma el front:
+        // convertir "" en null (y recortar espacios) rompía llamadas como form.nodeNumber.trim().
+        $middleware->convertEmptyStringsToNull(except: [fn (Request $request) => $request->is('api/*')]);
+        $middleware->trimStrings(except: [fn (Request $request) => $request->is('api/*')]);
+
         $middleware->alias([
             'permission' => EnsureUserHasPermission::class,
             'account.active' => EnsureUserIsActive::class,

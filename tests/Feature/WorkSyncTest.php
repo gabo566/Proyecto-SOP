@@ -81,6 +81,21 @@ class WorkSyncTest extends TestCase
         $this->assertSame('SN-1', WorkItem::find('work-1')->serial);
     }
 
+    public function test_las_cadenas_vacias_y_los_espacios_del_documento_se_guardan_tal_cual(): void
+    {
+        $this->actingAs($this->operator());
+
+        $item = $this->item(['form' => ['nodeNumber' => '', 'repairType' => '', 'serial' => ' SN-1 '], 'reason' => '']);
+        $this->putJson('/api/work-items/work-1', ['item' => $item])->assertOk();
+
+        // Si "" volviera como null, el front falla al hacer form.nodeNumber.trim().
+        $this->getJson('/api/work-items')
+            ->assertJsonPath('items.0.form.nodeNumber', '')
+            ->assertJsonPath('items.0.form.repairType', '')
+            ->assertJsonPath('items.0.form.serial', ' SN-1 ')
+            ->assertJsonPath('items.0.reason', '');
+    }
+
     public function test_no_se_crea_un_trabajo_a_nombre_de_otra_persona(): void
     {
         $this->actingAs($this->operator('140785'));
