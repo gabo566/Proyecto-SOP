@@ -471,6 +471,12 @@ No son cambios de código; no usan la numeración C-nnn. Archivos tocados: `docs
 - **Cambios (solo estilos):** `src/styles-md3.css` (bloque «C-051»): recuadro con esquinas de 36 px (28 px en móvil) en lugar de solo las inferiores, degradado rojo `#7d1216 → #a92328 → #cf3a3e` con brillo radial, elevación MD3 de tres capas, anillos decorativos translúcidos, logo dentro de una cápsula azul marino (el arco rojo del logo no se ve sobre fondo rojo) e icono en un contenedor blanco de 60 px con símbolo rojo relleno; se quita el contorno del texto. `index.html` (`?v=md3-c051`).
 - **Comprobado:** escritorio y 375 px de ancho. **Revertir:** quitar el bloque «C-051».
 
+### C-052 (2026-11-03) — «Registrar validación» como rectángulo redondeado con contorno rojo
+
+- **Solicitud:** el usuario aclaró la forma que quería (imagen de un rectángulo de esquinas redondeadas moderadas con contorno) con contorno rojo y Material Design 3; C-051 la había interpretado con esquinas muy redondeadas y sin contorno.
+- **Cambio (solo estilos):** `src/styles-md3.css` (bloque «C-052»): radio de 22 px (18 px en móvil), contorno de 3 px en rojo oscuro `#6f0d11`, relleno rojo `#a92328` con degradado suave y brillo, elevación MD3 y cápsula del logo e icono con radio de 16 px. `index.html` (`?v=md3-c052`).
+- **Revertir:** quitar el bloque «C-052» (queda C-051).
+
 ### Lote documental L-D02 (2026-11-03) — actualización tras integrar `origin/main`
 
 No es cambio de código; el código cambió por la integración (14 commits ajenos a esta sesión). Archivos tocados: `docs/00`, `03`, `04-modulos/01`, `02`, `03`, `06`, `05`, `09`, `10`, `07`; y números de línea citados en todos los documentos.

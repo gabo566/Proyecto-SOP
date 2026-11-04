@@ -2081,3 +2081,16 @@ details.sop-version-procedure.is-sheet-saved > summary > span { color: #146c3a; 
   .station-intake-banner-icon { width: 46px; height: 46px; flex-basis: 46px; border-radius: 15px; }
   .station-intake-banner-icon .material-symbols-rounded { font-size: 28px; }
 }
+
+/* C-052: «Registrar validación» como rectángulo redondeado con contorno rojo oscuro (forma pedida por el usuario). */
+.station-intake-banner {
+  border: 3px solid #6f0d11;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 90% 10%, rgb(255 255 255 / 14%) 0, rgb(255 255 255 / 0%) 40%),
+    linear-gradient(135deg, #a92328 0%, #b8292e 100%);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 30%), 0 6px 14px 3px rgb(0 0 0 / 14%);
+}
+.station-intake-banner-brand { border-radius: 16px; }
+.station-intake-banner-icon { border-radius: 16px; }
+@media (max-width: 700px) { .station-intake-banner { border-radius: 18px; border-width: 2px; } }
