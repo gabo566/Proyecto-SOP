@@ -41,3 +41,38 @@
   .sop-action-bar .sop-action-side .button { flex-basis: calc(50% - 5px); white-space: normal; }
   .sop-action-bar .sop-action-confirm { flex-basis: 100%; order: -1; }
 }
+
+/* ---- Título de la barra superior: grande, centrado e interactivo ---- */
+.topbar { min-height: 76px; }
+.topbar .topbar-title { display: flex; align-items: center; justify-content: flex-start; }
+.topbar .topbar-heading { margin: 0; line-height: 1; }
+.topbar .topbar-title-button {
+  position: relative; display: inline-flex; align-items: center; gap: 14px; padding: 8px 18px 12px 10px; border: 0; border-radius: 14px;
+  color: #fff; background: transparent; font: inherit; cursor: pointer;
+  transition: transform 180ms cubic-bezier(.23, 1, .32, 1), background-color 180ms ease, box-shadow 180ms ease;
+}
+.topbar .topbar-title-badge { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; color: #fff; background: linear-gradient(140deg, #2f66c7, #1f4a99); box-shadow: 0 3px 10px rgb(10 20 40 / 40%), inset 0 0 0 1px rgb(255 255 255 / 28%); font-size: 28px; font-variation-settings: "FILL" 1; transition: transform 220ms cubic-bezier(.23, 1, .32, 1); }
+.topbar .topbar-title-text { font-size: clamp(26px, 2.4vw, 36px); font-weight: 800; letter-spacing: .01em; line-height: 1.05; text-shadow: none; }
+.topbar .topbar-title-button::after { content: ""; position: absolute; left: 10px; right: 18px; bottom: 4px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, #f5b13d, #ffd98a); transform: scaleX(.34); transform-origin: left center; transition: transform 260ms cubic-bezier(.23, 1, .32, 1); }
+.topbar .topbar-title-button:focus-visible { outline: 3px solid rgb(245 177 61 / 70%); outline-offset: 2px; }
+.topbar .topbar-title-button:active { transform: scale(.97); }
+@media (hover: hover) and (pointer: fine) {
+  .topbar .topbar-title-button:hover { background: rgb(255 255 255 / 8%); transform: translateY(-1px); }
+  .topbar .topbar-title-button:hover::after { transform: scaleX(1); }
+  .topbar .topbar-title-button:hover .topbar-title-badge { transform: scale(1.08) rotate(-4deg); }
+}
+@media (min-width: 901px) {
+  .topbar .topbar-title { flex: 1 1 auto; justify-content: center; }
+  .topbar .topbar-user-panel { flex: 0 0 auto; }
+}
+@media (max-width: 900px) {
+  .topbar .topbar-title { justify-content: flex-start; }
+  .topbar .topbar-user-panel { flex: 1 1 100%; min-width: 0; }
+  .topbar .topbar-id-pill { flex-wrap: wrap; }
+}
+@media (max-width: 650px) {
+  .topbar .topbar-title-button { gap: 10px; padding: 6px 10px 10px 6px; }
+  .topbar .topbar-title-badge { width: 38px; height: 38px; font-size: 24px; }
+  .topbar .topbar-title-text { font-size: 24px; }
+}
+@media (prefers-reduced-motion: reduce) { .topbar .topbar-title-button, .topbar .topbar-title-badge, .topbar .topbar-title-button::after { transition: none; } }
