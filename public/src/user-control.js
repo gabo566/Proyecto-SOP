@@ -1,4 +1,3 @@
-const LOCAL_AUDIT_KEY = "sop-operador-audit-trail-v1";
 const LOCAL_USER_ROLES = {
   operator: "Operador",
   supervisor: "Supervisor",
@@ -77,9 +76,12 @@ async function authenticateLocalUser(username, password) {
 async function endLocalUserSession() {
   const user = sopSession.user;
   if (user) recordLocalAuditEvent("local_logout", { targetUserName: user.name });
+  // Lo pendiente se sube con la sesión que lo generó, antes de cerrarla.
+  await flushServerSync({ timeoutMs: 5000 });
   await sopApi("POST", "/api/logout");
   sopSession.user = null;
   sopSession.users = [];
+  clearServerSync();
 }
 
 // Los tres métodos devuelven el mismo código de texto que usaba el prototipo local.
@@ -123,12 +125,7 @@ async function setLocalUserActive(id, active) {
 }
 
 function readLocalAuditTrail() {
-  try {
-    const events = JSON.parse(localStorage.getItem(LOCAL_AUDIT_KEY) || "[]");
-    return Array.isArray(events) ? events : [];
-  } catch {
-    return [];
-  }
+  return serverSync.audit;
 }
 
 function getLatestLocalStepEvent(procedureId, step) {
@@ -144,12 +141,9 @@ function recordLocalAuditEvent(action, details = {}) {
     at: new Date().toISOString(),
     ...details,
   };
-  const events = [...readLocalAuditTrail(), event].slice(-1000);
-  try {
-    localStorage.setItem(LOCAL_AUDIT_KEY, JSON.stringify(events));
-  } catch {
-    return null;
-  }
+  if (!sopSession.user) return null;
+  serverSync.audit = [...serverSync.audit, event].slice(-AUDIT_LIMIT);
+  queueAuditEvent(event);
   return event;
 }
 
@@ -162,7 +156,7 @@ function renderLocalUsersPanel() {
     <form class="local-user-form" id="local-user-form"><label>Nombre completo<input name="userName" required maxlength="100" autocomplete="off" /></label><label>N.º de empleado<input name="employeeNumber" required maxlength="40" autocomplete="username" /></label><label>Puesto<input name="userPosition" required maxlength="80" autocomplete="organization-title" /></label><label>Contraseña inicial<span class="password-field"><input name="userPassword" type="password" required minlength="4" maxlength="80" autocomplete="new-password" /><button class="password-eye" type="button" data-action="toggle-password-visibility" aria-label="Mostrar contraseña" aria-pressed="false"><span class="material-symbols-rounded" aria-hidden="true">visibility</span></button></span></label><label>Confirmar contraseña<span class="password-field"><input name="userPasswordConfirm" type="password" required minlength="4" maxlength="80" autocomplete="new-password" /><button class="password-eye" type="button" data-action="toggle-password-visibility" aria-label="Mostrar contraseña" aria-pressed="false"><span class="material-symbols-rounded" aria-hidden="true">visibility</span></button></span></label><label>Tipo de usuario<select name="userRole"><option value="operator">Usuario común</option><option value="admin">Administrador</option></select></label><button class="button button--primary" type="submit">Crear usuario</button></form>
     <form class="local-password-form" id="local-password-form"><label>Cuenta<select name="passwordUserId" required>${passwordOptions}</select></label><label>Nueva contraseña<input name="newPassword" type="password" required minlength="4" maxlength="80" autocomplete="new-password" /></label><button class="button button--secondary" type="submit">Cambiar contraseña</button><small>La contraseña anterior no se muestra. Usa al menos 4 caracteres.</small></form>
     <div class="table-scroll"><table><thead><tr><th>Nombre</th><th>N° empleado</th><th>Puesto</th><th>Tipo de usuario</th><th>Estado</th><th>Acción</th></tr></thead><tbody>${rows}</tbody></table></div></section>
-    <section class="audit-panel" id="audit-panel"><div class="section-heading"><div><p class="eyebrow">Eventos guardados en este navegador</p><h2>Actividad de usuarios</h2></div><span>${readLocalAuditTrail().length} eventos · máximo 1,000</span></div>${renderLocalAuditTable()}</section>`;
+    <section class="audit-panel" id="audit-panel"><div class="section-heading"><div><p class="eyebrow">Eventos guardados en el servidor</p><h2>Actividad de usuarios</h2></div><span>${readLocalAuditTrail().length} eventos · máximo 1,000</span></div>${renderLocalAuditTable()}</section>`;
 }
 
 function renderLocalAuditTable() {

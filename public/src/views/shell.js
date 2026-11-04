@@ -53,7 +53,7 @@ function renderTopbar(state = {}) {
     </div>
     <div class="topbar-meta">
       <div class="shift-chip" aria-label="Turno actual"><span class="material-symbols-rounded" aria-hidden="true">groups</span><span id="current-shift-label">${getCurrentShiftLabel()}</span></div>
-      <button class="icon-button help-button" type="button" data-action="open-help" data-focus-key="help-open" aria-label="Ayuda sobre almacenamiento local" title="Ayuda"><span class="material-symbols-rounded" aria-hidden="true">help</span></button>
+      <button class="icon-button help-button" type="button" data-action="open-help" data-focus-key="help-open" aria-label="Ayuda sobre el almacenamiento de datos" title="Ayuda"><span class="material-symbols-rounded" aria-hidden="true">help</span></button>
     </div>
     </div>
   </header>`;
@@ -113,7 +113,7 @@ function renderSummaryMetrics(todayRecords, state) {
   const attentionCount = pausedCount + reworkCount + reviewCount;
   const metrics = [
     { tone: "total", label: "Hojas de SOP (GB200)", value: String(SOP_DOCUMENT.totalSheets), unit: `${SOP_DOCUMENT.processSheets} procedimientos · ${SOP_STEP_COUNT} pasos`, icon: "description" },
-    { tone: "completed", label: "Validaciones locales hoy", value: String(completedRecords.length), unit: `${TODAY_DATE_LABEL} · este navegador`, icon: "check_circle" },
+    { tone: "completed", label: "Validaciones locales hoy", value: String(completedRecords.length), unit: `${TODAY_DATE_LABEL} · servidor`, icon: "check_circle" },
     { tone: "progress", label: "En proceso", value: String(inProgressCount), unit: `${state.completedSteps.length} pasos marcados`, icon: "donut_large" },
     { tone: "pending", label: "Atención requerida", value: String(attentionCount), unit: `${pausedCount} detenidos · ${reworkCount} retrabajos · ${reviewCount} por revisar`, icon: "priority_high" },
     { tone: "current", label: "SOP actual", value: SOP_DOCUMENT.id, unit: `Rev. ${SOP_DOCUMENT.revision}`, icon: "description" },

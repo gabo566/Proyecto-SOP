@@ -126,14 +126,16 @@ function createWorkItemWorkflow(state, { getProcedure, createEmptyForm, render, 
       return "save-failed";
     }
 
-    const authenticatedUser = await authenticateLocalUser(username, password);
+    // El traspaso se escribe con la sesión de quien entrega; solo después entra el nuevo operador.
+    const synced = await flushServerSync({ timeoutMs: 8000 });
+    const authenticatedUser = synced ? await authenticateLocalUser(username, password) : null;
     if (!authenticatedUser) {
       state.workItems[itemIndex] = previousItem;
       state.sopRun = previousRun;
       state.form = previousForm;
       state.completedSteps = previousCompletedSteps;
       persistWorkItems(state.workItems);
-      return "invalid-credentials";
+      return synced ? "invalid-credentials" : "save-failed";
     }
     state.auditSessionId = `session-${crypto.randomUUID()}`;
     localStorage.setItem("sop-operador-audit-session-v1", state.auditSessionId);

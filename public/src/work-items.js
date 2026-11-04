@@ -1,21 +1,11 @@
-const WORK_ITEMS_STORAGE_KEY = "sop-operador-work-items-v1";
-
+// Los trabajos viven en el servidor (tabla work_items); server-sync.js mantiene
+// la copia local y sube los cambios en segundo plano.
 function readWorkItems() {
-  try {
-    const items = JSON.parse(localStorage.getItem(WORK_ITEMS_STORAGE_KEY) || "[]");
-    return Array.isArray(items) ? items : [];
-  } catch {
-    return [];
-  }
+  return structuredClone(SYNC_KINDS.work.list);
 }
 
 function persistWorkItems(items) {
-  try {
-    localStorage.setItem(WORK_ITEMS_STORAGE_KEY, JSON.stringify(items));
-    return true;
-  } catch {
-    return false;
-  }
+  return persistSyncDocs("work", items);
 }
 
 function isActiveHandoffWorkItem(item) {

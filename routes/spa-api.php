@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\AuditEventController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\RecordController;
+use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\SopCatalogController;
 use App\Http\Controllers\SopSourceController;
 use App\Http\Controllers\SopVersionController;
@@ -25,6 +28,13 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
     Route::get('/sop-catalog', [SopCatalogController::class, 'index']);
     Route::get('/sop-source', [SopSourceController::class, 'show']);
     Route::get('/sop-source/file', [SopSourceController::class, 'file']);
+
+    Route::get('/work-items', [WorkItemController::class, 'index']);
+    Route::put('/work-items/{id}', [WorkItemController::class, 'update']);
+    Route::get('/records', [RecordController::class, 'index']);
+    Route::put('/records/{id}', [RecordController::class, 'update']);
+    Route::get('/audit-events', [AuditEventController::class, 'index']);
+    Route::post('/audit-events', [AuditEventController::class, 'store']);
 
     Route::middleware('permission:sop.manage')->group(function (): void {
         Route::post('/sop-versions', [SopVersionController::class, 'store']);

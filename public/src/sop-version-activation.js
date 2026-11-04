@@ -11,7 +11,9 @@ function pauseIncompatibleSopWork(state, targetVersionId) {
   const snapshots = [];
   for (const item of state.workItems) {
     const itemVersionId = item.sopVersionId ?? BUILT_IN_SOP_VERSION_ID;
-    if (itemVersionId === targetVersionId || !["En proceso", "Retrabajo en proceso"].includes(item.status)) continue;
+    // Los trabajos son compartidos: cambiar de SOP en este equipo solo detiene los de quien la cambia.
+    if (itemVersionId === targetVersionId || !["En proceso", "Retrabajo en proceso"].includes(item.status)
+      || item.employeeNumber !== getActiveLocalUser().employeeNumber) continue;
     snapshots.push({ item, status: item.status, reasonLabel: item.reasonLabel, reason: item.reason, updatedAt: item.updatedAt, updatedLabel: item.updatedLabel, history: [...(item.history ?? [])] });
     const note = `Avance conservado con ${item.sopDocumentId ?? "SOP"} · Rev. ${item.sopRevision ?? "anterior"}. Activa esa revisión para reanudarlo.`;
     item.status = "Detenida";

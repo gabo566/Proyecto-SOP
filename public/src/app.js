@@ -1,4 +1,3 @@
-const STORAGE_KEY = "sop-operador-validation-demo-records-v1";
 const app = document.querySelector("#app");
 const storedWorkItems = readWorkItems();
 const activeDemoUser = getActiveLocalUser();
@@ -78,21 +77,13 @@ const state = {
 
 let toastTimeout = 0;
 
+// Los registros de validación viven en el servidor (tabla validation_records).
 function readSavedRecords() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  } catch {
-    return [];
-  }
+  return structuredClone(SYNC_KINDS.records.list);
 }
 
 function persistSavedRecords(records) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-    return true;
-  } catch {
-    return false;
-  }
+  return persistSyncDocs("records", records);
 }
 
 function getRecords() {
@@ -514,7 +505,7 @@ function saveCompletion() {
   workflow.prepareCompletionRecord(record);
   const next = [record, ...state.savedRecords];
   if (!persistSavedRecords(next)) {
-    showToast("No se pudo guardar en el almacenamiento local.", "warning");
+    showToast("No se pudo guardar la validación. Inicia sesión de nuevo e inténtalo otra vez.", "warning");
     return;
   }
   state.savedRecords = next;
@@ -550,7 +541,7 @@ function saveCompletion() {
   state.formError = "";
   const successMessage = completion.needsReview
     ? "Retrabajo enviado; queda pendiente de aprobación del supervisor."
-    : "Declaración y datos guardados en este navegador.";
+    : "Declaración y datos guardados.";
   showToast(completion.saved ? successMessage : "Validación guardada; no se pudo actualizar el historial del trabajo.", completion.saved ? "success" : "warning");
 }
 
@@ -662,8 +653,54 @@ document.addEventListener("sop:session-expired", (event) => {
 });
 // Revisiones, catálogo y PDF fuente vienen del servidor, así que solo se piden
 // con una sesión abierta (al arrancar si ya hay una y justo después de iniciar sesión).
+// Trae del servidor los trabajos, registros y auditoría, y retoma el trabajo en
+// proceso de quien inició sesión (los trabajos son compartidos entre equipos).
+async function loadWorkData() {
+  const loaded = await hydrateServerData();
+  state.workItems = readWorkItems();
+  state.savedRecords = readSavedRecords();
+  const user = getAuthenticatedLocalUser();
+  const mine = user && state.workItems
+    .filter((item) => ["En proceso", "Retrabajo en proceso"].includes(item.status) && item.employeeNumber === user.employeeNumber)
+    .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  state.activeWorkId = mine?.id ?? "";
+  state.completedSteps = mine?.completedSteps ?? [];
+  state.sopRun = mine?.sopRun ?? null;
+  if (mine) {
+    state.selectedId = mine.procedureId;
+    state.form = { ...createEmptyForm(), ...mine.form, name: mine.form?.name ?? user.name, employeeNumber: mine.form?.employeeNumber ?? user.employeeNumber, position: mine.form?.position ?? user.position ?? "Técnico de FA" };
+  }
+  if (!loaded) showToast("No se pudieron cargar los trabajos del servidor. Revisa la conexión.", "warning");
+}
+
+// Cambio de sección: pide lo nuevo y vuelve a dibujar solo si algo cambió.
+async function refreshWorkData() {
+  if (!(await refreshServerData())) return;
+  state.workItems = readWorkItems();
+  state.savedRecords = readSavedRecords();
+  render();
+}
+
+document.addEventListener("sop:sync-offline", () => showToast("Sin conexión con el servidor. Tus cambios se guardarán cuando vuelva.", "warning"));
+document.addEventListener("sop:sync-online", () => showToast("Conexión recuperada: los cambios pendientes se guardaron.", "success"));
+document.addEventListener("sop:sync-conflict", () => {
+  state.workItems = readWorkItems();
+  state.savedRecords = readSavedRecords();
+  showToast("Otra persona modificó este trabajo o registro; se cargó la versión del servidor.", "warning");
+  render();
+});
+document.addEventListener("sop:sync-rejected", (event) => {
+  showToast(event.detail?.code === "forbidden" ? "El servidor no permitió ese cambio con tu cuenta." : "El servidor rechazó un cambio y no se guardó.", "warning");
+});
+window.addEventListener("beforeunload", (event) => {
+  if (!hasPendingServerSync()) return;
+  event.preventDefault();
+  event.returnValue = "";
+});
+
 async function loadSopData({ silent = false } = {}) {
   state.sopStorageReady = false;
+  await loadWorkData();
   try {
     await restoreCurrentSopVersion(state);
     if (state.sopVersionMeta?.builtIn) {

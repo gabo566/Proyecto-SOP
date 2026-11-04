@@ -95,6 +95,6 @@ function renderRecordsDialog(records, query = "", workItems = []) {
     <label class="search-box dialog-search"><span class="material-symbols-rounded" aria-hidden="true">search</span><input id="records-search" data-search="dialog" data-focus-key="records-search" placeholder="Buscar por serial, nodo u operador" aria-label="Buscar en procedimientos realizados" value="${escapeHtml(query)}" /></label>
     <div class="table-scroll dialog-table-scroll"><table><thead><tr><th>Tipo de SOP utilizada</th><th>Estación</th><th>Serial del nodo</th><th>N° de nodo</th><th>P/N nodo</th><th>P/N componente</th><th>Serial del componente</th><th>Tipo de reparación</th><th>Operador / empleado</th><th>Hora</th><th>Evidencia</th></tr></thead>
       <tbody id="dialog-table-body">${renderDialogRows(records, query, workItems)}</tbody></table></div>
-    <p class="dialog-note"><span class="material-symbols-rounded" aria-hidden="true">info</span>Los ${DEMO_RECORDS.length} registros iniciales y sus seriales son ficticios. Los cierres nuevos se guardan en este navegador.</p>
+    <p class="dialog-note"><span class="material-symbols-rounded" aria-hidden="true">info</span>Los ${DEMO_RECORDS.length} registros iniciales y sus seriales son ficticios. Los cierres nuevos se guardan en el servidor.</p>
   </dialog>`;
 }

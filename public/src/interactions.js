@@ -78,9 +78,11 @@ function bindInteractions(app, handlers) {
     };
     if (item.id === state.activeSection) {
       update();
-      return;
+    } else {
+      runWithTransition(update);
     }
-    runWithTransition(update);
+    // Trabajos y registros son compartidos: se traen los cambios de otras personas.
+    void refreshWorkData();
   }
 
   function prepareSopChangeFromIntake(target) {

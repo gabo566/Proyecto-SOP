@@ -25,7 +25,7 @@ function renderReportsView(allRecords, state, workItems) {
     : "todo el historial";
 
   return `<section class="reports-view" aria-labelledby="reports-title">
-    <div class="section-heading reports-heading"><div class="section-title"><span class="heading-icon material-symbols-rounded" aria-hidden="true">bar_chart</span><div><h2 id="reports-title">Reportes de ejecución SOP</h2><p class="reports-subtitle">Indicadores del periodo seleccionado · registros guardados en este navegador</p></div></div>
+    <div class="section-heading reports-heading"><div class="section-title"><span class="heading-icon material-symbols-rounded" aria-hidden="true">bar_chart</span><div><h2 id="reports-title">Reportes de ejecución SOP</h2><p class="reports-subtitle">Indicadores del periodo seleccionado · registros guardados en el servidor</p></div></div>
       <button class="button button--primary" type="button" data-action="export-report" ${filtered.length ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">download</span>Exportar CSV</button></div>
     <div class="report-filters" role="group" aria-label="Filtros de reportes">
       <label>Desde<input type="date" data-report-filter="dateFrom" data-focus-key="report-date-from" value="${escapeHtml(reportFilters.dateFrom)}" /></label>
