@@ -55,6 +55,7 @@ Boost replaces these bootstrap instructions with guidelines tailored to the appl
   - Servidor local: `php artisan serve --host=localhost --port=4174` (título "SOP servidor").
   - Túnel: `cloudflared tunnel --url http://localhost:4174` (título "SOP túnel").
 - No abras una ventana nueva por servicio: siempre `-w servicios`.
+- No uses `;` dentro del comando de `wt`: lo corta como otro subcomando y la pestaña queda vacía. Para entrar a la carpeta usa `-d "C:\Users\Jair Iván\Documents\SOP-Laravel"`.
 - Antes de iniciar un servicio, indica en una línea qué vas a iniciar y en qué pestaña.
 - El túnel de BurnTrack (puerto 4173) es de otro proyecto: no lo toques ni lo detengas.
 
