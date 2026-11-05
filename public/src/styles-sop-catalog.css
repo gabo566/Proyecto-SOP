@@ -125,3 +125,10 @@
   .sop-version-panel .sop-catalog-table .sop-catalog-actions { display: flex; justify-content: center; width: 100%; }
   .sop-version-panel .sop-catalog-table .sop-catalog-actions .sop-catalog-action-buttons { justify-items: stretch; justify-content: center; width: min(100%, 210px); margin-inline: auto; }
 }
+
+/* ---- Área MFG / RWK: colores sólidos y serios ---- */
+.sop-version-panel .sop-catalog-table .sop-catalog-area select { font-weight: 800; letter-spacing: .06em; color: #fff; text-shadow: none;
+  background-image: linear-gradient(45deg, transparent 50%, #fff 50%), linear-gradient(135deg, #fff 50%, transparent 50%); }
+.sop-version-panel .sop-catalog-table .sop-catalog-area:has(option[value="MFG"]:checked) select { color: #fff; background-color: #1d4b88; border-color: #143866; box-shadow: 0 2px 6px rgb(29 75 136 / 35%); }
+.sop-version-panel .sop-catalog-table .sop-catalog-area:has(option[value="RWK"]:checked) select { color: #fff; background-color: #8a4e0b; border-color: #6a3b06; box-shadow: 0 2px 6px rgb(138 78 11 / 35%); }
+.sop-version-panel .sop-catalog-table .sop-catalog-area select option { color: #1b2a3f; background: #fff; letter-spacing: 0; font-weight: 700; }
