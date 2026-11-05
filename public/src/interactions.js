@@ -583,6 +583,7 @@ function bindInteractions(app, handlers) {
       case "next-procedure": moveProcedure(1); break;
       case "sop-page-zoom-out": setSopPageZoom(state.sopPageZoom - 10); break;
       case "sop-page-zoom-in": setSopPageZoom(state.sopPageZoom + 10); break;
+      case "sop-page-full": void openSopFullSheet(); break;
       case "sop-page-zoom-reset": setSopPageZoom(100, null, true); break;
       case "sop-page-toggle-focused-zoom": toggleSopFocusZoom(); break;
       case "return-to-sop-selection":

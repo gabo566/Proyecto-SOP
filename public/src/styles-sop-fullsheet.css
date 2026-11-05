@@ -1,0 +1,21 @@
+/* Hoja completa: ventana grande con la hoja entera, zoom y desplazamiento. */
+body.sop-full-sheet-open { overflow: hidden; }
+.sop-full-sheet { position: fixed; inset: 0; z-index: 2000; display: flex; flex-direction: column; background: rgb(14 22 38 / 92%); backdrop-filter: blur(6px); animation: sfs-in 200ms cubic-bezier(.23, 1, .32, 1); }
+.sop-full-sheet-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 16px; color: #fff; background: #17243a; box-shadow: 0 2px 10px rgb(0 0 0 / 30%); }
+.sop-full-sheet-bar strong { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 800; }
+.sop-full-sheet-bar .material-symbols-rounded { font-size: 22px; }
+.sop-full-sheet-tools { display: inline-flex; align-items: center; gap: 6px; }
+.sop-full-sheet-tools button { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 10px; color: #fff; background: rgb(255 255 255 / 14%); cursor: pointer; transition: background-color 140ms ease, transform 140ms ease; }
+.sop-full-sheet-tools button:hover { background: rgb(255 255 255 / 26%); }
+.sop-full-sheet-tools button:active { transform: scale(.94); }
+.sop-full-sheet-tools button:focus-visible, .sop-full-sheet-body:focus-visible { outline: 3px solid #9fc0f4; outline-offset: 2px; }
+.sop-full-sheet-tools output { min-width: 52px; color: #fff; font-size: 14px; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
+.sop-full-sheet-tools [data-fs="close"] { margin-left: 8px; background: #c23b3b; }
+.sop-full-sheet-tools [data-fs="close"]:hover { background: #a82f2f; }
+.sop-full-sheet-body { position: relative; flex: 1 1 auto; display: flex; min-height: 0; overflow: auto; padding: 16px; }
+.sop-full-sheet-body canvas { display: block; flex: 0 0 auto; margin: auto; background: #fff; box-shadow: 0 10px 40px rgb(0 0 0 / 45%); }
+.sop-full-sheet-status { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #fff; font-weight: 700; }
+.sop-full-sheet-status[hidden] { display: none; }
+@keyframes sfs-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sop-full-sheet { animation: none; } }
+@media (max-width: 560px) { .sop-full-sheet-bar { padding: 8px 10px; } .sop-full-sheet-bar strong { font-size: 13.5px; } .sop-full-sheet-body { padding: 8px; } }

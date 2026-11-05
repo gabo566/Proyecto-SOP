@@ -35,6 +35,101 @@ async function getSopPagePdfDocument(pdfjs, source) {
   return sopPagePdfDocumentPromise;
 }
 
+// Escala de dibujo del PDF: al menos 3x y nunca por debajo de la densidad de píxeles de la pantalla.
+function getSopPageOutputScale(width, height) {
+  const wanted = Math.max(window.devicePixelRatio || 1, 3);
+  const bySide = 8192 / Math.max(1, width, height);
+  const byArea = Math.sqrt(36_000_000 / Math.max(1, width * height));
+  return Math.max(1, Math.min(5, wanted, bySide, byArea));
+}
+
+// ---- Hoja completa: ventana grande con la hoja entera, zoom y desplazamiento ----
+let sopFullSheet = null;
+
+async function openSopFullSheet() {
+  const source = document.querySelector("#sop-page-preview");
+  if (!source || sopFullSheet) return;
+  const pdfSource = source.dataset.pdfSource;
+  const pageNumber = Number(source.dataset.pdfPage);
+  if (!pdfSource || !pageNumber) return;
+  const title = document.querySelector(".guided-page-sheet")?.textContent || `Hoja ${pageNumber}`;
+  const overlay = document.createElement("div");
+  overlay.className = "sop-full-sheet";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-label", `${title} completa`);
+  overlay.innerHTML = `<div class="sop-full-sheet-bar"><strong><span class="material-symbols-rounded" aria-hidden="true">description</span>${title.replace(/[<>&]/g, "")} · hoja completa</strong>
+    <span class="sop-full-sheet-tools"><button type="button" data-fs="out" aria-label="Alejar"><span class="material-symbols-rounded" aria-hidden="true">remove</span></button><output data-fs="level">100%</output><button type="button" data-fs="in" aria-label="Acercar"><span class="material-symbols-rounded" aria-hidden="true">add</span></button><button type="button" data-fs="fit" aria-label="Ajustar a la pantalla" title="Ajustar a la pantalla"><span class="material-symbols-rounded" aria-hidden="true">fit_screen</span></button><button type="button" data-fs="close" aria-label="Cerrar"><span class="material-symbols-rounded" aria-hidden="true">close</span></button></span></div>
+    <div class="sop-full-sheet-body" tabindex="0"><canvas aria-label="${title.replace(/[<>&"]/g, "")} completa"></canvas><p class="sop-full-sheet-status" role="status">Cargando hoja completa…</p></div>`;
+  document.body.append(overlay);
+  document.body.classList.add("sop-full-sheet-open");
+  const body = overlay.querySelector(".sop-full-sheet-body");
+  const canvas = overlay.querySelector("canvas");
+  const status = overlay.querySelector(".sop-full-sheet-status");
+  const level = overlay.querySelector('[data-fs="level"]');
+  const trigger = document.activeElement;
+  let zoom = 100;
+  let page = null;
+  let sequence = 0;
+  const state = { overlay, trigger };
+  sopFullSheet = state;
+
+  const render = async () => {
+    if (!page) return;
+    const token = ++sequence;
+    const natural = page.getViewport({ scale: 1 });
+    const fit = Math.min((body.clientWidth - 32) / natural.width, (body.clientHeight - 32) / natural.height);
+    const viewport = page.getViewport({ scale: Math.max(0.1, fit * zoom / 100) });
+    const outputScale = getSopPageOutputScale(viewport.width, viewport.height);
+    canvas.width = Math.ceil(viewport.width * outputScale);
+    canvas.height = Math.ceil(viewport.height * outputScale);
+    canvas.style.width = `${Math.ceil(viewport.width)}px`;
+    canvas.style.height = `${Math.ceil(viewport.height)}px`;
+    level.textContent = `${zoom}%`;
+    await page.render({ canvasContext: canvas.getContext("2d", { alpha: false }), viewport, transform: outputScale === 1 ? null : [outputScale, 0, 0, outputScale, 0, 0], background: "#ffffff" }).promise;
+    if (token !== sequence) return;
+    status.hidden = true;
+    canvas.hidden = false;
+  };
+  const setZoom = (value) => { zoom = Math.max(50, Math.min(400, value)); void render(); };
+  const close = () => {
+    sequence += 1;
+    document.removeEventListener("keydown", onKey, true);
+    window.removeEventListener("resize", onResize);
+    overlay.remove();
+    document.body.classList.remove("sop-full-sheet-open");
+    sopFullSheet = null;
+    if (trigger instanceof HTMLElement && document.contains(trigger)) trigger.focus();
+  };
+  const onKey = (event) => {
+    if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close(); }
+    else if (event.key === "+" || event.key === "=") setZoom(zoom + 25);
+    else if (event.key === "-") setZoom(zoom - 25);
+    else if (event.key === "0") setZoom(100);
+  };
+  let resizeTimer = 0;
+  const onResize = () => { window.clearTimeout(resizeTimer); resizeTimer = window.setTimeout(render, 120); };
+  overlay.addEventListener("click", (event) => {
+    const action = event.target.closest("[data-fs]")?.dataset.fs;
+    if (action === "close" || event.target === overlay) close();
+    else if (action === "in") setZoom(zoom + 25);
+    else if (action === "out") setZoom(zoom - 25);
+    else if (action === "fit") setZoom(100);
+  });
+  document.addEventListener("keydown", onKey, true);
+  window.addEventListener("resize", onResize, { passive: true });
+  canvas.hidden = true;
+  overlay.querySelector('[data-fs="close"]').focus();
+  try {
+    const pdfjs = await getSopPagePdfJs();
+    const pdf = await getSopPagePdfDocument(pdfjs, pdfSource);
+    page = await pdf.getPage(pageNumber);
+    await render();
+  } catch (error) {
+    status.textContent = "No se pudo abrir la hoja completa. Cierra esta ventana e inténtalo de nuevo.";
+  }
+}
+
 async function renderSopPagePreview(zoomAnchor = null) {
   const viewport = document.querySelector("#sop-page-preview");
   if (!viewport) return;
@@ -94,12 +189,8 @@ async function renderSopPagePreview(zoomAnchor = null) {
     }
     const scale = Math.max(0.2, fitScale * zoom / 100);
     const pageViewport = page.getViewport({ scale });
-    const outputScale = Math.max(1, Math.min(
-      Math.max(window.devicePixelRatio || 1, 2),
-      3,
-      4096 / pageViewport.width,
-      4096 / pageViewport.height,
-    ));
+    // Nitidez: se dibuja a 3x como mínimo (o la densidad de la pantalla) para que el texto de la hoja no salga borroso.
+    const outputScale = getSopPageOutputScale(pageViewport.width, pageViewport.height);
     const context = canvas.getContext("2d", { alpha: false });
     if (!context) throw new Error("El navegador no pudo preparar el visor PDF.");
 

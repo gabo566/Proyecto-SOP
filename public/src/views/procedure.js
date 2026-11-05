@@ -109,6 +109,7 @@ function renderProcedurePanel(procedure, state) {
             <output id="sop-page-zoom-level" aria-live="polite">${pageZoom}%</output>
             <button class="icon-button" type="button" data-action="sop-page-zoom-in" aria-label="Ampliar hoja SOP" ${pageZoom >= 500 ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">add</span></button>
             <button class="icon-button" type="button" data-action="sop-page-zoom-reset" aria-label="Ajustar hoja completa" title="Ajustar a la pantalla"><span class="material-symbols-rounded" aria-hidden="true">fit_screen</span></button>
+            <button class="icon-button" type="button" data-action="sop-page-full" aria-label="Ver hoja completa" title="Ver hoja completa"><span class="material-symbols-rounded" aria-hidden="true">open_in_full</span></button>
             <button class="button button--outlined guided-focus-zoom-button" type="button" data-action="sop-page-toggle-focused-zoom" aria-pressed="${Boolean(state.sopFocusedZoom)}" aria-describedby="sop-page-focus-zoom-hint"><span class="material-symbols-rounded" aria-hidden="true">center_focus_strong</span>Acercar a una zona</button>
           </div>
           ${sourceUrl ? `<a class="guided-page-open-pdf" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer" aria-label="Abrir PDF en página ${escapeHtml(pageNumber)}"><span class="material-symbols-rounded" aria-hidden="true">open_in_new</span></a>` : ""}
