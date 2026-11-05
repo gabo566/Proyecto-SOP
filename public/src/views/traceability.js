@@ -205,11 +205,13 @@ function renderTraceabilityView(records, workItems, state) {
   const mfgNodes = nodes.filter((node) => node.area === "MFG");
   const categories = [...new Set(allEvents.map((event) => event.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es-MX"));
   const employees = [...new Map(allEvents.filter((event) => event.employeeNumber).map((event) => [event.employeeNumber, { id: event.employeeNumber, name: event.operator }])).entries()];
-  const nodesHtml = `${renderTraceabilityArea("MFG", mfgNodes)}${renderTraceabilityArea("RWK", rwkNodes)}`;
+  const area = state.traceabilityArea === "RWK" ? "RWK" : "MFG";
+  const areaNodes = area === "RWK" ? rwkNodes : mfgNodes;
+  const nodesHtml = renderTraceabilityArea(area, areaNodes);
   const categoryOptions = categories.map((category) => `<option value="${escapeHtml(category)}" ${filters.category === category ? "selected" : ""}>${escapeHtml(category)}</option>`).join("");
   const employeeOptions = employees.map(([id, value]) => `<option value="${escapeHtml(id)}" ${filters.employeeNumber === id ? "selected" : ""}>${escapeHtml(value.name)} · ${escapeHtml(id)}</option>`).join("");
   const pageLabel = nodes.length ? `${nodes.length} nodos · ${filtered.length} eventos` : "0 nodos";
-  return `<section class="traceability-view" aria-labelledby="traceability-title">
+  return `<section class="traceability-view area-center" aria-labelledby="traceability-title">
     <div class="section-heading"><div class="section-title"><span class="heading-icon material-symbols-rounded" aria-hidden="true">account_tree</span><div><h2 id="traceability-title">Trazabilidad de nodo y componentes</h2><p class="traceability-subtitle">Validaciones, pausas y retrabajos en orden cronológico · servidor</p></div></div>
       <div class="traceability-actions"><label class="demo-toggle"><input type="checkbox" data-demo-data-toggle data-focus-key="demo-data-toggle" ${state.includeDemoData ? "checked" : ""} /> Incluir registros demo</label><button class="button button--primary" type="button" data-action="export-traceability" ${filtered.length ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">download</span>Exportar CSV</button></div></div>
     <div class="traceability-filters" aria-label="Filtros de trazabilidad">
@@ -220,7 +222,8 @@ function renderTraceabilityView(records, workItems, state) {
       <label>Tipo SOP<select data-traceability-filter="category" data-focus-key="traceability-category"><option value="all">Todos</option>${categoryOptions}</select></label>
       <label>Operador<select data-traceability-filter="employeeNumber" data-focus-key="traceability-operator"><option value="all">Todos</option>${employeeOptions}</select></label>
     </div>
-    ${renderTraceabilityKpis(nodes, filtered)}
+    ${renderTraceabilityKpis(areaNodes, areaNodes.flatMap((node) => node.events))}
+    ${renderAreaButtons(area, "traceability", { MFG: `${mfgNodes.length} ${mfgNodes.length === 1 ? "nodo" : "nodos"}`, RWK: `${rwkNodes.length} ${rwkNodes.length === 1 ? "nodo" : "nodos"}` })}
     <div class="ta-grid">${nodesHtml}</div>
     <p class="traceability-total">${pageLabel}</p>
     <p class="traceability-note">Los registros de periodos antiguos no contienen turno explícito; el turno se estima a partir de la hora registrada. La aplicación no sincroniza datos entre usuarios.</p>

@@ -81,6 +81,13 @@ function bindReportInteractions(app, { state, getAllRecords, render, showToast }
   app.addEventListener("click", (event) => {
     const action = event.target.closest("[data-action]");
     if (!action || !app.contains(action)) return;
+    if (action.dataset.action === "area-tab") {
+      const area = action.dataset.area === "RWK" ? "RWK" : "MFG";
+      if (action.dataset.scope === "production") state.productionArea = area;
+      else if (action.dataset.scope === "traceability") state.traceabilityArea = area;
+      render();
+      return;
+    }
     if (action.dataset.action === "report-area") {
       state.reportArea = action.dataset.area === "RWK" ? "RWK" : "MFG";
       render();

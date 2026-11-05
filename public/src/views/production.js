@@ -32,10 +32,14 @@ function renderProductionArea(area, workItems, todayRecords, state) {
 }
 
 function renderProductionView(todayRecords, state) {
-  return `<section class="production-dashboard" aria-labelledby="production-dashboard-title">
+  const area = state.productionArea === "RWK" ? "RWK" : "MFG";
+  const openCount = (isRwk) => state.workItems.filter((item) => isRwkWorkItem(item) === isRwk && item.status !== "Completado").length;
+  const hint = (count) => `${count} ${count === 1 ? "trabajo abierto" : "trabajos abiertos"}`;
+  return `<section class="production-dashboard area-center" aria-labelledby="production-dashboard-title">
     <div class="production-dashboard-heading"><div><h2 id="production-dashboard-title">Producción · trabajos en curso</h2><p>Cola de trabajo local por área · los registros demo están excluidos.</p></div>
       <button class="button button--outlined" type="button" data-action="navigate" data-nav-id="overview" data-focus-key="nav-overview"><span class="material-symbols-rounded" aria-hidden="true">fact_check</span>Ir a seguimiento SOP</button>
     </div>
-    <div class="pa-grid">${renderProductionArea("MFG", state.workItems, todayRecords, state)}${renderProductionArea("RWK", state.workItems, todayRecords, state)}</div>
+    ${renderAreaButtons(area, "production", { MFG: hint(openCount(false)), RWK: hint(openCount(true)) })}
+    <div class="pa-grid">${renderProductionArea(area, state.workItems, todayRecords, state)}</div>
   </section>`;
 }

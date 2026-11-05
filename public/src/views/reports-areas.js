@@ -10,6 +10,12 @@ function renderReportAreaTabs(state) {
   return `<div class="ra-areas" role="group" aria-label="Área del reporte">${tab("MFG", "MFG · Manufactura", "precision_manufacturing", "SOP usadas y tarjetas involucradas")}${tab("RWK", "RWK · Retrabajo", "build_circle", "Validaciones, reemplazos e historial del nodo")}</div>`;
 }
 
+// Dos botones grandes MFG | RWK, iguales a los de Reportes, para Producción y Trazabilidad.
+function renderAreaButtons(current, scope, hints = {}) {
+  const tab = (id, label, icon) => `<button type="button" class="ra-area ${current === id ? "is-on" : ""}" data-action="area-tab" data-scope="${scope}" data-area="${id}" aria-pressed="${current === id}"><span class="material-symbols-rounded" aria-hidden="true">${icon}</span><span><strong>${label}</strong><small>${hints[id] ?? ""}</small></span></button>`;
+  return `<div class="ra-areas ra-areas--center" role="group" aria-label="Área">${tab("MFG", "MFG · Manufactura", "precision_manufacturing")}${tab("RWK", "RWK · Retrabajo", "build_circle")}</div>`;
+}
+
 function renderRaBars(entries, tone = "blue", emptyText = "Sin datos en este periodo.") {
   if (!entries.length) return `<p class="ra-empty">${escapeHtml(emptyText)}</p>`;
   const max = Math.max(1, ...entries.map(([, count]) => count));

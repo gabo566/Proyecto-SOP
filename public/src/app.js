@@ -46,6 +46,8 @@ const state = {
   reportFilters: { dateFrom: "", dateTo: "", shift: "all", category: "all", employeeNumber: "all" },
   reportPage: 1,
   reportArea: "MFG",
+  productionArea: "MFG",
+  traceabilityArea: "MFG",
   rwkTab: "validations",
   rwkFilters: { dateFrom: "", dateTo: "", cardType: "all", employeeNumber: "all", nodeQuery: "" },
   cardReport: null,

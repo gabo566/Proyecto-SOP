@@ -39,3 +39,24 @@
   .pa-total, .ta-counts { margin-left: 0; }
   .pa-head h3, .ta-head h3 { font-size: 18px; }
 }
+
+/* ---- Selector de área centrado y contenido centrado ---- */
+.area-center { width: min(100%, 1120px); margin-inline: auto; }
+.area-center > .production-dashboard-heading, .area-center > .section-heading { justify-content: center; text-align: center; }
+.area-center > .production-dashboard-heading { flex-direction: column; align-items: center; gap: 10px; }
+.area-center .section-heading .section-title { justify-content: center; text-align: left; }
+.area-center .traceability-actions { justify-content: center; }
+.area-center .ra-areas--center { width: min(100%, 780px); margin-inline: auto; }
+.area-center .ra-areas--center .ra-area { justify-content: center; text-align: center; }
+.area-center .ra-areas--center .ra-area > span:last-child { text-align: left; }
+.area-center .pa-head, .area-center .ta-head { justify-content: center; text-align: center; }
+.area-center .pa-total, .area-center .ta-counts { margin-left: 0; }
+.area-center .pa-kpis { justify-content: center; }
+.area-center .pa-kpi { justify-content: center; }
+.area-center .tn-kpis { justify-content: center; }
+.area-center .tn-kpi { justify-content: center; text-align: left; }
+.area-center .traceability-total { text-align: center; }
+.area-center .traceability-filters { justify-items: stretch; }
+.area-center .work-items-heading { justify-content: center; text-align: center; }
+.area-center .work-items-heading .section-title { justify-content: center; }
+.area-center .work-items-counts { justify-content: center; }
