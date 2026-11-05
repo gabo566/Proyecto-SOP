@@ -106,7 +106,7 @@ function renderTraceabilityRow(event) {
   const kind = traceEventKind(event);
   const detailText = String(event.detail ?? "").split(" · ").filter((part) => part && !part.startsWith("Estación:")).join(" · ");
   const [datePart, timePart] = String(event.timeLabel ?? "").split(" · ");
-  return `<tr>
+  return `<tr class="tr-row tr-row--${kind.tone}">
     <td><div class="tr-when"><span class="tr-line">${traceIcon("calendar_month")}<b>${escapeHtml(datePart || "Fecha no disponible")}</b></span><span class="tr-line tr-line--soft">${traceIcon("schedule")}${escapeHtml(timePart || "—")}</span><span class="tr-chip tr-chip--${traceShiftTone(event.shift)}">${escapeHtml(event.shift)}</span></div></td>
     <td><div class="tr-node"><span class="tr-icon-box tr-icon-box--node">${traceIcon("dns")}</span><div><strong class="tr-serial">${escapeHtml(event.serial || "Serial sin capturar")}</strong><small>Nodo ${escapeHtml(event.nodeNumber || "sin número")}</small><small class="tr-pn">${escapeHtml(event.nodePartNumber || "P/N nodo no capturado")}</small></div></div></td>
     <td><div class="tr-sop"><span class="tr-icon-box">${traceIcon("description")}</span><div><strong>${escapeHtml(event.procedureTitle || event.category || "—")}</strong>${event.sheet ? `<span class="tr-chip tr-chip--sheet">${traceIcon("layers")}Hoja ${escapeHtml(event.sheet)}</span>` : '<small>Hoja no capturada</small>'}</div></div></td>

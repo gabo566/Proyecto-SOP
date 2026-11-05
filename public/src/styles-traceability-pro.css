@@ -72,3 +72,25 @@
 .traceability-view .traceability-filters { grid-template-columns: minmax(200px, 1.6fr) repeat(auto-fit, minmax(128px, 1fr)); }
 .traceability-view .traceability-filters .search-box { grid-column: 1 / -1; }
 .traceability-table thead th:last-child { min-width: 0; }
+
+/* ---- Formal y llamativo: cabecera azul marino, franja por tipo de acción y etiquetas de evento sólidas ---- */
+.traceability-view .table-scroll { border: 1px solid var(--tr-line); border-radius: 14px; background: #fff; box-shadow: 0 4px 14px rgb(27 41 64 / 8%); }
+.traceability-table thead th { border-bottom: 0; color: #fff; background: linear-gradient(110deg, #17243a, #26395c); font-size: 11px; letter-spacing: .08em; }
+.traceability-table thead th:first-child { border-top-left-radius: 13px; }
+.traceability-table thead th:last-child { border-top-right-radius: 13px; }
+.traceability-table tbody tr.tr-row td:first-child { box-shadow: inset 5px 0 0 var(--tr-accent, #7b889e); }
+.tr-row--ok { --tr-accent: #2f8f4a; }
+.tr-row--sop { --tr-accent: #2f5fa8; }
+.tr-row--rework { --tr-accent: #d4930f; }
+.tr-row--stop { --tr-accent: #c23b3b; }
+.traceability-table tbody td { padding-block: 16px; }
+.tr-event .tr-chip--ok, .tr-event .tr-chip--sop, .tr-event .tr-chip--rework, .tr-event .tr-chip--stop { padding: 5px 12px 5px 9px; color: #fff; font-size: 12.5px; letter-spacing: .01em; box-shadow: 0 2px 6px rgb(27 41 64 / 18%); }
+.tr-event .tr-chip--ok { background: #2f8f4a; }
+.tr-event .tr-chip--sop { background: #2f5fa8; }
+.tr-event .tr-chip--rework { background: #c98308; }
+.tr-event .tr-chip--stop { background: #c23b3b; }
+.tr-event .tr-chip .tr-ico { font-size: 17px; }
+.tr-event > small { padding-left: 2px; color: #33445d; font-weight: 600; }
+.tr-chip--t1, .tr-chip--t2, .tr-chip--t3 { font-weight: 800; box-shadow: inset 0 0 0 1px rgb(27 41 64 / 10%); }
+.traceability-table .evidence-eye-button { color: #fff; background: var(--tr-blue); box-shadow: 0 2px 6px rgb(47 79 132 / 35%); }
+.traceability-table .evidence-eye-button:hover { background: #1f3a66; }
