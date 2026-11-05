@@ -82,7 +82,7 @@
 /* ---- Refuerzos de especificidad sobre reglas anteriores ---- */
 @media (min-width: 761px) {
 .sop-version-panel .sop-catalog-table .sop-catalog-table-head,
-.sop-version-panel .sop-catalog-table .sop-catalog-row { grid-template-columns: minmax(220px, 2.6fr) minmax(100px, .8fr) minmax(130px, 1.1fr) minmax(124px, .9fr) minmax(124px, .9fr) minmax(170px, 1.3fr); column-gap: 26px; min-width: 1000px; }
+.sop-version-panel .sop-catalog-table .sop-catalog-row { grid-template-columns: minmax(210px, 2.2fr) minmax(100px, .8fr) minmax(165px, 1.3fr) minmax(124px, .9fr) minmax(124px, .9fr) minmax(170px, 1.2fr); column-gap: 26px; min-width: 1000px; }
 .sop-version-panel .sop-catalog-table { overflow-x: auto; }
 .sop-version-panel .sop-catalog-table .sop-catalog-row { padding: 14px 24px; }
 .sop-version-panel .sop-catalog-table .sop-catalog-table-head { padding: 0 24px; }
@@ -110,4 +110,18 @@
   .sop-version-panel .sop-catalog-table .sop-catalog-actions .text-button { justify-content: center; white-space: normal; }
   .sop-version-panel .sop-catalog-table .sop-catalog-status-cell { justify-content: flex-start; }
   .sop-version-manager-header .sop-version-upload-form { width: 100%; }
+}
+
+/* ---- Cabecera azul marino como en Trazabilidad, Producción y Reportes; controles centrados en su columna ---- */
+@media (min-width: 761px) {
+  .sop-version-panel .sop-catalog-table .sop-catalog-table-head { color: #fff; background: linear-gradient(110deg, #17243a, #26395c); border-bottom: 0; font-size: 11px; letter-spacing: .08em; }
+  .sop-version-panel .sop-catalog-table .sop-catalog-table-head [role="columnheader"] { justify-content: center; text-align: center; }
+  .sop-version-panel .sop-catalog-table .sop-catalog-table-head [role="columnheader"]:first-child { justify-content: flex-start; padding-left: 54px; text-align: left; }
+  .sop-version-panel .sop-catalog-table .sop-catalog-row > * { justify-self: center; }
+  .sop-version-panel .sop-catalog-table .sop-catalog-row > .sop-catalog-sop-cell { justify-self: start; }
+  .sop-version-panel .sop-catalog-table .sop-catalog-area, .sop-version-panel .sop-catalog-table .sop-catalog-station { width: 100%; }
+  .sop-version-panel .sop-catalog-table .sop-catalog-area select, .sop-version-panel .sop-catalog-table .sop-catalog-station select { text-align: center !important; text-align-last: center !important; padding-inline: 12px 24px; }
+  .sop-version-panel .sop-catalog-table .sop-catalog-enabled, .sop-version-panel .sop-catalog-table .sop-catalog-status-cell { justify-content: center; }
+  .sop-version-panel .sop-catalog-table .sop-catalog-actions { display: flex; justify-content: center; width: 100%; }
+  .sop-version-panel .sop-catalog-table .sop-catalog-actions .sop-catalog-action-buttons { justify-items: stretch; justify-content: center; width: min(100%, 210px); margin-inline: auto; }
 }
