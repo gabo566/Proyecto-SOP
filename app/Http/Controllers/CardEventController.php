@@ -20,9 +20,15 @@ class CardEventController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $data = $request->validate(['nodeSerial' => ['required', 'string', 'max:80']]);
+        $data = $request->validate([
+            'nodeSerial' => ['required_without:query', 'nullable', 'string', 'max:80'],
+            // Búsqueda parcial por serie del nodo (por ejemplo, solo la terminación).
+            'query' => ['required_without:nodeSerial', 'nullable', 'string', 'min:3', 'max:80'],
+        ]);
 
-        $events = CardEvent::where('node_serial', $data['nodeSerial'])
+        $events = CardEvent::query()
+            ->when(! empty($data['nodeSerial']), fn ($q) => $q->where('node_serial', $data['nodeSerial']))
+            ->when(empty($data['nodeSerial']) && ! empty($data['query']), fn ($q) => $q->where('node_serial', 'like', '%'.addcslashes($data['query'], '%_').'%'))
             ->orderByDesc('occurred_at')->orderByDesc('id')->get();
 
         $validations = $events->where('type', CardEvent::TYPE_VALIDATION);

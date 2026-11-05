@@ -172,4 +172,17 @@ class CardEventTest extends TestCase
         $this->actingAs($operator)->getJson('/api/card-events/report?cardType=Interposer')
             ->assertJsonPath('validations.total', 0)->assertJsonPath('replacements.total', 0);
     }
+
+    public function test_el_historial_se_busca_por_terminacion_de_la_serie(): void
+    {
+        $operator = $this->operator();
+        $this->actingAs($operator)->postJson('/api/card-events', $this->validation())->assertCreated();
+        $this->actingAs($operator)->postJson('/api/card-events', $this->validation(['nodeSerial' => '1934526000200']))->assertCreated();
+
+        $this->actingAs($operator)->getJson('/api/card-events?query=000155')
+            ->assertOk()->assertJsonCount(1, 'events')->assertJsonPath('events.0.nodeSerial', '1934526000155');
+
+        $this->actingAs($operator)->getJson('/api/card-events?query=52600')->assertOk()->assertJsonCount(2, 'events');
+        $this->actingAs($operator)->getJson('/api/card-events')->assertStatus(422);
+    }
 }

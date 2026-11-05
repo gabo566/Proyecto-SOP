@@ -45,6 +45,13 @@ const state = {
   includeDemoData: false,
   reportFilters: { dateFrom: "", dateTo: "", shift: "all", category: "all", employeeNumber: "all" },
   reportPage: 1,
+  reportArea: "MFG",
+  rwkTab: "validations",
+  rwkFilters: { dateFrom: "", dateTo: "", cardType: "all", employeeNumber: "all", nodeQuery: "" },
+  cardReport: null,
+  cardReportError: "",
+  cardReportLoading: false,
+  nodeHistory: null,
   traceabilityFilters: { query: "", dateFrom: "", dateTo: "", shift: "all", category: "all", employeeNumber: "all" },
   traceabilityPage: 1,
   sopPdfUrl: "",
@@ -184,7 +191,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     : state.activeSection === "traceability"
     ? renderTraceabilityView(records, state.workItems, state)
     : state.activeSection === "reports"
-    ? renderReportsView(allRecords, state, state.workItems)
+    ? renderReportsArea(allRecords, state, state.workItems)
     : state.activeSection === "users"
     ? renderLocalUsersPanel({ filter: state.usersFilter, search: state.usersSearch, newOpen: state.usersNewOpen, passwordFor: state.usersPasswordFor, sopOpen: state.usersSopOpen })
     : state.activeSection === "sop-admin"
@@ -230,9 +237,10 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   labelResponsiveTables(app);
   revealCurrentGuidedStep(false);
   const reportRecords = state.activeSection === "reports"
-    ? getReportRecords(allRecords, state.reportFilters, state.includeDemoData)
+    ? getReportRecords(allRecords, state.reportFilters, state.includeDemoData).filter((record) => !isRwkRecord(record))
     : todayRecords;
   drawCompletionChart(document.querySelector("#completion-chart"), reportRecords);
+  if (state.activeSection === "reports" && state.reportArea === "RWK" && state.rwkTab !== "history" && !state.cardReport && !state.cardReportLoading && !state.cardReportError) void loadCardReport(state, render);
   if (!localStorage.getItem("sop-operador-audit-session-v1")) localStorage.setItem("sop-operador-audit-session-v1", state.auditSessionId);
 }
 
