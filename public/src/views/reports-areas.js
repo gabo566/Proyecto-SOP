@@ -7,7 +7,7 @@ function isRwkRecord(record) {
 function renderReportAreaTabs(state) {
   const area = state.reportArea ?? "MFG";
   const tab = (id, label, icon, hint) => `<button type="button" class="ra-area ${area === id ? "is-on" : ""}" data-action="report-area" data-area="${id}" aria-pressed="${area === id}"><span class="material-symbols-rounded" aria-hidden="true">${icon}</span><span><strong>${label}</strong><small>${hint}</small></span></button>`;
-  return `<div class="ra-areas" role="group" aria-label="Área del reporte">${tab("MFG", "MFG · Manufactura", "precision_manufacturing", "SOP usadas y tarjetas involucradas")}${tab("RWK", "RWK · Retrabajo", "build_circle", "Validaciones, reemplazos e historial del nodo")}</div>`;
+  return `<div class="ra-areas ra-areas--center" role="group" aria-label="Área del reporte">${tab("MFG", "MFG · Manufactura", "precision_manufacturing", "SOP usadas y tarjetas involucradas")}${tab("RWK", "RWK · Retrabajo", "build_circle", "Validaciones, reemplazos e historial del nodo")}</div>`;
 }
 
 // Dos botones grandes MFG | RWK, iguales a los de Reportes, para Producción y Trazabilidad.

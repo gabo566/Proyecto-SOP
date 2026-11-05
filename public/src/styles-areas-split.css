@@ -60,3 +60,8 @@
 .area-center .work-items-heading { justify-content: center; text-align: center; }
 .area-center .work-items-heading .section-title { justify-content: center; }
 .area-center .work-items-counts { justify-content: center; }
+
+/* Los botones de área miden lo mismo en Reportes, Producción y Trazabilidad */
+.ra-areas--center { width: min(100%, 780px); margin-inline: auto; }
+.ra-areas--center .ra-area { justify-content: center; text-align: center; }
+.ra-areas--center .ra-area > span:last-child { text-align: left; }
