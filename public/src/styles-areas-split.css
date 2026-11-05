@@ -41,14 +41,11 @@
 }
 
 /* ---- Selector de área centrado y contenido centrado ---- */
-.area-center { width: min(100%, 1120px); margin-inline: auto; }
+.area-center { width: 100%; margin-inline: auto; }
 .area-center > .production-dashboard-heading, .area-center > .section-heading { justify-content: center; text-align: center; }
 .area-center > .production-dashboard-heading { flex-direction: column; align-items: center; gap: 10px; }
 .area-center .section-heading .section-title { justify-content: center; text-align: left; }
 .area-center .traceability-actions { justify-content: center; }
-.area-center .ra-areas--center { width: min(100%, 780px); margin-inline: auto; }
-.area-center .ra-areas--center .ra-area { justify-content: center; text-align: center; }
-.area-center .ra-areas--center .ra-area > span:last-child { text-align: left; }
 .area-center .pa-head, .area-center .ta-head { justify-content: center; text-align: center; }
 .area-center .pa-total, .area-center .ta-counts { margin-left: 0; }
 .area-center .pa-kpis { justify-content: center; }
@@ -60,8 +57,3 @@
 .area-center .work-items-heading { justify-content: center; text-align: center; }
 .area-center .work-items-heading .section-title { justify-content: center; }
 .area-center .work-items-counts { justify-content: center; }
-
-/* Los botones de área miden lo mismo en Reportes, Producción y Trazabilidad */
-.ra-areas--center { width: min(100%, 780px); margin-inline: auto; }
-.ra-areas--center .ra-area { justify-content: center; text-align: center; }
-.ra-areas--center .ra-area > span:last-child { text-align: left; }
