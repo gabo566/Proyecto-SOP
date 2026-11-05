@@ -7,6 +7,27 @@ function getCardTypes() {
   return source.map((label) => String(label).replace(/^Reemplazo de /, "").trim()).filter(Boolean);
 }
 
+// Reglas para reconocer el tipo de tarjeta por su PN (por ahora vacías; se llenarán con la tabla que defina el usuario).
+// Cada regla: { pattern: RegExp | string (el PN empieza, contiene o termina así), type: "BMC" }.
+var CARD_TYPE_RULES = [];
+
+function identifyCardType(partNumber) {
+  const pn = String(partNumber ?? "").trim().toUpperCase();
+  if (!pn) return "";
+  const rule = CARD_TYPE_RULES.find(({ pattern }) => (typeof pattern?.test === "function" ? pattern.test(pn) : pn.includes(String(pattern).toUpperCase())));
+  return rule ? rule.type : "";
+}
+
+// Nombre que se muestra y se guarda: el tipo elegido, el identificado por el PN o "sin identificar".
+function cardDisplayName(card) {
+  return card.type || identifyCardType(card.partNumber) || "Tarjeta sin identificar";
+}
+
+// Siempre hay al menos un renglón al validar (el tipo se identifica por el PN).
+function ensureCardRow(form) {
+  if (!(form.cards ?? []).length) form.cards = [newCard("")];
+}
+
 function newCard(type = "") {
   return {
     id: `card-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
@@ -44,8 +65,7 @@ function validateCards(cards, actionType = "validation") {
   const missing = [];
   if (!cards.length) return { ok: false, missing: ["al menos una tarjeta"] };
   cards.forEach((card, index) => {
-    const label = card.type || `tarjeta ${index + 1}`;
-    if (!card.type) missing.push(`tipo de la tarjeta ${index + 1}`);
+    const label = card.type || identifyCardType(card.partNumber) || `tarjeta ${index + 1}`;
     if (!String(card.partNumber ?? "").trim()) missing.push(`PN de ${label}`);
     if (!String(card.serial ?? "").trim()) missing.push(`serie de ${label}`);
     if (actionType === "replacement" && !String(card.removedSerial ?? "").trim()) missing.push(`serie retirada de ${label}`);
@@ -74,7 +94,7 @@ function buildCardEvents(cards, actionType, node) {
     nodePartNumber: node.nodePartNumber,
     nodeNumber: node.nodeNumber,
     stationAssignment: node.stationAssignment,
-    cardType: card.type,
+    cardType: cardDisplayName(card),
     cardPartNumber: String(card.partNumber).trim(),
     cardSerial: String(card.serial).trim(),
     result: isReplacement ? undefined : (card.result === "damage" ? "damage" : "ok"),

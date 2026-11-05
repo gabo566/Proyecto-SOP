@@ -1,0 +1,113 @@
+/* Modificar SOP · catálogo de habilitaciones: aspecto sobrio y profesional.
+   Superficies blancas, bordes finos, color solo con significado (área y estado). */
+.sop-version-panel {
+  --cat-ink: #1b2a3f; --cat-muted: #5b6b80; --cat-line: #e3e9f1; --cat-line-strong: #cfd9e5;
+  --cat-bg: #f5f7fa; --cat-navy: #1f3a5f; --cat-ok: #137849; --cat-ok-bg: #e6f4ec; --cat-off: #5b6b80; --cat-off-bg: #eef1f5;
+}
+
+/* ---- Cabecera: título a la izquierda, subir/extraer a la derecha, sin tintes rosas ---- */
+.sop-version-panel .sop-version-manager-header { padding: 18px 22px; border: 1px solid var(--cat-line); border-radius: 14px; background: #fff; box-shadow: 0 1px 2px rgb(20 35 60 / 4%); }
+.sop-version-manager-header .heading-icon { width: 46px; height: 46px; flex-basis: 46px; border: 1px solid var(--cat-line); border-radius: 12px; color: var(--cat-navy); background: var(--cat-bg); }
+.sop-version-manager-header .section-title h2 { color: var(--cat-ink); font-size: 21px; font-weight: 800; letter-spacing: -.01em; }
+.sop-version-manager-header .sop-version-access-badge { padding: 3px 10px; border: 1px solid var(--cat-line); border-radius: 999px; color: var(--cat-muted); background: var(--cat-bg); font-size: 11px; font-weight: 600; letter-spacing: 0; text-transform: none; }
+.sop-version-manager-header .sop-version-upload-form { width: min(360px, 34vw); padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.sop-version-manager-header .sop-version-actions { gap: 8px; }
+.sop-version-manager-header .sop-version-actions .button { min-height: 40px; border-radius: 9px; font-size: 13px; font-weight: 700; gap: 7px; }
+.sop-version-manager-header .sop-version-actions .button--outlined { color: var(--cat-navy); background: #fff; box-shadow: inset 0 0 0 1.5px var(--cat-line-strong); }
+.sop-version-manager-header .sop-version-actions .button--outlined:hover { background: var(--cat-bg); }
+.sop-version-manager-header .sop-version-actions .button--primary { color: #fff; background: var(--cat-navy); }
+.sop-version-manager-header .sop-version-actions .button--primary:disabled { color: #8a98ab; background: var(--cat-off-bg); box-shadow: none; }
+.sop-version-manager-header .sop-version-actions .button .material-symbols-rounded { font-size: 18px; }
+.sop-version-manager-header .sop-version-actions > small { margin-top: 2px; color: var(--cat-muted); font-size: 12px; }
+
+/* ---- Contenedor del catálogo ---- */
+.sop-version-panel .sop-catalog-manager { padding: 20px 22px 18px; border: 1px solid var(--cat-line); border-radius: 14px; background: #fff; box-shadow: 0 1px 2px rgb(20 35 60 / 4%); }
+.sop-catalog-heading .eyebrow { color: var(--cat-muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+.sop-catalog-heading h3 { color: var(--cat-ink); font-size: 18px; font-weight: 800; letter-spacing: -.01em; }
+.sop-catalog-heading > .material-symbols-rounded { width: 34px; height: 34px; border-radius: 9px; color: var(--cat-navy); background: var(--cat-bg); box-shadow: inset 0 0 0 1px var(--cat-line); font-size: 19px; }
+.sop-version-panel .sop-catalog-manager > p { max-width: 78ch; color: var(--cat-muted); font-size: 13px; line-height: 1.55; }
+
+/* ---- Tabla ---- */
+.sop-version-panel .sop-catalog-table { border: 1px solid var(--cat-line); border-radius: 12px; background: #fff; box-shadow: none; overflow: hidden; }
+.sop-catalog-table .sop-catalog-table-head { min-height: 40px; padding: 0 16px; border-bottom: 1px solid var(--cat-line); color: var(--cat-muted); background: var(--cat-bg); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.sop-catalog-table .sop-catalog-table-head [role="columnheader"] { justify-content: flex-start; text-align: left; }
+.sop-catalog-table .sop-catalog-table-head [role="columnheader"]:first-child { padding-left: 54px; }
+.sop-catalog-table .sop-catalog-row { min-height: 64px; padding: 12px 16px; border-bottom: 1px solid var(--cat-line); background: #fff; align-items: center; }
+.sop-catalog-table .sop-catalog-row:last-child { border-bottom: 0; }
+.sop-catalog-table .sop-catalog-row:hover { background: #f8fafc; }
+.sop-catalog-table .sop-catalog-row > * { justify-self: start; }
+
+/* SOP / revisión */
+.sop-catalog-table .sop-catalog-file-icon { width: 38px; height: 38px; flex-basis: 38px; border-radius: 10px; color: var(--cat-navy); background: var(--cat-bg); box-shadow: inset 0 0 0 1px var(--cat-line); font-size: 20px; }
+.sop-catalog-table .sop-catalog-title { color: var(--cat-ink); font-size: 14px; font-weight: 700; line-height: 1.3; }
+.sop-catalog-table .sop-catalog-revision { padding: 2px 8px; border-radius: 6px; color: var(--cat-muted); background: var(--cat-off-bg); font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sop-catalog-table .sop-catalog-info-trigger { color: #8a98ab; }
+.sop-catalog-table .sop-catalog-info-trigger:hover { color: var(--cat-navy); }
+
+/* Área y estación: selectores sobrios; el área lleva un tinte suave según su valor */
+.sop-catalog-table .sop-catalog-area select,
+.sop-catalog-table .sop-catalog-station select {
+  width: 100%; min-height: 38px; padding: 0 26px 0 12px; border: 1px solid var(--cat-line-strong); border-radius: 8px;
+  color: var(--cat-ink); background-color: #fff; font-size: 13px; font-weight: 600; text-align: left !important; text-align-last: left !important;
+  box-shadow: none; transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.sop-catalog-table .sop-catalog-area select { font-weight: 800; letter-spacing: .02em; }
+.sop-catalog-table .sop-catalog-area:has(option[value="MFG"]:checked) select { color: #1d4e89; background-color: #eaf2fb; border-color: #b9d1ec; }
+.sop-catalog-table .sop-catalog-area:has(option[value="RWK"]:checked) select { color: #8a4b08; background-color: #fdf1e2; border-color: #f0cfa4; }
+.sop-catalog-table .sop-catalog-area select:hover, .sop-catalog-table .sop-catalog-station select:hover { border-color: #8fa5c0; }
+.sop-catalog-table .sop-catalog-area select:focus-visible, .sop-catalog-table .sop-catalog-station select:focus-visible { outline: 0; border-color: var(--cat-navy); box-shadow: 0 0 0 3px rgb(31 58 95 / 16%); }
+
+/* Disponibilidad: interruptor más discreto */
+.sop-catalog-table .sop-catalog-enabled { justify-content: flex-start; }
+.sop-catalog-table .sop-catalog-enabled input { width: 44px; height: 26px; flex: 0 0 44px; border-width: 0; }
+.sop-catalog-table .sop-catalog-enabled input::after { width: 20px; height: 20px; margin: 3px; }
+.sop-catalog-table .sop-catalog-enabled input:checked::after { transform: translateX(18px); }
+
+/* Estado como etiqueta con punto */
+.sop-catalog-table .sop-catalog-status-cell { justify-content: flex-start; }
+.sop-catalog-table .sop-catalog-status-cell strong { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px 4px 9px; border-radius: 999px; color: var(--cat-off); background: var(--cat-off-bg); font-size: 12px; font-weight: 700; }
+.sop-catalog-table .sop-catalog-status-cell strong::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentcolor; }
+.sop-catalog-table .sop-catalog-status-cell.is-enabled strong { color: var(--cat-ok); background: var(--cat-ok-bg); }
+
+/* Acciones: botones con borde fino en una fila */
+.sop-catalog-table .sop-catalog-action-buttons { flex-wrap: wrap; gap: 6px; }
+.sop-catalog-actions .text-button { min-height: 34px; padding: 0 12px; border: 1px solid var(--cat-line-strong); border-radius: 8px; color: var(--cat-navy); background: #fff; font-size: 12.5px; font-weight: 700; box-shadow: none; }
+.sop-catalog-actions .text-button:hover:not(:disabled) { border-color: #8fa5c0; background: var(--cat-bg); }
+.sop-catalog-actions .text-button .material-symbols-rounded { font-size: 17px; }
+.sop-catalog-actions .sop-version-delete-button { color: #a52a2a; border-color: #ecc9c9; }
+.sop-catalog-actions .sop-version-delete-button:hover:not(:disabled) { border-color: #d99a9a; background: #fdf3f3; }
+
+.sop-catalog-save-bar .button { min-height: 42px; border-radius: 9px; font-size: 13px; }
+
+/* ---- Refuerzos de especificidad sobre reglas anteriores ---- */
+@media (min-width: 761px) {
+.sop-version-panel .sop-catalog-table .sop-catalog-table-head,
+.sop-version-panel .sop-catalog-table .sop-catalog-row { grid-template-columns: minmax(220px, 2.6fr) minmax(100px, .8fr) minmax(130px, 1.1fr) minmax(124px, .9fr) minmax(124px, .9fr) minmax(170px, 1.3fr); column-gap: 26px; min-width: 1000px; }
+.sop-version-panel .sop-catalog-table { overflow-x: auto; }
+.sop-version-panel .sop-catalog-table .sop-catalog-row { padding: 14px 24px; }
+.sop-version-panel .sop-catalog-table .sop-catalog-table-head { padding: 0 24px; }
+}
+.sop-version-panel .sop-catalog-table .sop-catalog-table-head { font-size: 10.5px; letter-spacing: .04em; }
+.sop-version-panel .sop-catalog-table .sop-catalog-table-head [role="columnheader"] { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sop-version-panel .sop-catalog-table .sop-catalog-area select { padding: 0 22px 0 10px; background-position: calc(100% - 12px) 50%, calc(100% - 7px) 50%; }
+.sop-version-panel .sop-catalog-table .sop-catalog-station select { border: 1px solid var(--cat-line-strong) !important; color: var(--cat-ink) !important; background-color: #fff !important; }
+.sop-version-panel .sop-catalog-table .sop-catalog-actions .text-button { border: 1px solid var(--cat-line-strong) !important; color: var(--cat-navy) !important; background: #fff !important; }
+.sop-version-panel .sop-catalog-table .sop-catalog-actions .text-button:hover:not(:disabled) { border-color: #8fa5c0 !important; background: var(--cat-bg) !important; }
+.sop-version-panel .sop-catalog-table .sop-catalog-actions .sop-version-delete-button { color: #a52a2a !important; border-color: #ecc9c9 !important; }
+.sop-version-panel .sop-catalog-table .sop-catalog-actions .sop-version-delete-button:hover:not(:disabled) { border-color: #d99a9a !important; background: #fdf3f3 !important; }
+.sop-version-panel .sop-catalog-table .sop-catalog-actions .text-button { white-space: nowrap; max-width: 100%; padding: 0 10px; }
+.sop-version-panel .sop-catalog-table .sop-catalog-actions .sop-catalog-action-buttons { display: grid; justify-items: stretch; gap: 6px; }
+
+/* Teléfono: cada fila apila sus datos en una sola columna (como antes), con el mismo aspecto sobrio. */
+@media (max-width: 760px) {
+  .sop-version-panel .sop-catalog-table .sop-catalog-row { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 14px; }
+  .sop-version-panel .sop-catalog-table .sop-catalog-row > * { min-width: 0; justify-self: stretch; }
+  .sop-version-panel .sop-catalog-table .sop-catalog-table-head { display: none; }
+  .sop-version-panel .sop-catalog-table { overflow-x: visible; }
+  .sop-version-panel .sop-catalog-table .sop-catalog-table-head, .sop-version-panel .sop-catalog-table .sop-catalog-row { min-width: 0; }
+  .sop-version-panel .sop-catalog-table .sop-catalog-list { overflow-x: visible; }
+  .sop-version-panel .sop-catalog-table .sop-catalog-actions .sop-catalog-action-buttons { grid-template-columns: 1fr 1fr; }
+  .sop-version-panel .sop-catalog-table .sop-catalog-actions .text-button { justify-content: center; white-space: normal; }
+  .sop-version-panel .sop-catalog-table .sop-catalog-status-cell { justify-content: flex-start; }
+  .sop-version-manager-header .sop-version-upload-form { width: 100%; }
+}

@@ -61,6 +61,30 @@ function renderReworkEvidenceSection(workItem, state) {
   return `<div class="evidence-inline"><button class="evidence-inline-button" type="button" data-action="${action}" aria-label="Subir evidencia${isRework ? ' requerida' : ''}" title="Subir evidencia" ${state.evidenceBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.evidenceBusy ? "hourglass_top" : "add_a_photo"}</span><span>Evidencia</span></button><small class="evidence-inline-note">${note}</small><input class="evidence-upload-input" type="file" ${inputAttrs} hidden accept="${EVIDENCE_FILE_ACCEPT}" multiple capture="environment" aria-label="Seleccionar fotos de evidencia" ${state.evidenceBusy ? "disabled" : ""} />${files}${state.evidenceError ? `<small class="evidence-inline-error" role="alert">${escapeHtml(state.evidenceError)}</small>` : ""}</div>`;
 }
 
+// Resultado de cada tarjeta de Retrabajo: sin daño o reportar daño (con descripción). Manufactura no lo usa.
+function renderCardResults(state) {
+  if (!usesCardSession(state.form)) return "";
+  const cards = state.form.cards ?? [];
+  if (state.form.actionType === "replacement") {
+    return `<section class="validation-result" aria-label="Tarjetas reemplazadas"><h4 class="validation-result-title">Tarjetas reemplazadas</h4>
+      <ul class="validation-result-list">${cards.map((card) => `<li><strong>${escapeHtml(cardDisplayName(card))}</strong><span>Retirada ${escapeHtml(card.removedSerial)} → nueva ${escapeHtml(card.serial)}</span></li>`).join("")}</ul></section>`;
+  }
+  const anyDamage = cards.some((card) => card.result === "damage");
+  return `<section class="validation-result" aria-label="Resultado por tarjeta"><h4 class="validation-result-title">Resultado de cada tarjeta</h4>
+    ${cards.map((card) => {
+      const damage = card.result === "damage";
+      return `<div class="validation-result-card" data-card-result-row>
+        <p class="validation-result-card-head"><strong>${escapeHtml(cardDisplayName(card))}</strong><small>PN ${escapeHtml(card.partNumber)} · serie ${escapeHtml(card.serial)}</small></p>
+        <div class="validation-result-options">
+          <label class="validation-result-option ${damage ? "" : "is-on"}"><input type="radio" name="cardResult-${escapeHtml(card.id)}" value="ok" data-card-result data-card-id="${escapeHtml(card.id)}" ${damage ? "" : "checked"} /><span class="material-symbols-rounded" aria-hidden="true">check_circle</span>No hubo daño</label>
+          <label class="validation-result-option validation-result-option--damage ${damage ? "is-on" : ""}"><input type="radio" name="cardResult-${escapeHtml(card.id)}" value="damage" data-card-result data-card-id="${escapeHtml(card.id)}" ${damage ? "checked" : ""} /><span class="material-symbols-rounded" aria-hidden="true">warning</span>Reportar hubo daño</label>
+        </div>
+        <label class="validation-field" data-card-note-box ${damage ? "" : "hidden"}>Describe el daño de ${escapeHtml(cardDisplayName(card))}<textarea data-card-note data-card-id="${escapeHtml(card.id)}" rows="2" maxlength="1000" placeholder="Ej. conector MCIO doblado en la esquina">${escapeHtml(card.damageNote ?? "")}</textarea></label>
+      </div>`;
+    }).join("")}
+    <div id="validation-damage-evidence" ${anyDamage ? "" : "hidden"}>${renderReworkEvidenceSection(null, state)}</div></section>`;
+}
+
 function renderGuidedFinalConfirmation(procedure, state) {
   const run = state.sopRun;
   const document = run?.document ?? SOP_DOCUMENT;
@@ -72,7 +96,6 @@ function renderGuidedFinalConfirmation(procedure, state) {
   const station = formatWorkStationAssignment(state.form.stationAssignment) || "Sin estación";
   const accepted = Boolean(state.form.declaration);
   const isReplacement = state.form.actionType === "replacement";
-  const damage = state.form.validationResult === "damage";
   const activeWork = state.workItems.find((item) => item.id === state.activeWorkId);
   const progress = getGuidedSopProgress(run, SOP_SHEETS);
   const originalOperator = run.startedBy ?? state.form;
@@ -92,14 +115,7 @@ function renderGuidedFinalConfirmation(procedure, state) {
       <div class="confirm-tile"><span class="confirm-tile-icon material-symbols-rounded" aria-hidden="true">checklist</span><div class="confirm-tile-copy"><span>Avance validado</span><strong>${run.procedureIds.length} hojas</strong><small>${progress.complete} pasos</small></div></div>
       <div class="confirm-tile"><span class="confirm-tile-icon material-symbols-rounded" aria-hidden="true">badge</span><div class="confirm-tile-copy"><span>${operatorChanged ? "Operadores" : "Operador responsable"}</span><strong>${escapeHtml(originalOperator.name)} · ${escapeHtml(originalOperator.employeeNumber)}</strong><small>${operatorChanged ? `Continúa y finaliza: ${escapeHtml(currentOperator.name)} · ${escapeHtml(currentOperator.employeeNumber)}` : escapeHtml(currentOperator.position || "Técnico de FA")}</small></div></div>
     </div>
-    ${isReplacement ? "" : `<fieldset class="validation-result"><legend>Resultado de la validación</legend>
-      <label class="validation-result-option ${damage ? "" : "is-on"}"><input type="radio" name="validationResult" value="ok" ${damage ? "" : "checked"} /><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><span><strong>No hubo daño</strong><small>La tarjeta pasa la validación.</small></span></label>
-      <label class="validation-result-option validation-result-option--damage ${damage ? "is-on" : ""}"><input type="radio" name="validationResult" value="damage" ${damage ? "checked" : ""} /><span class="material-symbols-rounded" aria-hidden="true">warning</span><span><strong>Reportar hubo daño</strong><small>Describe el daño y adjunta una foto. Después registras el reemplazo.</small></span></label>
-      <div id="validation-damage-report" ${damage ? "" : "hidden"}>
-        <label class="validation-field">Describe el daño<textarea name="damageNote" data-form-field="damageNote" rows="2" maxlength="1000" placeholder="Ej. conector MCIO doblado en la esquina">${escapeHtml(state.form.damageNote ?? "")}</textarea></label>
-        ${renderReworkEvidenceSection(null, state)}
-      </div>
-    </fieldset>`}
+    ${renderCardResults(state)}
     <label class="declaration-check guided-final-declaration"><input type="checkbox" name="declaration" data-form-field="declaration" ${accepted ? "checked" : ""} ${state.formError.includes("Confirm") ? 'aria-describedby="completion-form-error" aria-invalid="true"' : ""} />
       <span class="confirm-check-box" aria-hidden="true"><span class="material-symbols-rounded">check</span></span>
       <span class="confirm-check-text">Confirmo que realicé todos los pasos de esta SOP para el nodo y la tarjeta identificados, y que reportaré cualquier daño o desviación para recibir la retroalimentación correspondiente.</span>

@@ -286,9 +286,10 @@ function bindInteractions(app, handlers) {
     if (image.complete) updateStepImageZoom();
   }
 
-  const SOP_PAGE_DEFAULT_ZOOM = 110;
+  const SOP_PAGE_DEFAULT_ZOOM = 100;
 
-  function setSopPageZoom(zoom, anchor = null) {
+  function setSopPageZoom(zoom, anchor = null, auto = false) {
+    state.sopPageZoomAuto = auto;
     state.sopPageZoom = Math.max(50, Math.min(500, zoom));
     const viewport = document.querySelector("#sop-page-preview");
     if (!viewport) {
@@ -318,7 +319,7 @@ function bindInteractions(app, handlers) {
     }
     const selectionOverlay = viewport?.querySelector("[data-sop-zoom-selection-overlay]");
     if (selectionOverlay) selectionOverlay.hidden = true;
-    if (!state.sopFocusedZoom && state.sopPageZoom !== SOP_PAGE_DEFAULT_ZOOM) setSopPageZoom(SOP_PAGE_DEFAULT_ZOOM);
+    if (!state.sopFocusedZoom && state.sopPageZoom !== SOP_PAGE_DEFAULT_ZOOM) setSopPageZoom(SOP_PAGE_DEFAULT_ZOOM, null, true);
   }
 
   function getSopSelectionPoint(event, selection) {
@@ -387,7 +388,7 @@ function bindInteractions(app, handlers) {
     const availableWidth = Math.max(1, selection.viewport.clientWidth - 32);
     const availableHeight = Math.max(1, selection.viewport.clientHeight - 32);
     const fitFactor = Math.min(availableWidth / width, availableHeight / height);
-    const currentZoom = Number(state.sopPageZoom) || 110;
+    const currentZoom = Number(state.sopPageZoom) || 100;
     const factor = Math.max(1.1, fitFactor);
     const nextZoom = Math.min(500, Math.max(currentZoom + 10, Math.round(currentZoom * factor / 10) * 10));
     const anchor = {
@@ -545,6 +546,11 @@ function bindInteractions(app, handlers) {
         state.form.sopVersionId = nextVersion?.id ?? "";
         state.form.disassemblySheets = [];
         state.formError = "";
+        // Retrabajo: al tocar la estación se abre la ventana flotante de hojas de la primera tarjeta.
+        if (getWorkStationAssignment(action.dataset.stationValue)?.type === "RWK" && state.form.actionType !== "replacement") {
+          ensureCardRow(state.form);
+          state.cardSheetsOpen = state.form.cards[0]?.id ?? null;
+        } else state.cardSheetsOpen = null;
         runWithTransition(() => render({ focusKey: action.dataset.focusKey }), "soft");
         break;
       }
@@ -577,7 +583,7 @@ function bindInteractions(app, handlers) {
       case "next-procedure": moveProcedure(1); break;
       case "sop-page-zoom-out": setSopPageZoom(state.sopPageZoom - 10); break;
       case "sop-page-zoom-in": setSopPageZoom(state.sopPageZoom + 10); break;
-      case "sop-page-zoom-reset": setSopPageZoom(100); break;
+      case "sop-page-zoom-reset": setSopPageZoom(100, null, true); break;
       case "sop-page-toggle-focused-zoom": toggleSopFocusZoom(); break;
       case "return-to-sop-selection":
         if (!canOperateGuidedSopRun()) {
@@ -685,12 +691,15 @@ function bindInteractions(app, handlers) {
       if (card) {
         card[target.dataset.cardField] = normalizeScanValue(target.value);
         target.value = card[target.dataset.cardField];
+        const slot = target.closest("[data-card-id]")?.querySelector(".station-card-detected-slot");
+        if (slot && target.dataset.cardField === "partNumber") slot.innerHTML = renderDetectedCardType(card);
         syncCardsToForm(persistWorkState);
       }
       return;
     }
     if (target.matches("[data-action-type]")) {
       state.form.actionType = target.value;
+      ensureCardRow(state.form);
       render();
       return;
     }
@@ -725,6 +734,7 @@ function bindInteractions(app, handlers) {
         state.form.disassemblySheets = [];
       }
       state.formError = "";
+      if (target.value === "RWK") ensureCardRow(state.form);
       render({ focusKey: target.dataset.focusKey });
       return;
     } else if (target.matches("[data-station-code]")) {
@@ -767,11 +777,24 @@ function bindInteractions(app, handlers) {
       persistWorkState();
       updateGuidedChecklistUI(getProcedure(), state);
       revealCurrentGuidedStep();
-    } else if (target.name === "validationResult") {
-      state.form.validationResult = target.value;
-      document.querySelector("#validation-damage-report")?.toggleAttribute("hidden", target.value !== "damage");
-      document.querySelectorAll(".validation-result-option").forEach((option) => option.classList.toggle("is-on", option.querySelector("input")?.checked));
-      clearFormError();
+    } else if (target.matches("input[data-card-result]")) {
+      const card = (state.form.cards ?? []).find((item) => item.id === target.dataset.cardId);
+      if (card) {
+        card.result = target.value;
+        const row = target.closest("[data-card-result-row]");
+        row?.querySelector("[data-card-note-box]")?.toggleAttribute("hidden", target.value !== "damage");
+        row?.querySelectorAll(".validation-result-option").forEach((option) => option.classList.toggle("is-on", option.querySelector("input")?.checked));
+        document.querySelector("#validation-damage-evidence")?.toggleAttribute("hidden", !state.form.cards.some((item) => item.result === "damage"));
+        persistWorkState();
+        clearFormError();
+      }
+    } else if (target.matches("textarea[data-card-note]")) {
+      const card = (state.form.cards ?? []).find((item) => item.id === target.dataset.cardId);
+      if (card) {
+        card.damageNote = target.value;
+        persistWorkState();
+        clearFormError();
+      }
     } else if (target.dataset.formField === "declaration") {
       state.form.declaration = target.checked;
       target.removeAttribute("aria-invalid");

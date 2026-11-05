@@ -46,7 +46,7 @@ async function renderSopPagePreview(zoomAnchor = null) {
   const sequence = ++sopPageRenderSequence;
   const source = viewport.dataset.pdfSource;
   const pageNumber = Number(viewport.dataset.pdfPage);
-  const zoom = Number(viewport.dataset.zoom) || 100;
+  let zoom = Number(viewport.dataset.zoom) || 100;
   if (!source || !Number.isInteger(pageNumber) || pageNumber < 1) {
     status.textContent = "No se encontró el PDF de la SOP para mostrar esta hoja.";
     status.hidden = false;
@@ -78,6 +78,20 @@ async function renderSopPagePreview(zoomAnchor = null) {
     const fitScale = fitsWidthOnly
       ? availableWidth / naturalViewport.width
       : Math.min(availableWidth / naturalViewport.width, availableHeight / naturalViewport.height);
+    // Zoom automático: la hoja se ajusta al ancho del recuadro para verse completa desde el inicio (sin franjas a los lados).
+    if (state.sopPageZoomAuto && !fitsWidthOnly && !state.sopFocusedZoom) {
+      const widthFit = Math.max(1, availableWidth - 16) / naturalViewport.width; // 16 px: barra de desplazamiento vertical
+      const heightFit = availableHeight / naturalViewport.height;
+      zoom = widthFit > heightFit ? Math.max(100, Math.min(300, Math.round(widthFit / heightFit * 100))) : 100;
+      state.sopPageZoom = zoom;
+      viewport.dataset.zoom = String(zoom);
+      const level = document.querySelector("#sop-page-zoom-level");
+      if (level) level.textContent = `${zoom}%`;
+      const zoomIn = document.querySelector('[data-action="sop-page-zoom-in"]');
+      const zoomOut = document.querySelector('[data-action="sop-page-zoom-out"]');
+      if (zoomIn) zoomIn.disabled = zoom >= 500;
+      if (zoomOut) zoomOut.disabled = zoom <= 50;
+    }
     const scale = Math.max(0.2, fitScale * zoom / 100);
     const pageViewport = page.getViewport({ scale });
     const outputScale = Math.max(1, Math.min(

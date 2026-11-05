@@ -322,11 +322,10 @@ function renderLocalUsersPanel(view = {}) {
   const visible = users.filter((user) => userMatchesFilter(user, filter));
   const cards = users.map((user) => renderUserCard(user, view, canGrant)).join("");
   return `<section class="users-panel uh" id="users-panel">
-    <header class="uh-head"><div><p class="eyebrow">Administración de cuentas</p><h2>Crear usuarios</h2><p class="uh-sub">Crea cuentas, cambia contraseñas y asigna quién revisa y quién publica las revisiones de la SOP.</p></div>
-      <button class="uh-btn uh-btn--green" type="button" data-action="users-new-toggle" aria-expanded="${Boolean(view.newOpen)}"><span class="material-symbols-rounded" aria-hidden="true">${view.newOpen ? "close" : "person_add"}</span>${view.newOpen ? "Cerrar" : "Nuevo usuario"}</button></header>
     <div class="uh-kpis">${kpis.map((kpi) => `<button class="uh-kpi uh-kpi--${kpi.tone}" type="button" data-action="users-filter" data-filter="${kpi.filter}"><span class="material-symbols-rounded" aria-hidden="true">${kpi.icon}</span><span><small>${kpi.label}</small><strong>${kpi.value}</strong></span></button>`).join("")}</div>
     ${view.newOpen ? renderUserCreateForm(canGrant) : ""}
     <div class="uh-toolbar"><label class="uh-search"><span class="material-symbols-rounded" aria-hidden="true">search</span><input type="search" data-users-search placeholder="Buscar por nombre, número o puesto" value="${escapeHtml(search)}" aria-label="Buscar usuarios" autocomplete="off" /></label>
+      <button class="uh-btn uh-btn--green" type="button" data-action="users-new-toggle" aria-expanded="${Boolean(view.newOpen)}"><span class="material-symbols-rounded" aria-hidden="true">${view.newOpen ? "close" : "person_add"}</span>${view.newOpen ? "Cerrar" : "Nuevo usuario"}</button>
       <div class="uh-filters" role="group" aria-label="Filtrar usuarios">${USER_FILTERS.map((item) => `<button class="uh-filter" type="button" data-action="users-filter" data-filter="${item.id}" aria-pressed="${item.id === filter}"><span class="material-symbols-rounded" aria-hidden="true">${item.icon}</span>${item.label}<b>${counts[item.id]}</b></button>`).join("")}</div></div>
     <div class="uh-grid" data-users-grid>${cards}</div>
     <p class="uh-empty" data-users-empty ${visible.some((user) => !needle || `${user.name} ${user.employeeNumber} ${user.position ?? ""}`.toLocaleLowerCase("es-MX").includes(needle)) ? "hidden" : ""}><span class="material-symbols-rounded" aria-hidden="true">search_off</span>Ningún usuario coincide con la búsqueda.</p>

@@ -36,6 +36,30 @@ test("cada tarjeta necesita PN, serie y hojas", () => {
   assert.deepEqual([...result.missing], ["PN de BMC", "hojas de BMC"]);
 });
 
+test("al validar el tipo se identifica por el PN y no se pide", () => {
+  const sinTipo = { ...card({ type: "" }) };
+  assert.equal(context.validateCards([sinTipo], "validation").ok, true);
+  assert.equal(context.cardDisplayName(sinTipo), "Tarjeta sin identificar");
+  context.CARD_TYPE_RULES.push({ pattern: "2404", type: "BMC" }, { pattern: /081$/, type: "Bianca 0" });
+  assert.equal(context.cardDisplayName({ ...sinTipo, partNumber: "2404-55" }), "BMC");
+  assert.equal(context.cardDisplayName({ ...sinTipo, partNumber: "9990081" }), "Bianca 0");
+  assert.equal(context.buildCardEvents([{ ...sinTipo, partNumber: "2404-55" }], "validation", { serial: "1" })[0].cardType, "BMC");
+  context.CARD_TYPE_RULES.length = 0;
+});
+
+test("al reemplazar tampoco se pide el tipo (se identificará con la base de tarjetas)", () => {
+  const result = context.validateCards([card({ type: "", removedSerial: "SN-0" })], "replacement");
+  assert.equal(result.ok, true);
+});
+
+test("siempre hay un renglón de tarjeta", () => {
+  for (const actionType of ["validation", "replacement"]) {
+    const form = { actionType, cards: [] };
+    context.ensureCardRow(form);
+    assert.equal(form.cards.length, 1);
+  }
+});
+
 test("en reemplazo la serie retirada es obligatoria", () => {
   assert.equal(context.validateCards([card()], "validation").ok, true);
   const result = context.validateCards([card()], "replacement");

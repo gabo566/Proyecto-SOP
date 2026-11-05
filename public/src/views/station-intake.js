@@ -21,31 +21,14 @@ function renderStationPills(assignments, current, label) {
   }).join("")}</span>`;
 }
 
-// Renglones de tarjeta de Retrabajo: chips para agregar por tipo y un renglón por tarjeta.
-function renderCardSession(state) {
-  const cards = state.form.cards ?? [];
-  const types = getCardTypes();
-  const isReplacement = state.form.actionType === "replacement";
-  const chips = types.map((type) => {
-    const count = countCardsOfType(cards, type);
-    return `<button type="button" class="station-card-chip ${count ? "is-on" : ""}" data-action="add-card-type" data-card-type="${escapeHtml(type)}">${escapeHtml(type)}${count ? `<b>${count}</b>` : ""}</button>`;
-  }).join("");
-  const options = (selected) => `<option value="">Tipo de tarjeta</option>${types.map((type) => `<option value="${escapeHtml(type)}" ${selected === type ? "selected" : ""}>${escapeHtml(type)}</option>`).join("")}`;
-  const rows = cards.map((card, index) => `<article class="station-card-row" data-card-id="${escapeHtml(card.id)}">
-      <header class="station-card-row-head"><span class="station-card-index">${index + 1}</span><select data-card-field="type" aria-label="Tipo de la tarjeta ${index + 1}">${options(card.type)}</select>
-        <button type="button" class="station-card-sheets-button ${card.sheets.length ? "is-on" : ""}" data-action="open-card-sheets" data-card-id="${escapeHtml(card.id)}"><span class="material-symbols-rounded" aria-hidden="true">layers</span>Hojas (${card.sheets.length})</button>
-        <button type="button" class="station-card-remove" data-action="remove-card" data-card-id="${escapeHtml(card.id)}" aria-label="Quitar la tarjeta ${index + 1}"><span class="material-symbols-rounded" aria-hidden="true">close</span></button></header>
-      <div class="station-card-fields">
-        <label class="station-card-field">PN de la tarjeta<input data-card-field="partNumber" value="${escapeHtml(card.partNumber)}" placeholder="Escanea el PN" maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" /></label>
-        <label class="station-card-field">${isReplacement ? "Serie de la tarjeta nueva" : "Serie de la tarjeta"}<input data-card-field="serial" value="${escapeHtml(card.serial)}" placeholder="Escanea la serie" maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" /></label>
-        ${isReplacement ? `<label class="station-card-field">Serie de la tarjeta retirada<input data-card-field="removedSerial" value="${escapeHtml(card.removedSerial)}" placeholder="Escanea la serie retirada" maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" /></label>` : ""}
-      </div></article>`).join("");
-  return `<div class="station-cards">
-    <p class="station-cards-title">${isReplacement ? "¿Qué tarjetas vas a reemplazar?" : "¿Qué tarjetas vas a validar?"} <small>Toca un tipo para agregar su renglón</small></p>
-    <div class="station-card-chips" role="group" aria-label="Tipos de tarjeta">${chips}</div>
-    <div class="station-card-rows">${rows || '<p class="station-card-empty">Aún no hay tarjetas. Toca un tipo arriba.</p>'}
-      <button type="button" class="station-card-add" data-action="add-card-blank"><span class="material-symbols-rounded" aria-hidden="true">add</span>Agregar tarjeta</button></div>
-  </div>`;
+// Retrabajo: PN y serie de la tarjeta como siempre (una sola tarjeta por ahora; el tipo se identificará con la base de tarjetas).
+function renderRwkCardFields(state) {
+  const card = (state.form.cards ?? [])[0];
+  if (!card) return "";
+  const field = (name, icon, label, value, placeholder, key) => `<label class="station-scan-field" data-card-id="${escapeHtml(card.id)}"><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">${icon}</span>${label} <em aria-hidden="true">*</em></span><input data-card-field="${name}" data-focus-key="${key}" value="${escapeHtml(value)}" placeholder="${placeholder}" required maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" /></label>`;
+  return field("partNumber", "developer_board", "PN de la tarjeta", card.partNumber, "Escanea el PN de la tarjeta", "intake-card-part")
+    + field("serial", "pin", "Serie de la tarjeta", card.serial, "Escanea la serie de la tarjeta", "intake-card-serial")
+;
 }
 
 // Ventana flotante de hojas de la tarjeta que se está editando.
@@ -56,7 +39,7 @@ function renderCardSheetsOverlay(state) {
   const choice = { options: full.options, selected: full.options.filter((option) => card.sheets.includes(option.id)) };
   return renderDisassemblyChoice(choice, state.disassemblyFilter ?? "", true)
     .replace(/data-action="(toggle-disassembly-sheet|select-all-disassembly-sheets|clear-disassembly-sheets)"/g, `data-action="$1" data-card-id="${escapeHtml(card.id)}"`)
-    .replace('Hojas del desensamble</h3>', `Hojas para ${escapeHtml(card.type || "la tarjeta")}</h3>`);
+    .replace('Hojas del desensamble</h3>', `Hojas para ${escapeHtml(cardDisplayName(card))}</h3>`);
 }
 
 function renderDisassemblyChoice(choice, filter = "", panelOpen = false) {
@@ -86,7 +69,8 @@ function renderStationIntake(state) {
   const currentAssignment = getWorkStationAssignment(state.form.stationAssignment);
   const assignment = currentAssignment ?? getWorkStationAssignment("MFG:TDR");
   const selectedType = assignment?.type ?? "MFG";
-  if (selectedType !== "RWK") state.form.actionType = "validation";
+  state.form.actionType = "validation"; // por ahora no se elige validar/reemplazar
+  if (selectedType === "RWK") ensureCardRow(state.form);
   const activeVersion = findSopVersionForStation(state, assignment?.value, state.form.sopVersionId);
   const enabledMfgAssignments = getEnabledWorkStationAssignments(state, "MFG");
   const enabledRwkAssignments = getEnabledWorkStationAssignments(state, "RWK");
@@ -146,20 +130,14 @@ function renderStationIntake(state) {
       </section>
       <section class="station-asset-section" aria-labelledby="station-asset-title">
         <div class="station-section-title"><span class="station-section-num" aria-hidden="true">2</span><div><h2 id="station-asset-title">Captura los datos del equipo</h2><p>Escanea en orden: PN del nodo, serie del nodo, PN de la tarjeta y serie de la tarjeta. El cursor pasa solo al siguiente campo.</p></div></div>
-        ${selectedType === "RWK" ? `<fieldset class="station-action-choice" aria-label="Qué vas a realizar">
-          <legend>¿Qué vas a realizar?</legend>
-          <label class="station-action-option ${(state.form.actionType ?? "validation") === "validation" ? "station-action-option--selected" : ""}"><input type="radio" name="actionType" value="validation" data-action-type ${(state.form.actionType ?? "validation") === "validation" ? "checked" : ""} /><span class="material-symbols-rounded" aria-hidden="true">fact_check</span><span><strong>Validar una tarjeta</strong><small>Se guarda como validación.</small></span></label>
-          <label class="station-action-option ${state.form.actionType === "replacement" ? "station-action-option--selected" : ""}"><input type="radio" name="actionType" value="replacement" data-action-type ${state.form.actionType === "replacement" ? "checked" : ""} /><span class="material-symbols-rounded" aria-hidden="true">swap_horiz</span><span><strong>Reemplazar una tarjeta</strong><small>Se guarda como reemplazo.</small></span></label>
-        </fieldset>` : ""}
         <div class="station-asset-grid">
           <label class="station-scan-field"><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">memory</span>PN del nodo <em aria-hidden="true">*</em></span><input data-form-field="nodePartNumber" data-scan-field data-focus-key="intake-node-part" value="${escapeHtml(state.form.nodePartNumber ?? "")}" placeholder="Escanea el PN del nodo" required maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" aria-describedby="scan-error-nodePartNumber" aria-invalid="${state.scanErrors?.nodePartNumber ? "true" : "false"}"  /><small class="station-scan-error" id="scan-error-nodePartNumber" data-scan-error="nodePartNumber" role="alert" ${state.scanErrors?.nodePartNumber ? "" : "hidden"}>${escapeHtml(state.scanErrors?.nodePartNumber ?? "")}</small></label>
           <label class="station-scan-field"><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">qr_code_2</span>Serie del nodo <em aria-hidden="true">*</em></span><input data-form-field="serial" data-scan-field data-focus-key="intake-node-serial" value="${escapeHtml(state.form.serial ?? "")}" placeholder="Escanea la serie del nodo" required maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" aria-describedby="scan-error-serial" aria-invalid="${state.scanErrors?.serial ? "true" : "false"}" inputmode="numeric" pattern="\d{13}" /><small class="station-scan-error" id="scan-error-serial" data-scan-error="serial" role="alert" ${state.scanErrors?.serial ? "" : "hidden"}>${escapeHtml(state.scanErrors?.serial ?? "")}</small></label>
-          ${selectedType === "RWK" ? "" : `
+          ${selectedType === "RWK" ? renderRwkCardFields(state) : `
           <label class="station-scan-field"><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">developer_board</span>PN de la tarjeta <em aria-hidden="true">*</em></span><input data-form-field="componentPartNumber" data-scan-field data-focus-key="intake-card-part" value="${escapeHtml(state.form.componentPartNumber ?? "")}" placeholder="Escanea el PN de la tarjeta" required maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" aria-describedby="scan-error-componentPartNumber" aria-invalid="${state.scanErrors?.componentPartNumber ? "true" : "false"}"  /><small class="station-scan-error" id="scan-error-componentPartNumber" data-scan-error="componentPartNumber" role="alert" ${state.scanErrors?.componentPartNumber ? "" : "hidden"}>${escapeHtml(state.scanErrors?.componentPartNumber ?? "")}</small></label>
           <label class="station-scan-field"><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">pin</span>Serie de la tarjeta <em aria-hidden="true">*</em></span><input data-form-field="componentSerial" data-scan-field data-focus-key="intake-card-serial" value="${escapeHtml(state.form.componentSerial ?? "")}" placeholder="Escanea la serie de la tarjeta" required maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" aria-describedby="scan-error-componentSerial" aria-invalid="${state.scanErrors?.componentSerial ? "true" : "false"}"  /><small class="station-scan-error" id="scan-error-componentSerial" data-scan-error="componentSerial" role="alert" ${state.scanErrors?.componentSerial ? "" : "hidden"}>${escapeHtml(state.scanErrors?.componentSerial ?? "")}</small></label>
           `}
         </div>
-        ${selectedType === "RWK" ? renderCardSession(state) : ""}
       </section>
       <section class="station-work-summary" aria-label="Resumen de estación, operador y SOP">
         <div class="station-summary-item station-summary-location"><span class="material-symbols-rounded" aria-hidden="true">factory</span><span><small>Estación seleccionada</small><strong>${escapeHtml(assignment?.type ?? "—")} · ${escapeHtml(assignment?.label ?? "—")}</strong></span></div>
@@ -175,33 +153,11 @@ function renderStationIntake(state) {
   </div>${renderToast()}`;
 }
 
-// Envía al historial de tarjetas del nodo lo que se acaba de guardar (validación o reemplazo).
-async function recordCardEvent(record) {
-  const isReplacement = record.actionType === "replacement";
-  const cardType = String(record.repairType ?? "").replace(/^Reemplazo de /, "").trim() || "Sin tipo";
-  const result = await sopApi("POST", "/api/card-events", {
-    type: isReplacement ? "replacement" : "validation",
-    nodeSerial: record.serial,
-    nodePartNumber: record.nodePartNumber,
-    nodeNumber: record.nodeNumber,
-    stationAssignment: record.stationAssignment,
-    cardType,
-    cardPartNumber: record.componentPartNumber,
-    cardSerial: record.componentSerial,
-    result: isReplacement ? undefined : (record.validationResult || "ok"),
-    note: record.damageNote || undefined,
-    validationId: record.linkedValidationId ? Number(record.linkedValidationId) : undefined,
-    reason: isReplacement ? (record.linkedValidationId ? "damage" : "direct") : undefined,
-    removedSerial: record.removedComponentSerial || undefined,
-    sheets: (record.validatedSheets ?? []).map((item) => String(item.sheet)),
-  });
-  return result.ok ? result.data.event.id : null;
-}
 
 // La ventana de hojas de una tarjeta se cierra al tocar fuera de ella o con Escape.
 document.addEventListener("click", (event) => {
   if (!state.cardSheetsOpen || event.target.closest(".station-disassembly--modal")) return;
-  if (event.target.closest('[data-action="add-card-type"], [data-action="open-card-sheets"]')) return;
+  if (event.target.closest('[data-action="add-card-type"], [data-action="open-card-sheets"], [data-action="pick-station"]')) return;
   state.cardSheetsOpen = null;
   render();
 });
@@ -211,23 +167,32 @@ document.addEventListener("keydown", (event) => {
   render();
 });
 
-// Envía al historial de tarjetas del nodo lo que se acaba de guardar (validación o reemplazo).
-async function recordCardEvent(record) {
-  const isReplacement = record.actionType === "replacement";
-  const cardType = String(record.repairType ?? "").replace(/^Reemplazo de /, "").trim() || "Sin tipo";
-  const result = await sopApi("POST", "/api/card-events", {
-    type: isReplacement ? "replacement" : "validation",
-    nodeSerial: record.serial,
-    nodePartNumber: record.nodePartNumber,
-    nodeNumber: record.nodeNumber,
+// Envía al historial del nodo las tarjetas de la sesión (una por tarjeta, con el mismo grupo).
+// Si alguna validación encontró daño, deja lista la sesión de reemplazo con esas tarjetas.
+async function saveCardEvents(record) {
+  const cards = record.cards ?? [];
+  if (!cards.length) return;
+  const node = { serial: record.serial, nodePartNumber: record.nodePartNumber, nodeNumber: record.nodeNumber, stationAssignment: record.stationAssignment };
+  const result = await sopApi("POST", "/api/card-events/batch", { groupId: record.id, events: buildCardEvents(cards, record.actionType, node) });
+  if (!result.ok) {
+    showToast("El registro se guardó, pero las tarjetas no llegaron al historial del nodo. Avisa a un administrador.", "warning");
+    return;
+  }
+  const saved = result.data.events;
+  const damaged = record.actionType === "replacement" ? [] : cards.map((card, index) => ({ card, event: saved[index] })).filter(({ card }) => card.result === "damage");
+  if (!damaged.length) return;
+  const replacementCards = damaged.map(({ card, event }) => ({ ...newCard(card.type), partNumber: card.partNumber, removedSerial: card.serial, sheets: [...card.sheets], validationId: event.id }));
+  Object.assign(state.form, {
     stationAssignment: record.stationAssignment,
-    cardType,
-    cardPartNumber: record.componentPartNumber,
-    cardSerial: record.componentSerial,
-    result: isReplacement ? undefined : "ok",
-    reason: isReplacement ? "direct" : undefined,
-    removedSerial: record.removedComponentSerial || undefined,
-    sheets: (record.validatedSheets ?? []).map((item) => String(item.sheet)),
+    sopVersionId: record.sopVersionId,
+    nodePartNumber: record.nodePartNumber,
+    serial: record.serial,
+    nodeNumber: record.nodeNumber,
+    actionType: "replacement",
+    cards: replacementCards,
+    ...legacyCardFields(replacementCards, "replacement"),
+    disassemblySheets: unionSheets(replacementCards),
   });
-  return result.ok;
+  render();
+  showToast(`Hubo daño en ${damaged.length} ${damaged.length === 1 ? "tarjeta" : "tarjetas"}. Captura la tarjeta nueva de cada una para registrar el reemplazo.`, "warning");
 }

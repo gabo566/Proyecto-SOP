@@ -1,0 +1,116 @@
+/* Crear usuarios · capa de acabado: cabecera institucional, indicadores con acento, tarjetas con franja por rol y acciones por tono.
+   Llamativo pero sobrio: color solo con significado (rol, estado, acción). */
+.uh {
+  --u-navy-2: #26395c; --u-gold: #e3a21a; --u-card: #d3dae5; --u-card-line: #b4bfcf;
+  gap: 16px;
+}
+
+/* ---- Cabecera ---- */
+.uh .uh-head {
+  position: relative; align-items: center; padding: 22px 26px; border: 0; border-radius: 16px; overflow: hidden;
+  background:
+    radial-gradient(520px 180px at 100% 0%, rgb(76 124 214 / 34%), transparent 70%),
+    linear-gradient(110deg, #17243a 0%, var(--u-navy-2) 100%);
+  box-shadow: 0 10px 24px rgb(23 36 58 / 22%);
+}
+.uh .uh-head::after { content: ""; position: absolute; left: 0; bottom: 0; width: 100%; height: 3px; background: linear-gradient(90deg, var(--u-gold), rgb(227 162 26 / 0%) 62%); }
+.uh .uh-head .eyebrow { color: #9fc0f4; font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; }
+.uh .uh-head h2 { color: #fff; font-size: 28px; letter-spacing: -.015em; }
+.uh .uh-head .uh-sub { color: #c9d6ec; font-size: 14.5px; }
+.uh .uh-head .uh-btn--green { min-height: 48px; padding: 0 24px; border-radius: 10px; font-size: 15px; box-shadow: 0 6px 16px rgb(74 136 64 / 40%), inset 0 0 0 1px rgb(255 255 255 / 18%); }
+
+/* ---- Indicadores ---- */
+.uh .uh-kpi { position: relative; overflow: hidden; padding: 16px 18px 16px 22px; border: 1px solid #dbe3ef; border-radius: 14px; background: #fff; box-shadow: 0 2px 8px rgb(27 41 64 / 6%); }
+.uh .uh-kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--kpi, #7f8ca3); }
+.uh .uh-kpi--green { --kpi: var(--u-green); }
+.uh .uh-kpi--gray { --kpi: #7f8ca3; }
+.uh .uh-kpi--blue { --kpi: var(--u-blue); }
+.uh .uh-kpi--amber { --kpi: #d4830a; }
+.uh .uh-kpi > .material-symbols-rounded { flex-basis: 46px; width: 46px; height: 46px; border-radius: 13px; box-shadow: 0 4px 10px rgb(27 41 64 / 18%); }
+.uh .uh-kpi small { color: var(--u-muted); font-size: 11.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.uh .uh-kpi strong { font-size: 30px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.uh .uh-kpi:hover { border-color: #b7c8e4; box-shadow: 0 10px 22px rgb(38 83 166 / 16%); }
+
+/* ---- Búsqueda y filtros ---- */
+.uh .uh-search { min-height: 48px; border: 1.5px solid #cdd8e8; border-radius: 12px; background: #fff; box-shadow: 0 2px 6px rgb(27 41 64 / 5%); }
+.uh .uh-filter { min-height: 38px; border: 1.5px solid #cdd8e8; border-radius: 999px; color: #2a3a57; background: #fff; font-weight: 700; }
+.uh .uh-filter:hover { background: #eef3fb; }
+.uh .uh-filter b { background: #e6ecf6; color: #3a4a66; }
+.uh .uh-filter[aria-pressed="true"] { border-color: var(--u-navy); color: #fff; background: var(--u-navy); box-shadow: 0 4px 10px rgb(27 41 64 / 28%); }
+.uh .uh-filter[aria-pressed="true"] b { color: var(--u-navy); background: #fff; }
+
+/* ---- Tarjetas de usuario (se conserva el gris de fondo) ---- */
+.uh .uh-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr)); gap: 18px; }
+.uh .uh-card {
+  gap: 14px; padding: 18px 18px 16px 22px; border: 1px solid var(--u-card-line); border-left: 6px solid #8a98b0; border-radius: 16px;
+  background: var(--u-card); box-shadow: 0 2px 8px rgb(27 41 64 / 8%);
+}
+.uh .uh-card[data-role="admin"] { border-left-color: var(--u-navy); }
+.uh .uh-card[data-publish="true"] { border-left-color: #d4830a; }
+.uh .uh-card[data-review="true"] { border-left-color: var(--u-blue); }
+.uh .uh-card.is-inactive, .uh .uh-card[data-active="false"] { border-left-color: #b7c0ce; }
+.uh .uh-card:hover { border-color: #9fb0c8; box-shadow: 0 14px 28px rgb(27 41 64 / 16%); transform: translateY(-2px); }
+.uh .uh-card-head { padding-bottom: 12px; border-bottom: 1px solid rgb(27 41 64 / 12%); }
+.uh .uh-avatar { flex-basis: 54px; width: 54px; height: 54px; box-shadow: 0 0 0 3px #fff, 0 6px 14px rgb(27 41 64 / 22%); font-size: 17px; letter-spacing: .02em; }
+.uh .uh-card-id strong { font-size: 16.5px; letter-spacing: -.005em; }
+.uh .uh-card-id span { margin-top: 2px; color: #4b5a74; font-size: 12.5px; font-weight: 600; }
+.uh .uh-status { padding: 5px 11px; font-size: 12px; font-weight: 800; }
+.uh .uh-chip { padding: 4px 11px; border-radius: 7px; font-size: 12px; font-weight: 700; }
+.uh .uh-sop { border: 1px solid rgb(27 41 64 / 10%); border-radius: 12px; background: rgb(255 255 255 / 72%); }
+
+/* ---- Acciones: un tono por tipo ---- */
+.uh .uh-card-actions { gap: 8px; padding-top: 14px; border-top: 1px solid rgb(27 41 64 / 12%); }
+.uh .uh-card-actions .uh-action { min-height: 42px; border-radius: 10px; border-width: 1.5px; background: #fff; font-size: 12.5px; font-weight: 800; }
+.uh .uh-card-actions .uh-action:not(.uh-action--danger):not(.uh-action--ok) { color: var(--u-blue); border-color: #a9bfe6; }
+.uh .uh-card-actions .uh-action:not(.uh-action--danger):not(.uh-action--ok):hover { background: #e8f0fc; }
+.uh .uh-card-actions .uh-action--danger:not(.uh-action--delete) { color: #8a5200; border-color: #ebc88a; }
+.uh .uh-card-actions .uh-action--danger:not(.uh-action--delete):hover { background: #fff4e0; }
+.uh .uh-card-actions .uh-action--ok { color: #2d5f2a; border-color: #b9dfbd; }
+.uh .uh-card-actions .uh-action--delete { color: #a32d2d; border-color: #e6b8b8; }
+.uh .uh-card-actions .uh-action--delete:hover:not(:disabled) { background: #fcebeb; }
+
+@media (max-width: 640px) {
+  .uh .uh-head { padding: 18px; }
+  .uh .uh-head h2 { font-size: 24px; }
+  .uh .uh-head .uh-btn--green { width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .uh .uh-kpi { gap: 10px; padding: 12px 10px 12px 16px; }
+  .uh .uh-kpi > .material-symbols-rounded { flex-basis: 38px; width: 38px; height: 38px; border-radius: 11px; }
+  .uh .uh-kpi small { font-size: 10px; letter-spacing: .02em; }
+  .uh .uh-kpi strong { font-size: 24px; }
+}
+
+/* ---- Sin cabecera: el botón Nuevo usuario va junto al buscador ---- */
+.uh .uh-toolbar { gap: 12px; }
+.uh .uh-toolbar .uh-search { flex: 1 1 320px; }
+.uh .uh-toolbar .uh-btn--green { flex: 0 0 auto; min-height: 48px; padding: 0 22px; border-radius: 12px; font-size: 14.5px; background: #2f6b3a; box-shadow: 0 4px 12px rgb(47 107 58 / 30%); }
+.uh .uh-toolbar .uh-btn--green:hover { background: #265a30; }
+.uh .uh-toolbar .uh-filters { flex: 1 1 100%; }
+
+/* ---- Paleta formal: gris pizarra, azul marino y acentos apagados ---- */
+.uh { --u-card: #e7ebf2; --u-card-line: #c3ceDD; }
+.uh .uh-kpi { background: #fff; border-color: #d5deea; }
+.uh .uh-kpi--green { --kpi: #3f7a4a; }
+.uh .uh-kpi--blue { --kpi: #2f4f84; }
+.uh .uh-kpi--amber { --kpi: #b9801f; }
+.uh .uh-kpi--green > .material-symbols-rounded { background: #3f7a4a; }
+.uh .uh-kpi--gray > .material-symbols-rounded { background: #7b889e; }
+.uh .uh-kpi--blue > .material-symbols-rounded { background: #2f4f84; }
+.uh .uh-kpi--amber > .material-symbols-rounded { background: #b9801f; }
+.uh .uh-card { background: var(--u-card); border-color: var(--u-card-line); border-left-width: 5px; box-shadow: 0 1px 3px rgb(27 41 64 / 8%); }
+.uh .uh-card[data-role="admin"] { border-left-color: #1b2940; }
+.uh .uh-card[data-review="true"] { border-left-color: #2f4f84; }
+.uh .uh-card[data-publish="true"] { border-left-color: #b9801f; }
+.uh .uh-avatar { background: linear-gradient(145deg, #2e4672, #1b2940); box-shadow: 0 0 0 3px #fff, 0 4px 10px rgb(27 41 64 / 20%); }
+.uh .uh-card-head { border-bottom-color: #c8d1de; }
+.uh .uh-card-actions { border-top-color: #c8d1de; }
+.uh .uh-sop { background: #f4f6fa; border-color: #d3dbe7; }
+.uh .uh-chip--review { background: #2f4f84; }
+.uh .uh-chip--publish { background: #b9801f; }
+.uh .uh-chip--role.is-admin { background: #1b2940; }
+.uh .uh-chip:not(.uh-chip--role):not(.uh-chip--edit):not(.uh-chip--review):not(.uh-chip--publish) { color: #3d4a62; background: #d7dfeb; }
+.uh .uh-status.is-active { color: #2b5a33; background: #d5e7d8; }
+.uh .uh-card-actions .uh-action:not(.uh-action--danger):not(.uh-action--ok) { color: #2f4f84; border-color: #b5c3da; }
+.uh .uh-filter[aria-pressed="true"] { background: #1b2940; border-color: #1b2940; }

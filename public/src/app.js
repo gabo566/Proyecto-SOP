@@ -7,7 +7,8 @@ const restorableWork = storedWorkItems
 const state = {
   selectedId: restorableWork?.procedureId ?? PROCEDURES[0].id,
   operatorFlowReady: false,
-  sopPageZoom: 110,
+  sopPageZoom: 100,
+  sopPageZoomAuto: true,
   sopFocusedZoom: false,
   sopStorageReady: false,
   sopRunContextOpen: false,
@@ -420,9 +421,12 @@ function handleCompletionSubmit(event) {
     showFormError("Captura el número de serie del nodo.", formElement.querySelector('[name="serial"]'));
     return;
   }
-  if (state.form.actionType !== "replacement" && state.form.validationResult === "damage" && !String(state.form.damageNote ?? "").trim()) {
-    showFormError("Describe el daño antes de guardar.", formElement.querySelector('[name="damageNote"]'));
-    return;
+  if (usesCardSession(state.form) && state.form.actionType !== "replacement") {
+    const undescribed = (state.form.cards ?? []).find((card) => card.result === "damage" && !String(card.damageNote ?? "").trim());
+    if (undescribed) {
+      showFormError(`Describe el daño de ${cardDisplayName(undescribed)} antes de guardar.`, formElement.querySelector(`[data-card-note][data-card-id="${undescribed.id}"]`));
+      return;
+    }
   }
   const incompleteField = formElement.querySelector(".validation-field input[required]:invalid");
   if (incompleteField) {
@@ -516,9 +520,9 @@ function saveCompletion() {
     recordType: state.form.actionType === "replacement" ? "Reemplazo de tarjeta" : "Validación del operador",
     actionType: state.form.actionType === "replacement" ? "replacement" : "validation",
     removedComponentSerial: state.form.removedComponentSerial?.trim() ?? "",
-    validationResult: state.form.actionType === "replacement" ? "" : (state.form.validationResult === "damage" ? "damage" : "ok"),
-    damageNote: state.form.validationResult === "damage" ? String(state.form.damageNote ?? "").trim() : "",
-    linkedValidationId: state.form.actionType === "replacement" ? String(state.form.validationId ?? "") : "",
+    validationResult: state.form.actionType === "replacement" ? "" : ((state.form.cards ?? []).some((card) => card.result === "damage") ? "damage" : "ok"),
+    damageNote: (state.form.cards ?? []).filter((card) => card.result === "damage").map((card) => `${card.type}: ${String(card.damageNote ?? "").trim()}`).join(" · "),
+    cards: (state.form.cards ?? []).map((card) => ({ ...card })),
     declared: true,
     observations: run.procedureIds.map((id) => ({ procedureId: id, text: String(state.sheetObservations?.[id] ?? "").trim() })).filter((item) => item.text),
     evidenceFiles: [...state.validationEvidenceFiles],
@@ -526,13 +530,7 @@ function saveCompletion() {
   };
   workflow.prepareCompletionRecord(record);
   const next = [record, ...state.savedRecords];
-  recordCardEvent(record).then((eventId) => {
-    if (!eventId || record.validationResult !== "damage") return;
-    state.form.actionType = "replacement";
-    state.form.validationId = String(eventId);
-    state.form.validationResult = "ok";
-    showToast("Validación con daño guardada. Ahora registra el reemplazo de la tarjeta.", "warning");
-  });
+  saveCardEvents(record);
   if (!persistSavedRecords(next)) {
     showToast("No se pudo guardar la validación. Inicia sesión de nuevo e inténtalo otra vez.", "warning");
     return;

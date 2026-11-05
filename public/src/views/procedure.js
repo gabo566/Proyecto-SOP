@@ -59,7 +59,7 @@ function renderProcedurePanel(procedure, state) {
   const totalSheets = Number(SOP_DOCUMENT.totalSheets) || 46;
   const restricted = Boolean(run?.disassembly?.sheets?.length);
   const sheetOfLabel = restricted ? `${(run.currentIndex ?? 0) + 1} de ${run.procedureIds.length} elegidas` : `de ${escapeHtml(totalSheets)}`;
-  const pageZoom = Math.max(50, Math.min(500, Number(state.sopPageZoom) || 110));
+  const pageZoom = Math.max(50, Math.min(500, Number(state.sopPageZoom) || 100));
   const pdfSource = state.sopPdfUrl || SOP_DOCUMENT.pdfPath || "";
   const isComplete = isGuidedSopProcedureComplete(run, procedure);
   const isFirstPage = (run?.currentIndex ?? 0) === 0;
@@ -151,9 +151,9 @@ function renderProcedurePanel(procedure, state) {
     </div>
     <div class="sop-action-bar">
       <div class="sop-action-side sop-action-side--left">
-        ${!isFirstPage ? `<button class="button sop-action-previous guided-previous-button" type="button" data-action="previous-sop-sheet" data-focus-key="previous-sop-sheet" ${canOperate ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span><span class="sop-action-label">Anterior</span></button>` : ""}
-        <button class="button sop-action-return guided-return-selection" type="button" data-action="return-to-sop-selection" ${canOperate ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">undo</span><span class="sop-action-label">Regresar a selección de SOP</span></button>
-        ${canHandoffOperator ? `<button class="button sop-action-handoff guided-handoff-button" type="button" data-action="open-operator-handoff" data-focus-key="change-operator" ${state.evidenceBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.evidenceBusy ? "hourglass_top" : "swap_horiz"}</span><span class="sop-action-label">${state.evidenceBusy ? "Guardando avance…" : "Cambiar operador"}</span></button>` : ""}
+        <button class="button sop-action-previous guided-previous-button" type="button" data-action="previous-sop-sheet" data-focus-key="previous-sop-sheet" ${canOperate && !isFirstPage ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span><span class="sop-action-label">Anterior</span></button>
+        <button class="button sop-action-return guided-return-selection" type="button" title="Regresar a selección de SOP" data-action="return-to-sop-selection" ${canOperate ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">undo</span><span class="sop-action-label">Regresar a selección de SOP</span></button>
+        ${canHandoffOperator ? `<button class="button sop-action-handoff guided-handoff-button" type="button" title="Cambiar operador" data-action="open-operator-handoff" data-focus-key="change-operator" ${state.evidenceBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.evidenceBusy ? "hourglass_top" : "swap_horiz"}</span><span class="sop-action-label">${state.evidenceBusy ? "Guardando avance…" : "Cambiar operador"}</span></button>` : ""}
       </div>
       <div class="sop-action-side sop-action-side--right">
         <button class="button sop-action-confirm" type="button" data-action="confirm-current-step" data-focus-key="confirm-current-step" data-complete="${isComplete}" ${!canOperate || isComplete ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><span class="sop-action-label" data-confirm-label>${confirmLabel}</span></button>
