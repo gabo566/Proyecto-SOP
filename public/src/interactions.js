@@ -179,11 +179,21 @@ function bindInteractions(app, handlers) {
 
   function focusNextScanField(field) {
     const next = SCAN_FIELD_ORDER[SCAN_FIELD_ORDER.indexOf(field) + 1];
-    const target = next
-      ? document.querySelector(`[data-form-field="${next}"]`)
-      : document.querySelector(".station-intake-continue:not(:disabled)");
+    const nextField = next ? document.querySelector(`[data-form-field="${next}"]`) : null;
+    const target = nextField
+      ?? document.querySelector('input[data-card-field="partNumber"]')
+      ?? document.querySelector(".station-intake-continue:not(:disabled)");
     target?.focus();
   }
+
+  // Enter en un renglón de tarjeta pasa al siguiente campo; al final, al botón de abrir la SOP.
+  app.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || !event.target.matches?.("input[data-card-field]")) return;
+    event.preventDefault();
+    const inputs = [...app.querySelectorAll("input[data-card-field]")];
+    const next = inputs[inputs.indexOf(event.target) + 1];
+    (next ?? app.querySelector(".station-intake-continue:not(:disabled)"))?.focus();
+  });
 
   function commitScanField(input, advance) {
     const field = input.dataset.formField;
@@ -447,12 +457,32 @@ function bindInteractions(app, handlers) {
       case "delete-local-user":
         void deleteUserFromCard(action.dataset.userId);
         break;
-      case "toggle-disassembly-panel":
-        state.disassemblyOpen = !state.disassemblyOpen;
+      case "close-disassembly-panel":
+        state.cardSheetsOpen = null;
         render();
         break;
-      case "close-disassembly-panel":
-        state.disassemblyOpen = false;
+      case "add-card-type": {
+        const cards = addCard(state.form.cards ?? [], action.dataset.cardType);
+        state.form.cards = cards;
+        state.cardSheetsOpen = cards.at(-1).id;
+        syncCardsToForm(persistWorkState);
+        render();
+        break;
+      }
+      case "add-card-blank":
+        state.form.cards = addCard(state.form.cards ?? [], "");
+        syncCardsToForm(persistWorkState);
+        render();
+        app.querySelector(".station-card-row:last-of-type select")?.focus();
+        break;
+      case "remove-card":
+        state.form.cards = removeCard(state.form.cards ?? [], action.dataset.cardId);
+        if (state.cardSheetsOpen === action.dataset.cardId) state.cardSheetsOpen = null;
+        syncCardsToForm(persistWorkState);
+        render();
+        break;
+      case "open-card-sheets":
+        state.cardSheetsOpen = action.dataset.cardId;
         render();
         break;
       case "users-new-toggle":
@@ -490,16 +520,20 @@ function bindInteractions(app, handlers) {
         break;
       }
       case "toggle-disassembly-sheet": {
-        const current = Array.isArray(state.form.disassemblySheets) ? state.form.disassemblySheets : [];
+        const card = (state.form.cards ?? []).find((item) => item.id === action.dataset.cardId);
+        const current = card ? card.sheets : (Array.isArray(state.form.disassemblySheets) ? state.form.disassemblySheets : []);
         const id = action.dataset.sheetId;
-        state.form.disassemblySheets = current.includes(id) ? current.filter((value) => value !== id) : [...current, id];
+        const next = current.includes(id) ? current.filter((value) => value !== id) : [...current, id];
+        if (card) { card.sheets = next; syncCardsToForm(persistWorkState); } else state.form.disassemblySheets = next;
         state.formError = "";
         render({ focusKey: action.dataset.focusKey });
         break;
       }
       case "select-all-disassembly-sheets":
       case "clear-disassembly-sheets": {
-        state.form.disassemblySheets = action.dataset.action === "clear-disassembly-sheets" ? [] : getStationDisassemblyChoice(state).options.map((option) => option.id);
+        const sheets = action.dataset.action === "clear-disassembly-sheets" ? [] : getStationDisassemblyChoice(state).options.map((option) => option.id);
+        const card = (state.form.cards ?? []).find((item) => item.id === action.dataset.cardId);
+        if (card) { card.sheets = sheets; syncCardsToForm(persistWorkState); } else state.form.disassemblySheets = sheets;
         state.formError = "";
         render({ focusKey: action.dataset.focusKey });
         break;
@@ -641,6 +675,20 @@ function bindInteractions(app, handlers) {
 
   app.addEventListener("change", (event) => {
     const { target } = event;
+    if (target.matches("select[data-card-field]")) {
+      const card = (state.form.cards ?? []).find((item) => item.id === target.closest("[data-card-id]")?.dataset.cardId);
+      if (card) { card.type = target.value; syncCardsToForm(persistWorkState); render(); }
+      return;
+    }
+    if (target.matches("input[data-card-field]")) {
+      const card = (state.form.cards ?? []).find((item) => item.id === target.closest("[data-card-id]")?.dataset.cardId);
+      if (card) {
+        card[target.dataset.cardField] = normalizeScanValue(target.value);
+        target.value = card[target.dataset.cardField];
+        syncCardsToForm(persistWorkState);
+      }
+      return;
+    }
     if (target.matches("[data-action-type]")) {
       state.form.actionType = target.value;
       render();
@@ -677,7 +725,6 @@ function bindInteractions(app, handlers) {
         state.form.disassemblySheets = [];
       }
       state.formError = "";
-      state.disassemblyOpen = target.value === "RWK";
       render({ focusKey: target.dataset.focusKey });
       return;
     } else if (target.matches("[data-station-code]")) {
@@ -963,6 +1010,15 @@ function setUsersSopOpen(id) {
     const body = box.querySelector(".uh-sop-body");
     if (body) body.hidden = !open;
   });
+}
+
+// La primera tarjeta alimenta los campos de siempre y las hojas de la SOP son la unión de las de cada tarjeta.
+function syncCardsToForm(persist) {
+  const cards = state.form.cards ?? [];
+  Object.assign(state.form, legacyCardFields(cards, state.form.actionType));
+  state.form.disassemblySheets = unionSheets(cards);
+  persist?.();
+  updateStationIntakeUI(state);
 }
 
 // Revisor y publicador no pueden estar activos a la vez: al activar uno se apaga el otro.

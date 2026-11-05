@@ -21,6 +21,44 @@ function renderStationPills(assignments, current, label) {
   }).join("")}</span>`;
 }
 
+// Renglones de tarjeta de Retrabajo: chips para agregar por tipo y un renglón por tarjeta.
+function renderCardSession(state) {
+  const cards = state.form.cards ?? [];
+  const types = getCardTypes();
+  const isReplacement = state.form.actionType === "replacement";
+  const chips = types.map((type) => {
+    const count = countCardsOfType(cards, type);
+    return `<button type="button" class="station-card-chip ${count ? "is-on" : ""}" data-action="add-card-type" data-card-type="${escapeHtml(type)}">${escapeHtml(type)}${count ? `<b>${count}</b>` : ""}</button>`;
+  }).join("");
+  const options = (selected) => `<option value="">Tipo de tarjeta</option>${types.map((type) => `<option value="${escapeHtml(type)}" ${selected === type ? "selected" : ""}>${escapeHtml(type)}</option>`).join("")}`;
+  const rows = cards.map((card, index) => `<article class="station-card-row" data-card-id="${escapeHtml(card.id)}">
+      <header class="station-card-row-head"><span class="station-card-index">${index + 1}</span><select data-card-field="type" aria-label="Tipo de la tarjeta ${index + 1}">${options(card.type)}</select>
+        <button type="button" class="station-card-sheets-button ${card.sheets.length ? "is-on" : ""}" data-action="open-card-sheets" data-card-id="${escapeHtml(card.id)}"><span class="material-symbols-rounded" aria-hidden="true">layers</span>Hojas (${card.sheets.length})</button>
+        <button type="button" class="station-card-remove" data-action="remove-card" data-card-id="${escapeHtml(card.id)}" aria-label="Quitar la tarjeta ${index + 1}"><span class="material-symbols-rounded" aria-hidden="true">close</span></button></header>
+      <div class="station-card-fields">
+        <label class="station-card-field">PN de la tarjeta<input data-card-field="partNumber" value="${escapeHtml(card.partNumber)}" placeholder="Escanea el PN" maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" /></label>
+        <label class="station-card-field">${isReplacement ? "Serie de la tarjeta nueva" : "Serie de la tarjeta"}<input data-card-field="serial" value="${escapeHtml(card.serial)}" placeholder="Escanea la serie" maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" /></label>
+        ${isReplacement ? `<label class="station-card-field">Serie de la tarjeta retirada<input data-card-field="removedSerial" value="${escapeHtml(card.removedSerial)}" placeholder="Escanea la serie retirada" maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" /></label>` : ""}
+      </div></article>`).join("");
+  return `<div class="station-cards">
+    <p class="station-cards-title">${isReplacement ? "¿Qué tarjetas vas a reemplazar?" : "¿Qué tarjetas vas a validar?"} <small>Toca un tipo para agregar su renglón</small></p>
+    <div class="station-card-chips" role="group" aria-label="Tipos de tarjeta">${chips}</div>
+    <div class="station-card-rows">${rows || '<p class="station-card-empty">Aún no hay tarjetas. Toca un tipo arriba.</p>'}
+      <button type="button" class="station-card-add" data-action="add-card-blank"><span class="material-symbols-rounded" aria-hidden="true">add</span>Agregar tarjeta</button></div>
+  </div>`;
+}
+
+// Ventana flotante de hojas de la tarjeta que se está editando.
+function renderCardSheetsOverlay(state) {
+  const card = (state.form.cards ?? []).find((item) => item.id === state.cardSheetsOpen);
+  if (!card) return "";
+  const full = getStationDisassemblyChoice(state);
+  const choice = { options: full.options, selected: full.options.filter((option) => card.sheets.includes(option.id)) };
+  return renderDisassemblyChoice(choice, state.disassemblyFilter ?? "", true)
+    .replace(/data-action="(toggle-disassembly-sheet|select-all-disassembly-sheets|clear-disassembly-sheets)"/g, `data-action="$1" data-card-id="${escapeHtml(card.id)}"`)
+    .replace('Hojas del desensamble</h3>', `Hojas para ${escapeHtml(card.type || "la tarjeta")}</h3>`);
+}
+
 function renderDisassemblyChoice(choice, filter = "", panelOpen = false) {
   if (!choice.options.length) return "";
   const selectedIds = new Set(choice.selected.map((option) => option.id));
@@ -104,7 +142,7 @@ function renderStationIntake(state) {
             ${rwkSelected || !enabledRwkAssignments.length ? rwkStatus : stationHint}
           </label>
         </fieldset>
-        ${renderDisassemblyChoice(disassemblyChoice, state.disassemblyFilter ?? "", Boolean(state.disassemblyOpen))}
+        ${renderCardSheetsOverlay(state)}
       </section>
       <section class="station-asset-section" aria-labelledby="station-asset-title">
         <div class="station-section-title"><span class="station-section-num" aria-hidden="true">2</span><div><h2 id="station-asset-title">Captura los datos del equipo</h2><p>Escanea en orden: PN del nodo, serie del nodo, PN de la tarjeta y serie de la tarjeta. El cursor pasa solo al siguiente campo.</p></div></div>
@@ -116,9 +154,12 @@ function renderStationIntake(state) {
         <div class="station-asset-grid">
           <label class="station-scan-field"><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">memory</span>PN del nodo <em aria-hidden="true">*</em></span><input data-form-field="nodePartNumber" data-scan-field data-focus-key="intake-node-part" value="${escapeHtml(state.form.nodePartNumber ?? "")}" placeholder="Escanea el PN del nodo" required maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" aria-describedby="scan-error-nodePartNumber" aria-invalid="${state.scanErrors?.nodePartNumber ? "true" : "false"}"  /><small class="station-scan-error" id="scan-error-nodePartNumber" data-scan-error="nodePartNumber" role="alert" ${state.scanErrors?.nodePartNumber ? "" : "hidden"}>${escapeHtml(state.scanErrors?.nodePartNumber ?? "")}</small></label>
           <label class="station-scan-field"><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">qr_code_2</span>Serie del nodo <em aria-hidden="true">*</em></span><input data-form-field="serial" data-scan-field data-focus-key="intake-node-serial" value="${escapeHtml(state.form.serial ?? "")}" placeholder="Escanea la serie del nodo" required maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" aria-describedby="scan-error-serial" aria-invalid="${state.scanErrors?.serial ? "true" : "false"}" inputmode="numeric" pattern="\d{13}" /><small class="station-scan-error" id="scan-error-serial" data-scan-error="serial" role="alert" ${state.scanErrors?.serial ? "" : "hidden"}>${escapeHtml(state.scanErrors?.serial ?? "")}</small></label>
+          ${selectedType === "RWK" ? "" : `
           <label class="station-scan-field"><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">developer_board</span>PN de la tarjeta <em aria-hidden="true">*</em></span><input data-form-field="componentPartNumber" data-scan-field data-focus-key="intake-card-part" value="${escapeHtml(state.form.componentPartNumber ?? "")}" placeholder="Escanea el PN de la tarjeta" required maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" aria-describedby="scan-error-componentPartNumber" aria-invalid="${state.scanErrors?.componentPartNumber ? "true" : "false"}"  /><small class="station-scan-error" id="scan-error-componentPartNumber" data-scan-error="componentPartNumber" role="alert" ${state.scanErrors?.componentPartNumber ? "" : "hidden"}>${escapeHtml(state.scanErrors?.componentPartNumber ?? "")}</small></label>
           <label class="station-scan-field"><span class="station-field-label"><span class="material-symbols-rounded" aria-hidden="true">pin</span>Serie de la tarjeta <em aria-hidden="true">*</em></span><input data-form-field="componentSerial" data-scan-field data-focus-key="intake-card-serial" value="${escapeHtml(state.form.componentSerial ?? "")}" placeholder="Escanea la serie de la tarjeta" required maxlength="100" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next" aria-describedby="scan-error-componentSerial" aria-invalid="${state.scanErrors?.componentSerial ? "true" : "false"}"  /><small class="station-scan-error" id="scan-error-componentSerial" data-scan-error="componentSerial" role="alert" ${state.scanErrors?.componentSerial ? "" : "hidden"}>${escapeHtml(state.scanErrors?.componentSerial ?? "")}</small></label>
+          `}
         </div>
+        ${selectedType === "RWK" ? renderCardSession(state) : ""}
       </section>
       <section class="station-work-summary" aria-label="Resumen de estación, operador y SOP">
         <div class="station-summary-item station-summary-location"><span class="material-symbols-rounded" aria-hidden="true">factory</span><span><small>Estación seleccionada</small><strong>${escapeHtml(assignment?.type ?? "—")} · ${escapeHtml(assignment?.label ?? "—")}</strong></span></div>
@@ -157,23 +198,16 @@ async function recordCardEvent(record) {
   return result.ok ? result.data.event.id : null;
 }
 
-// El panel de hojas del desensamble se cierra al tocar fuera de él o con Escape.
+// La ventana de hojas de una tarjeta se cierra al tocar fuera de ella o con Escape.
 document.addEventListener("click", (event) => {
-  if (event.target.closest(".station-choice--rwk")) {
-    // Tocar Retrabajo otra vez (ya seleccionado) también abre las hojas.
-    if (!state.disassemblyOpen && getWorkStationAssignment(state.form.stationAssignment)?.type === "RWK") {
-      state.disassemblyOpen = true;
-      render();
-    }
-    return;
-  }
-  if (!state.disassemblyOpen || event.target.closest(".station-disassembly--modal")) return;
-  state.disassemblyOpen = false;
+  if (!state.cardSheetsOpen || event.target.closest(".station-disassembly--modal")) return;
+  if (event.target.closest('[data-action="add-card-type"], [data-action="open-card-sheets"]')) return;
+  state.cardSheetsOpen = null;
   render();
 });
 document.addEventListener("keydown", (event) => {
-  if (event.key !== "Escape" || !state.disassemblyOpen) return;
-  state.disassemblyOpen = false;
+  if (event.key !== "Escape" || !state.cardSheetsOpen) return;
+  state.cardSheetsOpen = null;
   render();
 });
 

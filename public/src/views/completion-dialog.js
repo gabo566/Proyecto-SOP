@@ -16,7 +16,7 @@ const REPAIR_TYPES = [
 ];
 function createEmptyForm() {
   const user = getActiveLocalUser();
-  return { name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", nodeNumber: "", serial: "", nodePartNumber: "", repairType: "", componentPartNumber: "", componentSerial: "", actionType: "validation", removedComponentSerial: "", stationAssignment: "MFG:TDR", sopVersionId: "", disassemblySheets: [], declaration: false };
+  return { name: user.name, employeeNumber: user.employeeNumber, position: user.position || "Técnico de FA", nodeNumber: "", serial: "", nodePartNumber: "", repairType: "", componentPartNumber: "", componentSerial: "", actionType: "validation", removedComponentSerial: "", cards: [], stationAssignment: "MFG:TDR", sopVersionId: "", disassemblySheets: [], declaration: false };
 }
 
 function renderComponentFields(form, workDraft = null) {

@@ -228,15 +228,30 @@ function isStationIntakeReady(state) {
     && (!choice.options.length || choice.selected.length > 0);
 }
 
+// En Retrabajo la tarjeta se captura en una lista (form.cards); el nodo se valida igual que siempre.
+function usesCardSession(form = {}) {
+  return Array.isArray(form.cards) && typeof validateCards === "function" && getWorkStationAssignment(form.stationAssignment)?.type === "RWK";
+}
+
 function isStationIntakeComplete(form = {}) {
+  if (usesCardSession(form)) {
+    return ["nodePartNumber", "serial"].every((field) => form[field]?.trim() && validateScanField(field, form[field]).ok)
+      && validateCards(form.cards, form.actionType).ok;
+  }
   return SCAN_FIELD_ORDER.every((field) => form[field]?.trim() && validateScanField(field, form[field]).ok);
 }
 
 function getStationIntakeStatus(state) {
   const disassemblyChoice = getStationDisassemblyChoice(state);
-  const needsDisassembly = disassemblyChoice.options.length > 0 && disassemblyChoice.selected.length === 0;
+  const cardSession = usesCardSession(state.form);
+  const needsDisassembly = !cardSession && disassemblyChoice.options.length > 0 && disassemblyChoice.selected.length === 0;
   if (needsDisassembly || !isStationIntakeComplete(state.form)) {
     const form = state.form ?? {};
+    if (cardSession) {
+      const missingNode = [["PN del nodo", form.nodePartNumber], ["Serie del nodo", form.serial]]
+        .filter(([, value]) => !value?.trim()).map(([label]) => label);
+      return `Falta capturar: ${[...missingNode, ...validateCards(form.cards, form.actionType).missing].join(", ")}.`;
+    }
     const missing = [
       ...(needsDisassembly ? [["Hojas del desensamble", ""]] : []),
       ["PN del nodo", form.nodePartNumber],
