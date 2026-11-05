@@ -1,30 +1,60 @@
-/* Revisión de SOP (etapas 1 a 3): menos espacio muerto y campos de la etapa 1 en una sola fila. */
-.sop-flow { gap: 10px; padding: 0 2px 12px; }
-.sop-flow-stack { gap: 10px; }
-.sop-flow .sop-flow-stepper { width: min(100%, 720px); margin: 0 auto; padding-block: 4px 0; }
-.sop-flow-card { padding: 12px 16px; }
-.sop-flow-card--head { align-items: center; }
-.sop-flow-card--head .sop-flow-chip { flex: 0 0 auto; }
-.sop-flow-title { font-size: 22px; }
-.sop-flow-sub { margin-top: 2px; font-size: 13.5px; }
-.sop-flow-notice, .sop-flow-error { padding: 8px 12px; }
+/* Revisión de SOP (etapas 1 a 3): bloques más amplios y mejor distribuidos que aprovechan casi todo el ancho,
+   con los campos de la etapa 1 en una sola fila. */
+.sop-flow { gap: 18px; padding: 8px 4px 28px; }
+.sop-flow-stack { gap: 18px; }
+.sop-flow .sop-flow-stepper { width: min(100%, 900px); margin: 4px auto 6px; padding-block: 6px 2px; }
+.sop-flow-card { padding: 22px 26px; border-radius: 14px; }
+.sop-flow-card--head { align-items: center; gap: 16px; }
+.sop-flow-card--head .sop-flow-chip { flex: 0 0 auto; padding: 6px 14px; font-size: 13px; }
+.sop-flow-title { font-size: 26px; }
+.sop-flow-sub { margin-top: 4px; font-size: 15px; }
+.sop-flow-h3 { margin-bottom: 12px; font-size: 18px; }
+.sop-flow-notice, .sop-flow-error { padding: 12px 16px; font-size: 14.5px; }
 
-/* Nombre · revisión · área · estación en la misma fila (la estación ya no queda sola abajo) */
-.sop-flow-fields { grid-template-columns: minmax(0, 2fr) minmax(120px, .9fr) minmax(0, 1.2fr) minmax(0, 1.4fr); gap: 12px; align-items: end; }
+/* Etapa 1: nombre · revisión · área · estación en la misma fila */
+.sop-flow-fields { grid-template-columns: minmax(0, 2fr) minmax(130px, .8fr) minmax(0, 1.2fr) minmax(0, 1.4fr); gap: 20px; align-items: end; }
+.sop-flow-field { gap: 8px; }
 .sop-flow-field--wide { grid-column: auto; }
-.sop-flow-field input, .sop-flow-field select { min-height: 42px; font-size: 14.5px; }
-.sop-flow-field > span { font-size: 10.5px; }
+.sop-flow-field input, .sop-flow-field select { min-height: 50px; padding: 0 16px; font-size: 16px; }
+.sop-flow-field > span { font-size: 12px; }
 /* Si se escribe el nombre de una estación nueva, ese campo ocupa su propia fila completa */
 .sop-flow-fields > .sop-flow-field:nth-child(5) { grid-column: 1 / -1; }
+.sop-flow-options { gap: 20px; }
+.sop-flow-option { gap: 20px; padding: 26px; }
+.sop-flow-option h3 { font-size: 19px; }
+.sop-flow-option p { font-size: 15px; }
+.sop-flow-option ul { margin-top: 12px; font-size: 14.5px; line-height: 1.6; }
 
-.sop-flow-actions { gap: 10px; }
-.sop-flow-btn { min-height: 44px; }
+/* Etapa 3: indicadores, cambios y comprobaciones con más aire */
+.sop-flow-kpis { gap: 16px; }
+.sop-flow-kpi { padding: 20px 24px; border-radius: 14px; }
+.sop-flow-kpi span { font-size: 13.5px; }
+.sop-flow-kpi strong { margin-top: 6px; font-size: 36px; }
+.sop-flow-split { grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr); gap: 18px; }
+.sop-flow-side { gap: 18px; }
+.sop-flow-card-head { padding: 16px 22px; }
+.sop-flow-table { font-size: 14px; }
+.sop-flow-table th { padding: 12px 16px; font-size: 13px; }
+.sop-flow-table td { padding: 13px 16px; }
+.sop-flow-check { gap: 14px; padding: 13px 0; font-size: 15px; }
+.sop-flow-check small { font-size: 13.5px; }
+.sop-flow-export { gap: 14px; padding: 14px 16px; margin-top: 10px; font-size: 14.5px; }
+.sop-flow-empty { padding: 26px 22px; font-size: 15px; }
+
+.sop-flow-actions { gap: 12px; padding-top: 4px; }
+.sop-flow-btn { min-height: 50px; padding: 0 28px; font-size: 15.5px; }
 
 @media (max-width: 980px) {
+  .sop-flow-card { padding: 18px 20px; }
   .sop-flow-card--head { flex-wrap: wrap; align-items: flex-start; }
-  .sop-flow-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sop-flow-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .sop-flow-field--wide { grid-column: 1 / -1; }
+  .sop-flow-split { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 560px) {
+  .sop-flow-card { padding: 16px; }
   .sop-flow-fields { grid-template-columns: minmax(0, 1fr); }
+  .sop-flow-kpi { padding: 14px 16px; }
+  .sop-flow-kpi strong { font-size: 28px; }
+  .sop-flow-btn { padding: 0 18px; }
 }
