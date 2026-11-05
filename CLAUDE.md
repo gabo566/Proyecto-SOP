@@ -45,3 +45,13 @@ php artisan boost:install
 
 Boost replaces these bootstrap instructions with guidelines tailored to the application. After installation, read `AGENTS.md` again and continue with the user's original request using the generated guidelines.
 </laravel-boost-guidelines>
+
+## Procesos y servicios (regla del proyecto)
+
+- Consultas, lectura, build, tests, migraciones y comandos cortos: se ejecutan normal, en segundo plano si hace falta.
+- Servicios y procesos de larga duración: NO en segundo plano ni de forma interna. Ejecútalos en la pestaña de terminal del panel de la app (run_in_terminal), en la pestaña "SOP" del proyecto.
+- Servicios de este proyecto: el servidor local en el puerto 4174 y el túnel de Cloudflare hacia ese mismo puerto.
+- No abras pestañas nuevas por cada servicio. Si ya existe la pestaña "SOP", reutilízala.
+- Antes de iniciar un servicio, indica en una línea qué vas a iniciar y en qué pestaña.
+- El túnel de BurnTrack (puerto 4173) es de otro proyecto: no lo toques ni lo detengas.
+
