@@ -1,39 +1,25 @@
-/* Seguimiento SOP · captura: el paso 2 va junto al paso 1, bloques más bajos y todo centrado. */
-@media (min-width: 1100px) {
-  .station-intake-screen { gap: 10px; }
-  .station-intake-screen .station-intake-banner { min-height: 0; padding-block: 8px; }
-  .station-intake-screen .station-intake-banner-brand img { max-height: 44px; width: auto; }
-  .station-intake-screen .station-intake-banner-heading h1 { font-size: 24px; }
-  .station-intake-screen .operator-flow-progress { margin: 0 auto !important; padding: 8px 24px 6px !important; }
-  .station-intake-screen .station-intake-user { top: 9px !important; right: 22px !important; }
-  .station-intake-screen .station-intake-user .profile-chip { min-height: 0; padding-block: 6px; }
+/* Seguimiento SOP · captura: mismo orden de siempre, con un poco menos de espacio vacío y la información centrada. */
+@media (min-width: 900px) {
+  .station-intake-screen { gap: 12px; }
   .station-intake-screen .station-intake-review-entry { margin: 0; text-align: center; }
 
-  #station-intake-form.station-intake-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: stretch; }
-  #station-intake-form > .station-choice-section, #station-intake-form > .station-asset-section { margin: 0; align-content: start; }
-  #station-intake-form > .station-work-summary, #station-intake-form > .station-intake-footer { grid-column: 1 / -1; margin: 0; }
+  /* Bloques de los pasos 1 y 2: algo menos de relleno y de separación */
+  .station-intake-screen .station-choice-section, .station-intake-screen .station-asset-section { padding-block: 16px 18px; }
+  .station-intake-screen .station-section-title { margin-bottom: 10px; gap: 4px; }
+  .station-intake-screen .station-section-num { width: 36px; height: 36px; font-size: 17px; }
+  .station-intake-screen .station-choice-grid { gap: 12px; }
+  .station-intake-screen .station-asset-grid { gap: 10px 14px; }
 
-  /* Paso 1: Manufactura y Retrabajo uno sobre otro dentro de su columna */
-  .station-choice-section .station-choice-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-  .station-choice-section .station-choice { min-height: 0; padding: 12px 16px; }
+  /* Separaciones que sobraban entre bloques y campos (la barra del logo no se toca) */
+  .station-intake-screen { padding-bottom: 16px; }
+  #station-intake-form.station-intake-form { gap: 12px; }
+  .station-intake-screen .operator-flow-progress { margin-top: 12px !important; margin-bottom: 4px !important; }
+  .station-intake-screen .station-scan-field input { min-height: 48px; }
+  .station-intake-screen .station-choice { min-height: 96px; }
 
-  /* Títulos de paso más compactos y centrados */
-  .station-choice-section .station-section-title, .station-asset-section .station-section-title { margin-bottom: 8px; gap: 4px; }
-  .station-intake-screen .station-section-num { width: 30px; height: 30px; font-size: 15px; }
-  .station-intake-screen .station-section-title h2 { font-size: 19px; }
-  .station-intake-screen .station-section-title p { font-size: 12.5px; }
-
-  /* Paso 2: acciones y campos en dos columnas con menos altura */
-  .station-asset-section .station-asset-grid { gap: 8px 12px; }
-  .station-asset-section .station-scan-field input { min-height: 44px; }
-  .station-asset-section { padding-block: 14px; }
-  .station-choice-section { padding-block: 14px; }
-
-  /* Resumen y botón de abrir la SOP centrados */
-  .station-work-summary { justify-content: center; gap: 10px; }
-  .station-intake-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 18px; text-align: center; padding-block: 4px; }
-  .station-intake-footer .station-intake-status { margin: 0; }
-  .station-work-summary { padding-block: 8px; }
+  /* Resumen y pie con menos altura, siempre centrados */
+  .station-intake-screen .station-work-summary { padding-block: 10px; justify-content: center; }
+  .station-intake-screen .station-intake-footer { display: grid; justify-items: center; gap: 8px; padding-block: 6px; text-align: center; }
+  .station-intake-screen .station-intake-footer .station-intake-continue { min-width: 280px; margin-inline: auto; }
   .station-intake-screen .station-intake-footnote { margin: 0; text-align: center; }
-  .station-intake-footer .station-intake-continue { min-width: 280px; margin-inline: auto; }
 }
