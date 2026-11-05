@@ -57,7 +57,7 @@ function renderWorkItem(item, activeWorkId) {
   </article>`;
 }
 
-function renderWorkItemsPanel(workItems, activeWorkId) {
+function renderWorkItemsPanel(workItems, activeWorkId, options = {}) {
   const openItems = [...workItems].filter((item) => item.status !== "Completado").sort((a, b) => b.updatedAt - a.updatedAt);
   const recentClosed = [...workItems].filter((item) => item.status === "Completado").sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 3);
   const pausedCount = openItems.filter((item) => item.status === "Detenida").length;
@@ -67,7 +67,7 @@ function renderWorkItemsPanel(workItems, activeWorkId) {
     ? openItems.map((item) => renderWorkItem(item, activeWorkId)).join("")
     : '<div class="work-items-empty"><span class="material-symbols-rounded" aria-hidden="true">task_alt</span><div><strong>Sin trabajos detenidos o en retrabajo</strong><p>Al detener una SOP o reportar una falla, aparecerá aquí para reanudarla.</p></div></div>';
   const closedBody = recentClosed.length ? `<div class="work-items-closed"><h3>Últimos trabajos cerrados</h3><div class="work-items-list">${recentClosed.map((item) => renderWorkItem(item, activeWorkId)).join("")}</div></div>` : "";
-  return `<section class="work-items-panel" id="work-items" aria-labelledby="work-items-heading"><div class="section-heading work-items-heading"><div class="section-title"><span class="heading-icon material-symbols-rounded" aria-hidden="true">pause_circle</span><div><p class="eyebrow">Continuidad del trabajo</p><h2 id="work-items-heading">Detenidos y retrabajos</h2></div></div><div class="work-items-counts"><span><strong>${pausedCount}</strong> detenidos</span><span><strong>${reworkCount}</strong> en retrabajo</span><span><strong>${reviewCount}</strong> por revisar</span></div></div><div class="work-items-list">${body}</div>${closedBody}</section>`;
+  return `<section class="work-items-panel" id="${options.id ?? "work-items"}" aria-labelledby="${options.id ?? "work-items"}-heading"><div class="section-heading work-items-heading"><div class="section-title"><span class="heading-icon material-symbols-rounded" aria-hidden="true">pause_circle</span><div><p class="eyebrow">Continuidad del trabajo</p><h2 id="${options.id ?? "work-items"}-heading">${options.title ?? "Detenidos y retrabajos"}</h2></div></div><div class="work-items-counts"><span><strong>${pausedCount}</strong> detenidos</span><span><strong>${reworkCount}</strong> en retrabajo</span><span><strong>${reviewCount}</strong> por revisar</span></div></div><div class="work-items-list">${body}</div>${closedBody}</section>`;
 }
 
 function renderEvidenceReviewDialog(state) {

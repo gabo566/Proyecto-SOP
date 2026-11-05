@@ -123,8 +123,9 @@ const TRACEABILITY_NODES_PER_PAGE = 8;
 function groupTraceabilityNodes(events) {
   const nodes = new Map();
   for (const event of events) {
-    const key = String(event.serial || "").trim() || "sin-serie";
-    if (!nodes.has(key)) nodes.set(key, { key, serial: event.serial, nodeNumber: event.nodeNumber, nodePartNumber: event.nodePartNumber, stationAssignment: event.stationAssignment, events: [] });
+    const area = String(event.stationAssignment ?? "").startsWith("RWK") ? "RWK" : "MFG";
+    const key = `${area}:${String(event.serial || "").trim() || "sin-serie"}`;
+    if (!nodes.has(key)) nodes.set(key, { key, area, serial: event.serial, nodeNumber: event.nodeNumber, nodePartNumber: event.nodePartNumber, stationAssignment: event.stationAssignment, events: [] });
     const node = nodes.get(key);
     node.events.push(event);
     if (!node.nodePartNumber && event.nodePartNumber) node.nodePartNumber = event.nodePartNumber;
@@ -174,20 +175,40 @@ function renderTraceabilityKpis(nodes, events) {
   return `<dl class="tn-kpis">${items.map(([icon, label, value, tone]) => `<div class="tn-kpi ${tone ? `tn-kpi--${tone}` : ""}"><span class="tn-kpi-icon">${traceIcon(icon)}</span><div><dt>${label}</dt><dd>${value}</dd></div></div>`).join("")}</dl>`;
 }
 
+// ---- Dos bloques: Manufactura (MFG) y Retrabajo (RWK) ----
+const TRACEABILITY_NODES_PER_AREA = 6;
+
+function renderTraceabilityArea(area, nodes) {
+  const isRwk = area === "RWK";
+  const meta = isRwk
+    ? { icon: "build_circle", title: "Retrabajo · RWK", sub: "Desensamble, retrabajo y reparación del equipo" }
+    : { icon: "precision_manufacturing", title: "Manufactura · MFG", sub: "Estaciones de proceso en la línea de producción" };
+  const events = nodes.reduce((total, node) => total + node.events.length, 0);
+  const shown = nodes.slice(0, TRACEABILITY_NODES_PER_AREA);
+  const rest = nodes.slice(TRACEABILITY_NODES_PER_AREA);
+  const body = nodes.length
+    ? `<div class="tn-list">${shown.map(renderTraceabilityNode).join("")}</div>${rest.length ? `<details class="tn-more-nodes"><summary><span class="material-symbols-rounded tr-ico" aria-hidden="true">expand_more</span>Ver ${rest.length} ${rest.length === 1 ? "nodo más" : "nodos más"} de ${isRwk ? "retrabajo" : "manufactura"}</summary><div class="tn-list">${rest.map(renderTraceabilityNode).join("")}</div></details>` : ""}`
+    : `<p class="tn-empty">Sin eventos de ${isRwk ? "retrabajo" : "manufactura"} con estos filtros.</p>`;
+  return `<section class="ta ta--${isRwk ? "rwk" : "mfg"}" aria-labelledby="ta-${area}-title">
+    <header class="ta-head"><span class="ta-icon"><span class="material-symbols-rounded" aria-hidden="true">${meta.icon}</span></span><div><h3 id="ta-${area}-title">${meta.title}</h3><p>${meta.sub}</p></div>
+      <span class="ta-counts"><b>${nodes.length}</b> ${nodes.length === 1 ? "nodo" : "nodos"} · <b>${events}</b> ${events === 1 ? "evento" : "eventos"}</span></header>
+    ${body}
+  </section>`;
+}
+
 function renderTraceabilityView(records, workItems, state) {
   const allEvents = getTraceabilityEvents(records, workItems);
   const filters = state.traceabilityFilters;
   const filtered = getFilteredTraceabilityEvents(records, workItems, filters);
   const nodes = groupTraceabilityNodes(filtered);
-  const pageCount = Math.max(1, Math.ceil(nodes.length / TRACEABILITY_NODES_PER_PAGE));
-  const page = Math.min(Math.max(1, state.traceabilityPage), pageCount);
-  const visibleNodes = nodes.slice((page - 1) * TRACEABILITY_NODES_PER_PAGE, page * TRACEABILITY_NODES_PER_PAGE);
+  const rwkNodes = nodes.filter((node) => node.area === "RWK");
+  const mfgNodes = nodes.filter((node) => node.area === "MFG");
   const categories = [...new Set(allEvents.map((event) => event.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es-MX"));
   const employees = [...new Map(allEvents.filter((event) => event.employeeNumber).map((event) => [event.employeeNumber, { id: event.employeeNumber, name: event.operator }])).entries()];
-  const nodesHtml = visibleNodes.length ? visibleNodes.map(renderTraceabilityNode).join("") : '<p class="tn-empty">No hay eventos con estos filtros. Prueba con otro serial, fecha o turno.</p>'
+  const nodesHtml = `${renderTraceabilityArea("MFG", mfgNodes)}${renderTraceabilityArea("RWK", rwkNodes)}`;
   const categoryOptions = categories.map((category) => `<option value="${escapeHtml(category)}" ${filters.category === category ? "selected" : ""}>${escapeHtml(category)}</option>`).join("");
   const employeeOptions = employees.map(([id, value]) => `<option value="${escapeHtml(id)}" ${filters.employeeNumber === id ? "selected" : ""}>${escapeHtml(value.name)} · ${escapeHtml(id)}</option>`).join("");
-  const pageLabel = nodes.length ? `Nodos ${((page - 1) * TRACEABILITY_NODES_PER_PAGE) + 1}–${Math.min(page * TRACEABILITY_NODES_PER_PAGE, nodes.length)} de ${nodes.length} · ${filtered.length} eventos` : "0 nodos";
+  const pageLabel = nodes.length ? `${nodes.length} nodos · ${filtered.length} eventos` : "0 nodos";
   return `<section class="traceability-view" aria-labelledby="traceability-title">
     <div class="section-heading"><div class="section-title"><span class="heading-icon material-symbols-rounded" aria-hidden="true">account_tree</span><div><h2 id="traceability-title">Trazabilidad de nodo y componentes</h2><p class="traceability-subtitle">Validaciones, pausas y retrabajos en orden cronológico · servidor</p></div></div>
       <div class="traceability-actions"><label class="demo-toggle"><input type="checkbox" data-demo-data-toggle data-focus-key="demo-data-toggle" ${state.includeDemoData ? "checked" : ""} /> Incluir registros demo</label><button class="button button--primary" type="button" data-action="export-traceability" ${filtered.length ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">download</span>Exportar CSV</button></div></div>
@@ -200,8 +221,8 @@ function renderTraceabilityView(records, workItems, state) {
       <label>Operador<select data-traceability-filter="employeeNumber" data-focus-key="traceability-operator"><option value="all">Todos</option>${employeeOptions}</select></label>
     </div>
     ${renderTraceabilityKpis(nodes, filtered)}
-    <div class="tn-list">${nodesHtml}</div>
-    <div class="traceability-pagination"><span>${pageLabel}</span><div><button class="button button--outlined" type="button" data-action="traceability-page" data-direction="previous" ${page <= 1 ? "disabled" : ""}>Anterior</button><button class="button button--outlined" type="button" data-action="traceability-page" data-direction="next" ${page >= pageCount ? "disabled" : ""}>Siguiente</button></div></div>
+    <div class="ta-grid">${nodesHtml}</div>
+    <p class="traceability-total">${pageLabel}</p>
     <p class="traceability-note">Los registros de periodos antiguos no contienen turno explícito; el turno se estima a partir de la hora registrada. La aplicación no sincroniza datos entre usuarios.</p>
   </section>`;
 }
