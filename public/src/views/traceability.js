@@ -76,6 +76,47 @@ function getFilteredTraceabilityEvents(records, workItems, filters) {
   return getTraceabilityEvents(records, workItems).filter((event) => traceabilityEventMatches(event, filters));
 }
 
+// ---- Presentación de la tabla: iconos, etiquetas de color y avatar del operador ----
+function traceIcon(name) {
+  return `<span class="material-symbols-rounded tr-ico" aria-hidden="true">${name}</span>`;
+}
+
+function traceShiftTone(shift) {
+  return shift === "Turno 1" ? "t1" : shift === "Turno 2" ? "t2" : shift === "Turno 3" ? "t3" : "none";
+}
+
+function traceEventKind(event) {
+  const text = String(event.label ?? "").toLocaleLowerCase("es-MX");
+  if (text.includes("detenido") || text.includes("detenid")) return { tone: "stop", icon: "pause_circle" };
+  if (text.includes("retrabajo")) return { tone: "rework", icon: "build_circle" };
+  if (text.includes("desensamble")) return { tone: "sop", icon: "construction" };
+  return { tone: "ok", icon: "task_alt" };
+}
+
+function traceInitials(name) {
+  const words = String(name ?? "").trim().split(/\s+/).filter(Boolean);
+  return (words.length ? (words[0][0] + (words[1]?.[0] ?? "")) : "?").toLocaleUpperCase("es-MX");
+}
+
+function traceStationChip(value) {
+  return value ? `<span class="tr-chip tr-chip--station">${traceIcon("factory")}${escapeHtml(formatWorkStationAssignment(value))}</span>` : "";
+}
+
+function renderTraceabilityRow(event) {
+  const kind = traceEventKind(event);
+  const detailText = String(event.detail ?? "").split(" · ").filter((part) => part && !part.startsWith("Estación:")).join(" · ");
+  const [datePart, timePart] = String(event.timeLabel ?? "").split(" · ");
+  return `<tr>
+    <td><div class="tr-when"><span class="tr-line">${traceIcon("calendar_month")}<b>${escapeHtml(datePart || "Fecha no disponible")}</b></span><span class="tr-line tr-line--soft">${traceIcon("schedule")}${escapeHtml(timePart || "—")}</span><span class="tr-chip tr-chip--${traceShiftTone(event.shift)}">${escapeHtml(event.shift)}</span></div></td>
+    <td><div class="tr-node"><span class="tr-icon-box tr-icon-box--node">${traceIcon("dns")}</span><div><strong class="tr-serial">${escapeHtml(event.serial || "Serial sin capturar")}</strong><small>Nodo ${escapeHtml(event.nodeNumber || "sin número")}</small><small class="tr-pn">${escapeHtml(event.nodePartNumber || "P/N nodo no capturado")}</small></div></div></td>
+    <td><div class="tr-sop"><span class="tr-icon-box">${traceIcon("description")}</span><div><strong>${escapeHtml(event.procedureTitle || event.category || "—")}</strong>${event.sheet ? `<span class="tr-chip tr-chip--sheet">${traceIcon("layers")}Hoja ${escapeHtml(event.sheet)}</span>` : '<small>Hoja no capturada</small>'}</div></div></td>
+    <td><div class="tr-event"><span class="tr-chip tr-chip--${kind.tone}">${traceIcon(kind.icon)}${escapeHtml(event.label)}</span>${traceStationChip(event.stationAssignment)}${detailText ? `<small>${escapeHtml(detailText)}</small>` : ""}</div></td>
+    <td><div class="tr-op"><span class="tr-avatar" aria-hidden="true">${escapeHtml(traceInitials(event.operator))}</span><div><strong>${escapeHtml(event.operator || "Sin operador")}</strong><small>${traceIcon("badge")}${escapeHtml(event.employeeNumber || "Sin número de empleado")}</small></div></div></td>
+    <td><div class="tr-comp"><span class="tr-icon-box tr-icon-box--card">${traceIcon("memory")}</span><div><strong>${escapeHtml(event.componentPartNumber || "—")}</strong><small>${traceIcon("pin")}${escapeHtml(event.componentSerial || "Serie no capturada")}</small></div></div></td>
+    <td>${traceabilityEvidenceButton(event) || '<span class="evidence-not-available">—</span>'}</td>
+  </tr>`;
+}
+
 function renderTraceabilityView(records, workItems, state) {
   const allEvents = getTraceabilityEvents(records, workItems);
   const filters = state.traceabilityFilters;
@@ -85,15 +126,7 @@ function renderTraceabilityView(records, workItems, state) {
   const visible = filtered.slice((page - 1) * TRACEABILITY_PAGE_SIZE, page * TRACEABILITY_PAGE_SIZE);
   const categories = [...new Set(allEvents.map((event) => event.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es-MX"));
   const employees = [...new Map(allEvents.filter((event) => event.employeeNumber).map((event) => [event.employeeNumber, { id: event.employeeNumber, name: event.operator }])).entries()];
-  const rows = visible.length ? visible.map((event) => `<tr>
-    <td>${escapeHtml(event.timeLabel)}<small>${escapeHtml(event.shift)}</small></td>
-    <td><strong>${escapeHtml(event.serial || "Serial sin capturar")}</strong><small>Nodo ${escapeHtml(event.nodeNumber || "sin número")}</small><small>${escapeHtml(event.nodePartNumber || "P/N nodo no capturado")}</small></td>
-    <td>${escapeHtml(event.procedureTitle || event.category || "—")}<small>${event.sheet ? `Hoja ${escapeHtml(event.sheet)}` : "Hoja no capturada"}</small></td>
-    <td><strong>${escapeHtml(event.label)}</strong><small>${escapeHtml(event.detail)}</small></td>
-    <td>${escapeHtml(event.operator || "Sin operador")}<small>${escapeHtml(event.employeeNumber || "Sin número de empleado")}</small></td>
-    <td>${escapeHtml(event.componentPartNumber || "—")}<small>${escapeHtml(event.componentSerial || "Serie no capturada")}</small></td>
-    <td>${traceabilityEvidenceButton(event) || '<span class="evidence-not-available">—</span>'}</td>
-  </tr>`).join("") : '<tr><td class="empty-row" colspan="7">No hay eventos con estos filtros. Prueba con otro serial, fecha o turno.</td></tr>';
+  const rows = visible.length ? visible.map(renderTraceabilityRow).join("") : '<tr><td class="empty-row" colspan="7">No hay eventos con estos filtros. Prueba con otro serial, fecha o turno.</td></tr>';
   const categoryOptions = categories.map((category) => `<option value="${escapeHtml(category)}" ${filters.category === category ? "selected" : ""}>${escapeHtml(category)}</option>`).join("");
   const employeeOptions = employees.map(([id, value]) => `<option value="${escapeHtml(id)}" ${filters.employeeNumber === id ? "selected" : ""}>${escapeHtml(value.name)} · ${escapeHtml(id)}</option>`).join("");
   const pageLabel = filtered.length ? `Eventos ${((page - 1) * TRACEABILITY_PAGE_SIZE) + 1}–${Math.min(page * TRACEABILITY_PAGE_SIZE, filtered.length)} de ${filtered.length}` : "0 eventos";
