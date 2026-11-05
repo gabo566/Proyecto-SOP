@@ -163,9 +163,9 @@
 .uh .uh-search:focus-within { border-color: #2653a6; }
 
 /* Funciones en la SOP: pestaña plegable, cerrada por defecto */
-.uh-sop--tab { gap: 0; padding: 0; overflow: hidden; background: #e1e8f2; border-color: #c5d2e4; }
+.uh-sop--tab { gap: 0; padding: 0; overflow: hidden; background: #f4c4c4; border-color: #d98e8e; }
 .uh-sop-toggle { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 12px; border: 0; color: var(--u-ink); background: transparent; font: inherit; font-size: 13px; font-weight: 800; text-align: left; cursor: pointer; transition: background-color 140ms ease; }
-.uh-sop-toggle:hover { background: #d6e0ee; }
+.uh-sop-toggle:hover { background: #ecaaaa; }
 .uh-sop-toggle:focus-visible { outline: 3px solid rgb(38 83 166 / 45%); outline-offset: -3px; }
 .uh-sop-toggle > .material-symbols-rounded:first-child { color: var(--u-blue); font-size: 20px; }
 .uh-sop-chevron { margin-left: auto; color: var(--u-muted); transition: transform 200ms cubic-bezier(.23, 1, .32, 1); }
