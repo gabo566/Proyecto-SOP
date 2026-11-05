@@ -25,7 +25,7 @@ class CardEvent extends Model
     protected $fillable = [
         'type', 'node_serial', 'node_part_number', 'node_number', 'station_assignment',
         'card_type', 'card_part_number', 'card_serial', 'result', 'reason', 'note',
-        'removed_part_number', 'removed_serial', 'validation_id', 'sheets',
+        'removed_part_number', 'removed_serial', 'validation_id', 'sheets', 'group_id',
         'operator_id', 'operator_name', 'employee_number', 'occurred_at',
     ];
 
@@ -56,6 +56,7 @@ class CardEvent extends Model
             'removedSerial' => $this->removed_serial,
             'validationId' => $this->validation_id,
             'sheets' => $this->sheets ?? [],
+            'groupId' => $this->group_id,
             'operatorName' => $this->operator_name,
             'employeeNumber' => $this->employee_number,
             'occurredAt' => $this->occurred_at?->toIso8601String(),

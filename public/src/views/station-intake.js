@@ -176,3 +176,24 @@ document.addEventListener("keydown", (event) => {
   state.disassemblyOpen = false;
   render();
 });
+
+// Envía al historial de tarjetas del nodo lo que se acaba de guardar (validación o reemplazo).
+async function recordCardEvent(record) {
+  const isReplacement = record.actionType === "replacement";
+  const cardType = String(record.repairType ?? "").replace(/^Reemplazo de /, "").trim() || "Sin tipo";
+  const result = await sopApi("POST", "/api/card-events", {
+    type: isReplacement ? "replacement" : "validation",
+    nodeSerial: record.serial,
+    nodePartNumber: record.nodePartNumber,
+    nodeNumber: record.nodeNumber,
+    stationAssignment: record.stationAssignment,
+    cardType,
+    cardPartNumber: record.componentPartNumber,
+    cardSerial: record.componentSerial,
+    result: isReplacement ? undefined : "ok",
+    reason: isReplacement ? "direct" : undefined,
+    removedSerial: record.removedComponentSerial || undefined,
+    sheets: (record.validatedSheets ?? []).map((item) => String(item.sheet)),
+  });
+  return result.ok;
+}

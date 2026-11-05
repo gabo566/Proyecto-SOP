@@ -96,7 +96,7 @@ class CardEventTest extends TestCase
 
         $this->actingAs($operator)->postJson('/api/card-events', [
             'type' => 'replacement', 'nodeSerial' => '1934526000155', 'cardType' => 'BMC',
-            'cardPartNumber' => 'BMC-002', 'cardSerial' => 'SN-BMC-88', 'reason' => 'damage',
+            'cardPartNumber' => 'BMC-002', 'cardSerial' => 'SN-BMC-88', 'removedSerial' => 'SN-BMC-77', 'reason' => 'damage',
             'validationId' => $validationId,
         ])->assertStatus(422)->assertJsonValidationErrors(['validationId']);
     }
@@ -105,7 +105,71 @@ class CardEventTest extends TestCase
     {
         $this->actingAs($this->operator())->postJson('/api/card-events', [
             'type' => 'replacement', 'nodeSerial' => '1934526000155', 'cardType' => 'Interposer',
-            'cardPartNumber' => 'INT-9', 'cardSerial' => 'SN-INT-1', 'reason' => 'direct',
+            'cardPartNumber' => 'INT-9', 'cardSerial' => 'SN-INT-1', 'removedSerial' => 'SN-INT-0', 'reason' => 'direct',
         ])->assertCreated()->assertJsonPath('event.reason', 'direct');
+    }
+
+    public function test_un_reemplazo_exige_la_serie_retirada(): void
+    {
+        $this->actingAs($this->operator())->postJson('/api/card-events', [
+            'type' => 'replacement', 'nodeSerial' => '1934526000155', 'cardType' => 'BMC',
+            'cardPartNumber' => 'BMC-002', 'cardSerial' => 'SN-BMC-88', 'reason' => 'direct',
+        ])->assertStatus(422)->assertJsonValidationErrors(['removedSerial']);
+    }
+
+    public function test_el_lote_guarda_varias_tarjetas_con_el_mismo_grupo(): void
+    {
+        $operator = $this->operator();
+
+        $this->actingAs($operator)->postJson('/api/card-events/batch', [
+            'groupId' => 'ses-abc',
+            'events' => [
+                $this->validation(['cardType' => 'BMC']),
+                $this->validation(['cardType' => 'Interposer', 'cardPartNumber' => 'INT-1', 'cardSerial' => 'SN-I-1']),
+            ],
+        ])->assertCreated()->assertJsonCount(2, 'events')->assertJsonPath('events.1.groupId', 'ses-abc');
+
+        $this->actingAs($operator)->getJson('/api/card-events?nodeSerial=1934526000155')
+            ->assertJsonPath('summary.validations', 2);
+    }
+
+    public function test_el_lote_es_atomico_si_una_tarjeta_es_invalida(): void
+    {
+        $operator = $this->operator();
+
+        $this->actingAs($operator)->postJson('/api/card-events/batch', [
+            'events' => [
+                $this->validation(),
+                $this->validation(['cardSerial' => '']),
+            ],
+        ])->assertStatus(422)->assertJsonValidationErrors(['events.1.cardSerial']);
+
+        $this->assertDatabaseCount('card_events', 0);
+    }
+
+    public function test_el_reporte_agrupa_por_tipo_y_por_operador(): void
+    {
+        $operator = $this->operator();
+        $this->actingAs($operator)->postJson('/api/card-events/batch', [
+            'events' => [
+                $this->validation(),
+                ['type' => 'replacement', 'nodeSerial' => '1934526000155', 'cardType' => 'BMC', 'cardPartNumber' => 'BMC-2',
+                    'cardSerial' => 'SN-2', 'removedSerial' => 'SN-1', 'reason' => 'direct'],
+                ['type' => 'replacement', 'nodeSerial' => '1934526000200', 'cardType' => 'BMC', 'cardPartNumber' => 'BMC-3',
+                    'cardSerial' => 'SN-3', 'removedSerial' => 'SN-4', 'reason' => 'direct'],
+            ],
+        ])->assertCreated();
+
+        $this->actingAs($operator)->getJson('/api/card-events/report')
+            ->assertOk()
+            ->assertJsonPath('validations.total', 1)
+            ->assertJsonPath('validations.byCard.BMC', 1)
+            ->assertJsonPath('replacements.total', 2)
+            ->assertJsonPath('replacements.byCard.BMC', 2)
+            ->assertJsonPath('replacements.byOperator.0.count', 2)
+            ->assertJsonPath('replacements.byOperator.0.employeeNumber', '300001');
+
+        $this->actingAs($operator)->getJson('/api/card-events/report?cardType=Interposer')
+            ->assertJsonPath('validations.total', 0)->assertJsonPath('replacements.total', 0);
     }
 }
