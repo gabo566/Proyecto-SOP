@@ -49,9 +49,12 @@ Boost replaces these bootstrap instructions with guidelines tailored to the appl
 ## Procesos y servicios (regla del proyecto)
 
 - Consultas, lectura, build, tests, migraciones y comandos cortos: se ejecutan normal, en segundo plano si hace falta.
-- Servicios y procesos de larga duración: NO en segundo plano ni de forma interna. Ejecútalos en la pestaña de terminal del panel de la app (run_in_terminal), en la pestaña "SOP" del proyecto.
-- Servicios de este proyecto: el servidor local en el puerto 4174 y el túnel de Cloudflare hacia ese mismo puerto.
-- No abras pestañas nuevas por cada servicio. Si ya existe la pestaña "SOP", reutilízala.
+- Servicios y procesos de larga duración: NO en segundo plano ni de forma interna. Ábrelos en la ventana unificada de Windows Terminal "servicios", una pestaña por servicio, con PowerShell 7:
+  `wt -w servicios new-tab --title "<nombre>" pwsh -NoExit -Command "<comando>"`
+- Servicios de este proyecto:
+  - Servidor local: `php artisan serve --host=localhost --port=4174` (título "SOP servidor").
+  - Túnel: `cloudflared tunnel --url http://localhost:4174` (título "SOP túnel").
+- No abras una ventana nueva por servicio: siempre `-w servicios`.
 - Antes de iniciar un servicio, indica en una línea qué vas a iniciar y en qué pestaña.
 - El túnel de BurnTrack (puerto 4173) es de otro proyecto: no lo toques ni lo detengas.
 
