@@ -47,42 +47,58 @@ function renderSopMarkShapes(marks, aspect, numbers) {
 }
 
 // ---------------------------------------------------------------- visor de hojas con marcas
-function renderSopMarksViewer(version, { marks = [], editable = false, sheetIndex = 0, tool = "box", text = "", heading = "" } = {}) {
+function sopMarksSheetOf(version, sheetIndex) {
   const procedures = (version.procedures ?? []).filter((procedure) => procedure?.id);
-  if (!procedures.length) return "";
   const index = Math.max(0, Math.min(procedures.length - 1, sheetIndex));
-  const procedure = procedures[index];
-  const indexed = marks.map((mark, position) => ({ mark, position }));
-  const here = indexed.filter(({ mark }) => mark.procedureId === procedure.id);
-  const numbers = here.map((_, order) => order + 1);
+  return { procedures, index, procedure: procedures[index] };
+}
+
+// Visor: hojas en pestañas, herramientas de observación y la hoja con zoom. La lista va en el panel lateral.
+function renderSopMarksViewer(version, { marks = [], editable = false, sheetIndex = 0, tool = "box", zoom = 100, text = "", heading = "" } = {}) {
+  const { procedures, index, procedure } = sopMarksSheetOf(version, sheetIndex);
+  if (!procedure) return "";
+  const here = marks.filter((mark) => mark.procedureId === procedure.id);
   const aspect = sopMarkSheetCache.get(`${version.id}|${procedure.id}`)?.aspect ?? procedure.pageAspect ?? SOP_PAGE_ASPECT;
-  const shapes = renderSopMarkShapes(here.map(({ mark }) => mark), aspect, numbers);
+  const shapes = renderSopMarkShapes(here, aspect, here.map((_, order) => order + 1));
   const chips = procedures.map((item, position) => {
     const count = marks.filter((mark) => mark.procedureId === item.id).length;
-    return `<button type="button" class="srm-chip ${position === index ? "is-on" : ""}" data-action="srm-sheet" data-index="${position}" aria-pressed="${position === index}">Hoja ${escapeHtml(item.sheet)}${count ? `<b>${count}</b>` : ""}</button>`;
+    return `<button type="button" class="srm-chip ${position === index ? "is-on" : ""}" data-action="srm-sheet" data-index="${position}" aria-pressed="${position === index}"><span class="material-symbols-rounded" aria-hidden="true">description</span>Hoja ${escapeHtml(item.sheet)}${count ? `<b>${count}</b>` : ""}</button>`;
   }).join("");
-  const tools = editable ? `<div class="srm-tools" role="toolbar" aria-label="Marcas del revisor">
-      ${Object.entries(SOP_MARK_TYPES).map(([id, label]) => `<button type="button" class="srm-tool ${tool === id ? "is-on" : ""}" data-action="srm-tool" data-tool="${id}" aria-pressed="${tool === id}"><span class="material-symbols-rounded" aria-hidden="true">${id === "box" ? "crop_square" : id === "arrow" ? "north_east" : "sticky_note_2"}</span>${label}</button>`).join("")}
-      <input class="srm-text" type="text" data-srm-text maxlength="300" value="${escapeHtml(text)}" placeholder="Comentario de la marca (se pone en la siguiente que dibujes)" aria-label="Comentario de la marca" />
-      <button type="button" class="srm-tool" data-action="srm-undo" ${marks.length ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">undo</span>Quitar última</button>
-    </div>
-    <p class="srm-hint">${tool === "note" ? "Escribe el comentario y toca la hoja donde va la nota." : `Arrastra sobre la hoja para dibujar ${tool === "box" ? "el recuadro" : "la flecha"}.`}</p>` : "";
-  const list = here.length
-    ? `<ol class="srm-list">${here.map(({ mark, position }, order) => `<li><span class="srm-num">${order + 1}</span><span><b>${SOP_MARK_TYPES[mark.type] ?? "Marca"}</b>${mark.text ? ` · ${escapeHtml(mark.text)}` : ""}</span>${editable ? `<button type="button" class="srm-del" data-action="srm-delete" data-position="${position}" aria-label="Quitar marca ${order + 1}"><span class="material-symbols-rounded" aria-hidden="true">close</span></button>` : ""}</li>`).join("")}</ol>`
-    : `<p class="srm-empty">${editable ? "Sin marcas en esta hoja." : "El revisor no dejó marcas en esta hoja."}</p>`;
-  return `<section class="sop-flow-card srm-card" aria-label="Hojas con marcas del revisor">
-    ${heading ? `<h3 class="sop-flow-h3">${heading}</h3>` : ""}
+  const toolButtons = Object.entries(SOP_MARK_TYPES).map(([id, label]) => `<button type="button" class="srm-tool ${tool === id ? "is-on" : ""}" data-action="srm-tool" data-tool="${id}" aria-pressed="${tool === id}"><span class="material-symbols-rounded" aria-hidden="true">${id === "box" ? "crop_square" : id === "arrow" ? "north_east" : "sticky_note_2"}</span>${label}</button>`).join("");
+  const toolbar = `<div class="srm-toolbar" role="toolbar" aria-label="Herramientas del revisor">
+      ${editable ? `<div class="srm-toolgroup" role="group" aria-label="Marcar">${toolButtons}</div>
+      <input class="srm-text" type="text" data-srm-text maxlength="300" value="${escapeHtml(text)}" placeholder="${tool === "note" ? "Escribe la nota y toca la hoja" : "Comentario (opcional) y dibuja sobre la hoja"}" aria-label="Comentario de la siguiente marca" />
+      <button type="button" class="srm-tool srm-tool--quiet" data-action="srm-undo" ${marks.length ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">undo</span>Quitar última</button>` : '<span class="srm-readonly"><span class="material-symbols-rounded" aria-hidden="true">visibility</span>Marcas del revisor · solo lectura</span>'}
+      <div class="srm-zoom" role="group" aria-label="Zoom de la hoja"><button type="button" class="srm-tool srm-tool--icon" data-action="srm-zoom" data-delta="-25" aria-label="Alejar"><span class="material-symbols-rounded" aria-hidden="true">remove</span></button><output>${zoom}%</output><button type="button" class="srm-tool srm-tool--icon" data-action="srm-zoom" data-delta="25" aria-label="Acercar"><span class="material-symbols-rounded" aria-hidden="true">add</span></button></div>
+    </div>`;
+  const hint = editable ? `<p class="srm-hint"><span class="material-symbols-rounded" aria-hidden="true">${tool === "note" ? "touch_app" : "gesture"}</span>${tool === "note" ? "Toca la hoja donde quieras dejar la nota." : `Arrastra sobre la hoja para dibujar ${tool === "box" ? "el recuadro" : "la flecha"}.`}</p>` : "";
+  return `<section class="srm-card" aria-label="Hojas de la SOP">
+    ${heading ? `<h3 class="srm-card-title">${heading}</h3>` : ""}
     <div class="srm-chips" role="group" aria-label="Hojas">${chips}</div>
-    ${tools}
-    <div class="srm-body">
-      <div class="srm-stage ${editable ? "is-editable" : ""}" data-srm-stage data-version-id="${escapeHtml(version.id)}" data-procedure-id="${escapeHtml(procedure.id)}" data-editable="${editable}" data-srm-marks="${escapeHtml(JSON.stringify(here.map(({ mark }) => mark)))}">
+    ${toolbar}${hint}
+    <div class="srm-scroll">
+      <div class="srm-stage ${editable ? "is-editable" : ""}" style="width:${zoom}%" data-srm-stage data-version-id="${escapeHtml(version.id)}" data-procedure-id="${escapeHtml(procedure.id)}" data-editable="${editable}" data-srm-marks="${escapeHtml(JSON.stringify(here))}">
         <img class="srm-img" data-srm-img alt="Hoja ${escapeHtml(procedure.sheet)} de la SOP" hidden />
         <p class="srm-loading" data-srm-loading>Cargando hoja ${escapeHtml(procedure.sheet)}…</p>
         <svg class="srm-overlay" data-srm-overlay viewBox="${shapes.viewBox}" preserveAspectRatio="none">${shapes.html}</svg>
       </div>
-      <div class="srm-side"><p class="srm-side-title">Hoja ${escapeHtml(procedure.sheet)} · ${escapeHtml(procedure.title ?? "")}</p>${list}</div>
     </div>
   </section>`;
+}
+
+// Panel lateral: observaciones de la hoja (con el comentario editable) y totales por hoja.
+function renderSopMarksList(version, { marks = [], editable = false, sheetIndex = 0 } = {}) {
+  const { procedures, procedure } = sopMarksSheetOf(version, sheetIndex);
+  if (!procedure) return "";
+  const entries = marks.map((mark, position) => ({ mark, position })).filter(({ mark }) => mark.procedureId === procedure.id);
+  const rows = entries.map(({ mark, position }, order) => `<li><span class="srm-num">${order + 1}</span><div><b>${SOP_MARK_TYPES[mark.type] ?? "Marca"}</b>${editable
+    ? `<input class="srm-mark-input" type="text" data-srm-mark-text data-position="${position}" maxlength="300" value="${escapeHtml(mark.text ?? "")}" placeholder="Agrega un comentario" aria-label="Comentario de la marca ${order + 1}" />`
+    : mark.text ? `<p>${escapeHtml(mark.text)}</p>` : '<p class="srm-muted">Sin comentario</p>'}</div>${editable ? `<button type="button" class="srm-del" data-action="srm-delete" data-position="${position}" aria-label="Quitar marca ${order + 1}"><span class="material-symbols-rounded" aria-hidden="true">delete</span></button>` : ""}</li>`).join("");
+  const total = marks.length;
+  const other = procedures.filter((item) => item.id !== procedure.id && marks.some((mark) => mark.procedureId === item.id));
+  return `<div class="srm-panel-head"><h3>Observaciones · Hoja ${escapeHtml(procedure.sheet)}</h3><span class="srm-count">${total} ${total === 1 ? "marca" : "marcas"} en total</span></div>
+    ${rows ? `<ol class="srm-list">${rows}</ol>` : `<p class="srm-empty">${editable ? "Sin observaciones en esta hoja. Elige una herramienta y marca lo que deba corregirse." : "El revisor no dejó marcas en esta hoja."}</p>`}
+    ${other.length ? `<p class="srm-others">También hay marcas en: ${other.map((item) => `Hoja ${escapeHtml(item.sheet)}`).join(", ")}</p>` : ""}`;
 }
 
 // Carga la imagen de cada hoja visible (una vez por hoja) y ajusta la proporción de la capa de marcas.
@@ -123,6 +139,65 @@ function hydrateSopMarksViewers(state) {
         if (loading) loading.textContent = "No se pudo cargar la hoja.";
       });
   }
+}
+
+// ---------------------------------------------------------------- PDF con las anotaciones del revisor
+function drawSopMarksOnCanvas(context, marks, width, height) {
+  const unit = Math.max(1, width / 1000);
+  marks.forEach((mark, order) => {
+    const x = mark.x * width; const y = mark.y * height; const w = (mark.w ?? 0) * width; const h = (mark.h ?? 0) * height;
+    context.save();
+    context.lineWidth = 4 * unit; context.strokeStyle = "#c2410c"; context.fillStyle = "rgba(234,88,12,.14)"; context.lineCap = "round";
+    const badge = (bx, by, radius) => {
+      context.beginPath(); context.arc(bx, by, radius, 0, Math.PI * 2); context.fillStyle = "#c2410c"; context.fill();
+      context.lineWidth = 3 * unit; context.strokeStyle = "#fff"; context.stroke();
+      context.fillStyle = "#fff"; context.font = `800 ${radius * 1.15}px Arial, sans-serif`; context.textAlign = "center"; context.textBaseline = "middle"; context.fillText(String(order + 1), bx, by + unit);
+    };
+    if (mark.type === "box") {
+      const left = Math.min(x, x + w); const top = Math.min(y, y + h);
+      context.fillRect(left, top, Math.abs(w), Math.abs(h)); context.strokeRect(left, top, Math.abs(w), Math.abs(h));
+      badge(left, top, 15 * unit);
+    } else if (mark.type === "arrow") {
+      const angle = Math.atan2(h, w); const head = 22 * unit; const ex = x + w; const ey = y + h;
+      context.beginPath(); context.moveTo(x, y); context.lineTo(ex, ey); context.stroke();
+      context.beginPath(); context.moveTo(ex, ey); context.lineTo(ex - head * Math.cos(angle - 0.4), ey - head * Math.sin(angle - 0.4)); context.lineTo(ex - head * Math.cos(angle + 0.4), ey - head * Math.sin(angle + 0.4)); context.closePath(); context.fillStyle = "#c2410c"; context.fill();
+      badge(x, y, 15 * unit);
+    } else {
+      badge(x, y, 20 * unit);
+    }
+    context.restore();
+  });
+}
+
+// Una página por cada hoja con marcas: la hoja con sus marcas numeradas y, debajo, la lista de comentarios.
+async function exportSopReviewMarksPdf(version, marks, { reviewer = "" } = {}) {
+  const procedures = (version.procedures ?? []).filter((procedure) => marks.some((mark) => mark.procedureId === procedure.id));
+  if (!procedures.length) throw new Error("Todavía no hay marcas sobre las hojas para exportar.");
+  const pages = [];
+  for (const procedure of procedures) {
+    const own = marks.filter((mark) => mark.procedureId === procedure.id);
+    const sheet = await renderSopSheetCanvas(version, procedure, { maxWidth: 1700 });
+    const lines = own.map((mark, order) => `${order + 1}. ${SOP_MARK_TYPES[mark.type] ?? "Marca"}${mark.text ? ` · ${mark.text}` : ""}`);
+    const legendHeight = Math.round(70 + lines.length * 40);
+    const canvas = document.createElement("canvas");
+    canvas.width = sheet.width; canvas.height = sheet.height + legendHeight;
+    const context = canvas.getContext("2d", { alpha: false });
+    context.fillStyle = "#fff"; context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(sheet.canvas, 0, 0);
+    drawSopMarksOnCanvas(context, own, sheet.width, sheet.height);
+    context.fillStyle = "#17243a"; context.fillRect(0, sheet.height, canvas.width, 56);
+    context.fillStyle = "#fff"; context.font = "700 26px Arial, sans-serif"; context.textBaseline = "middle"; context.textAlign = "left";
+    context.fillText(`Hoja ${procedure.sheet} · observaciones${reviewer ? ` de ${reviewer}` : ""} · ${version.document.title} Rev. ${version.document.revision}`, 24, sheet.height + 28);
+    context.fillStyle = "#1b2a3f"; context.font = "24px Arial, sans-serif";
+    lines.forEach((line, order) => context.fillText(line.length > 120 ? `${line.slice(0, 117)}…` : line, 24, sheet.height + 56 + 30 + order * 40));
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.88));
+    if (!blob) throw new Error("No se pudo preparar una de las hojas para el PDF.");
+    const factor = canvas.height / sheet.height;
+    pages.push({ jpeg: new Uint8Array(await blob.arrayBuffer()), width: canvas.width, height: canvas.height, ptWidth: sheet.ptWidth, ptHeight: sheet.ptHeight * factor });
+    sheet.canvas.width = 1; sheet.canvas.height = 1;
+  }
+  const safe = (value) => String(value).replace(/[^\w.-]+/g, "_");
+  downloadSopBlob(buildSopPdf(pages), `Observaciones_${safe(version.document.id)}_Rev${safe(version.document.revision)}.pdf`);
 }
 
 // ---------------------------------------------------------------- historial de rondas
@@ -253,6 +328,7 @@ function bindSopReviewMarks(app, { state, render, showToast }) {
     if (!action || !app.contains(action)) return;
     const name = action.dataset.action;
     if (name === "srm-sheet") { state.sopReviewSheet = Number(action.dataset.index) || 0; render(); }
+    else if (name === "srm-zoom") { state.sopReviewZoom = Math.max(50, Math.min(300, (state.sopReviewZoom ?? 100) + Number(action.dataset.delta))); render(); }
     else if (name === "srm-tool") { state.sopReviewTool = action.dataset.tool; render(); }
     else if (name === "srm-undo") { state.sopReviewMarks = (state.sopReviewMarks ?? []).slice(0, -1); render(); }
     else if (name === "srm-delete") { const position = Number(action.dataset.position); state.sopReviewMarks = (state.sopReviewMarks ?? []).filter((_, index) => index !== position); render(); }
@@ -268,6 +344,10 @@ function bindSopReviewMarks(app, { state, render, showToast }) {
 
   app.addEventListener("input", (event) => {
     if (event.target.matches("[data-srm-text]")) state.sopReviewMarkText = event.target.value;
+    if (event.target.matches("[data-srm-mark-text]")) {
+      const mark = (state.sopReviewMarks ?? [])[Number(event.target.dataset.position)];
+      if (mark) mark.text = event.target.value.slice(0, 300);
+    }
     if (event.target.matches("#sop-review-note")) state.sopReviewNoteDraft = event.target.value;
   });
 

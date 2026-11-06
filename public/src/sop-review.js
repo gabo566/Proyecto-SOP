@@ -110,47 +110,61 @@ function renderSopReviewScreen(state) {
   const mode = request.mode;
   const status = getSopVersionStatus(version);
   const block = mode === "view" ? "" : getSopWorkflowBlock(version, mode);
-  const showAll = Boolean(state.sopReviewShowAll);
-  const visible = showAll ? rows : rows.slice(0, 10);
-  const rowsHtml = visible.map((row) => `<tr><td><b>${escapeHtml(row.sheet)}</b></td><td>${escapeHtml(row.type)}${row.step ? `<small> · paso ${escapeHtml(row.step)}</small>` : ""}</td><td class="${row.before ? "sop-flow-del" : ""}">${row.before ? escapeHtml(row.before) : "—"}</td><td class="${row.after ? "sop-flow-add" : ""}">${row.after ? escapeHtml(row.after) : "—"}</td></tr>`).join("");
-  const busy = state.sopVersionBusy ? "disabled" : "";
-  let decision;
-  if (mode === "review") {
-    decision = `<section class="sop-flow-card"><h3 class="sop-flow-h3">Tu revisión</h3>
-      ${block ? `<p class="sop-flow-notice"><span class="material-symbols-rounded" aria-hidden="true">block</span>${escapeHtml(block)}</p>` : ""}
-      <label class="sop-review-note"><span>Comentario general <small>(si la devuelves, escribe un comentario o deja marcas en las hojas)</small></span><textarea id="sop-review-note" rows="4" maxlength="1000" placeholder="Escribe qué revisaste o qué debe corregirse" ${block ? "disabled" : ""}>${escapeHtml(state.sopReviewNoteDraft ?? "")}</textarea></label>
-      <div class="sop-review-decide"><button class="sop-flow-btn sop-flow-btn--green" type="button" data-action="sop-review-decide" data-decision="approve" ${block || state.sopVersionBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">task_alt</span>Aprobar</button>
-        <button class="sop-flow-btn sop-flow-btn--amber" type="button" data-action="sop-review-decide" data-decision="reject" ${block || state.sopVersionBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">undo</span>Devolver con comentarios${(state.sopReviewMarks ?? []).length ? ` y ${(state.sopReviewMarks ?? []).length} ${(state.sopReviewMarks ?? []).length === 1 ? "marca" : "marcas"}` : ""}</button></div></section>`;
-  } else if (mode === "publish") {
-    decision = `<section class="sop-flow-card"><h3 class="sop-flow-h3">Publicación</h3>
-      ${block ? `<p class="sop-flow-notice"><span class="material-symbols-rounded" aria-hidden="true">block</span>${escapeHtml(block)}</p>` : '<p class="sop-flow-sub" style="margin:0 0 10px">Al publicarla podrá habilitarse para las estaciones. Esta acción queda registrada a tu nombre.</p>'}
-      ${version.reviewNote ? `<p class="sop-review-quote"><b>${escapeHtml(version.reviewedBy ?? "Revisor")}:</b> ${escapeHtml(version.reviewNote)}</p>` : ""}
-      <button class="sop-flow-btn sop-flow-btn--green" type="button" data-action="sop-publish-version" ${block || state.sopVersionBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.sopVersionBusy ? "hourglass_top" : "rocket_launch"}</span>${state.sopVersionBusy ? "Publicando…" : `Publicar Rev. ${escapeHtml(version.document.revision)}`}</button></section>`;
-  } else {
-    const canResubmit = status === "rejected" && isMySopVersion(version);
-    decision = `<section class="sop-flow-card"><h3 class="sop-flow-h3">Estado</h3><p class="sop-flow-sub" style="margin:0 0 8px">${(SOP_STATUS_INFO[status] ?? SOP_STATUS_INFO.published).hint}.</p>
-      ${version.reviewNote ? `<p class="sop-review-quote"><b>${escapeHtml(version.reviewedBy ?? "Revisor")}:</b> ${escapeHtml(version.reviewNote)}</p>` : ""}
-      ${canResubmit ? `<button class="sop-flow-btn sop-flow-btn--green" type="button" data-action="sop-resubmit-open" data-version-id="${escapeHtml(version.id)}"><span class="material-symbols-rounded" aria-hidden="true">edit_document</span>Corregir y reenviar</button>` : ""}</section>`;
-  }
-  return `<section class="sop-flow sop-review" aria-label="Revisión de la SOP">
-    <button class="sop-flow-link sop-review-back" type="button" data-action="sop-review-close"><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Volver al catálogo</button>
-    <section class="sop-flow-card sop-flow-card--head"><div><h2 class="sop-flow-title">${escapeHtml(version.document.title)} · Rev. ${escapeHtml(version.document.revision)}</h2><p class="sop-flow-sub">${escapeHtml(version.document.id)} · Estación ${escapeHtml(formatWorkStationAssignment(version.document.stationAssignment) || "sin asignar")}</p></div>${renderSopStatusChip(version)}</section>
-    ${renderSopQuickBar(version, mode, block, state)}
+  const reviews = sopReviewsOf(version);
+  const reviewing = mode === "review";
+  const marks = reviewing ? (state.sopReviewMarks ?? []) : (reviews[0]?.marks ?? []);
+  const busy = Boolean(state.sopVersionBusy);
+  const canResubmit = status === "rejected" && isMySopVersion(version);
+  const sheetIndex = state.sopReviewSheet ?? 0;
+  const button = (tone, action, icon, label, { badge = "", disabled = false, attrs = "" } = {}) => `<button class="rv-btn rv-btn--${tone}" type="button" data-action="${action}" ${attrs} ${disabled ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${icon}</span><span>${label}</span>${badge !== "" ? `<b>${badge}</b>` : ""}</button>`;
+  const decide = reviewing
+    ? `${button("danger", "sop-review-decide", "thumb_down", "No aprobar", { disabled: Boolean(block) || busy, attrs: 'data-decision="reject"' })}${button("ok", "sop-review-decide", "thumb_up", "Aprobar", { disabled: Boolean(block) || busy, attrs: 'data-decision="approve"' })}`
+    : mode === "publish"
+      ? button("ok", "sop-publish-version", busy ? "hourglass_top" : "rocket_launch", busy ? "Publicando…" : `Publicar Rev. ${escapeHtml(version.document.revision)}`, { disabled: Boolean(block) || busy })
+      : canResubmit ? button("ok", "sop-resubmit-open", "edit_document", "Corregir y reenviar", { attrs: `data-version-id="${escapeHtml(version.id)}"` }) : "";
+  const rowsHtml = (state.sopReviewShowAll ? rows : rows.slice(0, 12)).map((row) => `<tr><td><b>${escapeHtml(row.sheet)}</b></td><td>${escapeHtml(row.type)}${row.step ? `<small> · paso ${escapeHtml(row.step)}</small>` : ""}</td><td class="${row.before ? "sop-flow-del" : ""}">${row.before ? escapeHtml(row.before) : "—"}</td><td class="${row.after ? "sop-flow-add" : ""}">${row.after ? escapeHtml(row.after) : "—"}</td></tr>`).join("");
+  const latest = reviews[0];
+  const side = reviewing
+    ? `<section class="rv-card"><label class="rv-label" for="sop-review-note"><span class="material-symbols-rounded" aria-hidden="true">chat</span>Comentario general para quien subió la SOP</label>
+        <textarea id="sop-review-note" rows="5" maxlength="1000" placeholder="Escribe qué debe corregirse. Si no la apruebas, ${escapeHtml(version.submittedBy ?? "quien la subió")} recibirá este comentario y tus marcas en su bandeja." ${block ? "disabled" : ""}>${escapeHtml(state.sopReviewNoteDraft ?? "")}</textarea>
+        <p class="rv-help"><span class="material-symbols-rounded" aria-hidden="true">info</span><b>No aprobar</b> exige un comentario o al menos una marca sobre las hojas.</p></section>`
+    : `<section class="rv-card"><h3 class="rv-label"><span class="material-symbols-rounded" aria-hidden="true">chat</span>${latest ? `Comentario de ${escapeHtml(latest.reviewerName ?? "el revisor")}` : "Estado"}</h3>
+        ${latest?.note ? `<p class="sop-review-quote">${escapeHtml(latest.note)}</p>` : `<p class="rv-help">${(SOP_STATUS_INFO[status] ?? SOP_STATUS_INFO.published).hint}.</p>`}
+        ${mode === "publish" && block ? `<p class="sop-flow-notice"><span class="material-symbols-rounded" aria-hidden="true">block</span>${escapeHtml(block)}</p>` : ""}</section>`;
+  const changes = `<details class="rv-card rv-changes"><summary><span class="material-symbols-rounded" aria-hidden="true">difference</span>Resumen de cambios<b>${summary.total ?? rows.length}</b></summary>
+      ${rows.length ? `<div class="rv-table-wrap"><table class="sop-flow-table"><thead><tr><th>Hoja</th><th>Tipo</th><th>Antes</th><th>Después</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>${rows.length > 12 ? `<button type="button" class="sop-flow-link" data-action="sop-review-toggle-rows">${state.sopReviewShowAll ? "Ver menos" : `Ver los ${rows.length} cambios`}</button>` : ""}` : '<p class="sop-flow-empty">Esta revisión no trae un resumen de cambios guardado.</p>'}</details>`;
+  return `<section class="sop-flow sop-review rv" aria-label="Revisión de la SOP">
+    <header class="rv-head">
+      <button class="rv-back" type="button" data-action="sop-review-close" aria-label="Volver al catálogo" title="Volver al catálogo"><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span></button>
+      <div class="rv-title"><h2>${escapeHtml(version.document.title)} · Rev. ${escapeHtml(version.document.revision)}</h2>
+        <p>${escapeHtml(version.document.id)} · Estación ${escapeHtml(formatWorkStationAssignment(version.document.stationAssignment) || "sin asignar")} · Ronda ${escapeHtml(version.reviewRound ?? 1)} · Subió ${escapeHtml(version.submittedBy ?? version.createdBy ?? "—")}</p></div>
+      ${renderSopStatusChip(version)}
+      <div class="rv-actions" role="toolbar" aria-label="Acciones de la revisión">
+        ${button("ghost", "sop-review-history", "history", "Historial de revisiones", { badge: reviews.length })}
+        ${button("ghost", "sop-review-export", "picture_as_pdf", "PDF con anotaciones", { badge: marks.length || "", attrs: 'data-kind="marks"' })}
+        ${decide}
+      </div>
+    </header>
+    ${block && reviewing ? `<p class="sop-flow-notice rv-notice"><span class="material-symbols-rounded" aria-hidden="true">block</span>${escapeHtml(block)}</p>` : ""}
     ${state.sopDraftError ? `<p class="form-error sop-flow-error" role="alert">${escapeHtml(state.sopDraftError)}</p>` : ""}
-    <section class="sop-flow-card">${renderSopReviewTracker(version)}</section>
-    ${mode === "review"
-      ? renderSopMarksViewer(version, { marks: state.sopReviewMarks ?? [], editable: !block, sheetIndex: state.sopReviewSheet ?? 0, tool: state.sopReviewTool ?? "box", text: state.sopReviewMarkText ?? "", heading: "Revisa las hojas y marca lo que deba corregirse" })
-      : sopReviewsOf(version).length ? renderSopMarksViewer(version, { marks: sopReviewsOf(version)[0].marks ?? [], sheetIndex: state.sopReviewSheet ?? 0, heading: `Marcas de ${escapeHtml(sopReviewsOf(version)[0].reviewerName ?? "el revisor")} · ronda ${escapeHtml(sopReviewsOf(version)[0].round)}` }) : ""}
-    ${renderSopReviewHistory(version)}
-    <div class="sop-flow-kpis"><div class="sop-flow-kpi"><span>Cambios en total</span><strong>${summary.total ?? rows.length}</strong></div><div class="sop-flow-kpi"><span>Textos y números de pasos</span><strong>${summary.stepRows ?? 0}</strong></div><div class="sop-flow-kpi"><span>Marcas sobre las hojas</span><strong>${summary.markRows ?? 0}</strong></div><div class="sop-flow-kpi"><span>Hojas con pasos</span><strong>${version.procedures.length}</strong></div></div>
-    <div class="sop-flow-split">
-      <section class="sop-flow-card sop-flow-card--flush"><div class="sop-flow-card-head"><h3 class="sop-flow-h3">Qué cambió</h3>${rows.length > 10 ? `<button type="button" class="sop-flow-link" data-action="sop-review-toggle-rows">${showAll ? "Ver menos" : `Ver los ${rows.length} cambios`}</button>` : ""}</div>
-        ${rows.length ? `<table class="sop-flow-table"><thead><tr><th>Hoja</th><th>Tipo</th><th>Antes</th><th>Después</th></tr></thead><tbody>${rowsHtml}</tbody></table>` : '<p class="sop-flow-empty">Esta revisión no trae un resumen de cambios guardado.</p>'}</section>
-      <div class="sop-flow-side">${decision}
-        <section class="sop-flow-card"><h3 class="sop-flow-h3">Para revisar con calma</h3>
-          <button type="button" class="sop-flow-export" data-action="sop-review-export" data-kind="pdf"><span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>PDF con anotaciones<small>hojas con cambios</small><span class="material-symbols-rounded sop-flow-export-end" aria-hidden="true">download</span></button>
-          <button type="button" class="sop-flow-export" data-action="sop-review-export" data-kind="print"><span class="material-symbols-rounded" aria-hidden="true">print</span>Resumen para imprimir<span class="material-symbols-rounded sop-flow-export-end" aria-hidden="true">open_in_new</span></button></section></div></div>
+    <div class="rv-grid">
+      <div class="rv-main">${renderSopMarksViewer(version, { marks, editable: reviewing && !block, sheetIndex, tool: state.sopReviewTool ?? "box", zoom: state.sopReviewZoom ?? 100, text: state.sopReviewMarkText ?? "" })}</div>
+      <aside class="rv-side" aria-label="Observaciones">
+        <section class="rv-card">${renderSopMarksList(version, { marks, editable: reviewing && !block, sheetIndex })}</section>
+        ${side}${changes}
+      </aside>
+    </div>
+    ${state.sopReviewHistoryOpen ? renderSopReviewHistoryModal(version) : ""}
   </section>`;
+}
+
+function renderSopReviewHistoryModal(version) {
+  return `<div class="rv-modal" data-rv-modal><div class="rv-modal-card" role="dialog" aria-modal="true" aria-labelledby="rv-history-title">
+    <header><h3 id="rv-history-title"><span class="material-symbols-rounded" aria-hidden="true">history</span>Historial de revisiones</h3><button type="button" class="rv-back" data-action="sop-review-history-close" aria-label="Cerrar"><span class="material-symbols-rounded" aria-hidden="true">close</span></button></header>
+    <p class="rv-modal-sub">${escapeHtml(version.document.title)} · Rev. ${escapeHtml(version.document.revision)}</p>
+    ${renderSopReviewTracker(version)}
+    ${renderSopReviewHistory(version) || '<p class="srm-empty">Todavía no hay rondas de revisión.</p>'}
+  </div></div>`;
 }
 
 async function loadSopRoles(state) {
@@ -195,21 +209,38 @@ function bindSopReview(app, { state, render, showToast }) {
       state.sopReviewTool = "box";
       state.sopReviewMarkText = "";
       state.sopReviewNoteDraft = "";
+      state.sopReviewZoom = 100;
+      state.sopReviewHistoryOpen = false;
       state.sopDraftError = "";
       render();
       window.scrollTo({ top: 0 });
     } else if (name === "sop-review-close") {
       state.sopReview = null;
+      state.sopReviewHistoryOpen = false;
       state.sopDraftError = "";
       render();
     } else if (name === "sop-review-toggle-rows") {
       state.sopReviewShowAll = !state.sopReviewShowAll;
+      render();
+    } else if (name === "sop-review-history") {
+      state.sopReviewHistoryOpen = true;
+      render();
+    } else if (name === "sop-review-history-close") {
+      state.sopReviewHistoryOpen = false;
       render();
     } else if (name === "sop-review-export") {
       const version = state.sopVersionHistory.find((item) => item.id === state.sopReview?.id);
       if (!version || action.disabled) return;
       action.disabled = true;
       try {
+        if (action.dataset.kind === "marks") {
+          const reviews = sopReviewsOf(version);
+          const marks = state.sopReview?.mode === "review" ? (state.sopReviewMarks ?? []) : (reviews[0]?.marks ?? []);
+          if (!marks.length) { showToast("Todavía no hay marcas sobre las hojas. Dibuja observaciones y vuelve a exportar.", "warning"); return; }
+          await exportSopReviewMarksPdf(version, marks, { reviewer: state.sopReview?.mode === "review" ? getActiveLocalUser()?.name : reviews[0]?.reviewerName });
+          showToast("PDF con las anotaciones descargado.");
+          return;
+        }
         await runSopDraftExport(version, action.dataset.kind, "changed", null, () => {});
       } catch (error) {
         showInlineNotice(error?.message || "No se pudo exportar.", "warning");
