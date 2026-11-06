@@ -199,3 +199,5 @@
 .uh .uh-funcs-row { flex-wrap: nowrap; gap: 8px; }
 .uh .uh-sop-toggle { white-space: nowrap; padding: 0 10px; }
 .uh .uh-person .uh-card-id strong { white-space: normal; overflow: visible; text-overflow: clip; }
+/* Solo los encabezados en azul, igual que las tablas de Modificar SOP. Filas sin cambios. */
+.uh .uh-table thead th, .uh .uh-table thead th.uh-col-actions { color: #fff; background: linear-gradient(110deg, #17243a, #26395c); border-bottom: 0; font-size: 11px; letter-spacing: .08em; }
