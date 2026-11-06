@@ -120,5 +120,5 @@
 .uh .uh-card, .uh .uh-card[data-role="admin"], .uh .uh-card[data-review="true"], .uh .uh-card[data-publish="true"], .uh .uh-card.is-inactive, .uh .uh-card[data-active="false"] { border-left: 5px solid #2f4f84; }
 
 /* Recuadro completo remarcado: las cuatro esquinas y lados con el mismo borde azul, también al pasar el cursor. */
-.uh .uh-card, .uh .uh-card[data-role="admin"], .uh .uh-card[data-review="true"], .uh .uh-card[data-publish="true"], .uh .uh-card.is-inactive, .uh .uh-card[data-active="false"] { border: 2px solid #2f4f84; }
+.uh .uh-card, .uh .uh-card[data-role="admin"], .uh .uh-card[data-review="true"], .uh .uh-card[data-publish="true"], .uh .uh-card.is-inactive, .uh .uh-card[data-active="false"] { border: 4px solid #2f4f84; }
 .uh .uh-card:hover { border-color: #2f4f84; }
