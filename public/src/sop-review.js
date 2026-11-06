@@ -33,6 +33,21 @@ function canAccessSopAdmin(user = getActiveLocalUser()) {
   return canUploadSop(user) || canReviewSop(user) || canPublishSop(user) || canManageSopVersions(user);
 }
 
+// Nombre y símbolo de la sección según la función: el creador modifica SOP; el revisor y el publicador
+// ven solo su bandeja.
+function getSopSectionKind(user = getActiveLocalUser()) {
+  if (canUploadSop(user) || (!canReviewSop(user) && !canPublishSop(user))) return "create";
+  return canReviewSop(user) ? "review" : "publish";
+}
+
+function getSopSectionLabel(user = getActiveLocalUser()) {
+  return { create: "Modificar SOP", review: "Bandeja de revisión", publish: "Bandeja de publicación" }[getSopSectionKind(user)];
+}
+
+function getSopSectionIcon(user = getActiveLocalUser()) {
+  return { create: "edit_document", review: "rate_review", publish: "rocket_launch" }[getSopSectionKind(user)];
+}
+
 function sameSopPerson(userId, otherId) {
   return userId !== undefined && userId !== null && otherId !== undefined && otherId !== null && String(userId) === String(otherId);
 }

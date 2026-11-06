@@ -16,12 +16,14 @@ function renderSidebar(state) {
   // Contador de la bandeja de revisión: SOP devueltas para quien las subió y pendientes por revisar o publicar.
   const inboxCount = typeof getSopInboxCount === "function" && canAccessSopAdmin(user) ? getSopInboxCount(state) : 0;
   const navItems = visibleItems.map((item) => {
+    const label = item.id === "sop-admin" ? getSopSectionLabel(user) : item.label;
+    const icon = item.id === "sop-admin" ? getSopSectionIcon(user) : item.icon;
     const badge = item.id === "sop-admin" && inboxCount ? `<b class="nav-badge" aria-label="${inboxCount} pendientes en la bandeja de revisión">${inboxCount}</b>` : "";
     return `
     <button class="nav-item ${state.activeSection === item.id ? "nav-item--active" : ""}"
       type="button" data-action="navigate" data-nav-id="${item.id}" data-focus-key="nav-${item.id}"
       aria-current="${state.activeSection === item.id ? "page" : "false"}">
-      <span class="material-symbols-rounded" aria-hidden="true">${item.icon}</span><span>${item.label}</span>${badge}
+      <span class="material-symbols-rounded" aria-hidden="true">${icon}</span><span>${label}</span>${badge}
     </button>`;
   }).join("");
 
@@ -47,7 +49,8 @@ function formatTopbarTime(date = new Date()) {
 
 function renderTopbar(state = {}) {
   const user = getActiveLocalUser();
-  const section = NAV_ITEMS.find((item) => item.id === state.activeSection) ?? NAV_ITEMS[0];
+  const navSection = NAV_ITEMS.find((item) => item.id === state.activeSection) ?? NAV_ITEMS[0];
+  const section = { ...navSection, label: navSection.id === "sop-admin" ? getSopSectionLabel(user) : navSection.label };
   const assignment = getWorkStationAssignment(state.form?.stationAssignment);
   const stationChip = assignment
     ? `<div class="station-chip" aria-label="Estación asignada"><span class="material-symbols-rounded" aria-hidden="true">desktop_windows</span><span class="station-chip-copy"><small>Estación:</small><strong>${escapeHtml(assignment.label)}</strong><em>${escapeHtml(assignment.type)}</em></span></div>`

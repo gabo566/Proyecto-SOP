@@ -78,12 +78,13 @@ class UserAccessService
      */
     public function setSopRoles(User $target, bool $review, bool $publish, ?bool $create = null): string|User
     {
-        // Revisor y publicador se excluyen: quien revisa no publica, y quien publica no revisa.
-        if ($review && $publish) {
+        // Cada persona tiene una sola función en la SOP: creador, revisor o publicador.
+        // Si no se indica `$create`, se conserva el rol de creador solo cuando no se le asigna otra función.
+        $create ??= ! $review && ! $publish && $target->directPermissions()->where('key', Permission::SOP_CREATE)->exists();
+
+        if (count(array_filter([$create, $review, $publish])) > 1) {
             return 'roles-exclusive';
         }
-
-        $create ??= $target->directPermissions()->where('key', Permission::SOP_CREATE)->exists();
 
         $ids = Permission::whereIn('key', [Permission::SOP_CREATE, Permission::SOP_REVIEW, Permission::SOP_PUBLISH])->pluck('id', 'key');
         $target->directPermissions()->detach($ids->values());

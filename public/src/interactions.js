@@ -709,7 +709,7 @@ function bindInteractions(app, handlers) {
       void changeUserSopRole(target);
       return;
     }
-    if (target.matches('[name="sopReview"], [name="sopPublish"]')) {
+    if (target.matches('[name="sopCreate"], [name="sopReview"], [name="sopPublish"]')) {
       enforceSopRoleExclusive(target);
       return;
     }
@@ -1053,12 +1053,14 @@ function syncCardsToForm(persist) {
 // Revisor y publicador no pueden estar activos a la vez: al activar uno se apaga el otro.
 function enforceSopRoleExclusive(input) {
   if (!input.checked) return;
-  // El rol de creador no se excluye con ningún otro: solo revisor y publicador.
-  if (input.dataset.role === "create" || input.name === "sopCreate") return;
+  // Cada persona tiene una sola función en la SOP: al activar una, se apagan las otras dos.
   const scope = input.closest("[data-user-card]") ?? input.closest("#local-user-form");
-  const reviewing = input.dataset.role === "review" || input.name === "sopReview";
-  const other = scope?.querySelector(reviewing ? '[data-role="publish"], [name="sopPublish"]' : '[data-role="review"], [name="sopReview"]');
-  if (other) other.checked = false;
+  const own = input.dataset.role ?? { sopCreate: "create", sopReview: "review", sopPublish: "publish" }[input.name];
+  for (const role of ["create", "review", "publish"]) {
+    if (role === own) continue;
+    const name = `sop${role.charAt(0).toUpperCase()}${role.slice(1)}`;
+    scope?.querySelectorAll(`[data-role="${role}"], [name="${name}"]`).forEach((other) => { other.checked = false; });
+  }
 }
 
 // Pide confirmación y elimina la cuenta desde su tarjeta.

@@ -264,10 +264,9 @@ function renderSopInbox(state) {
     return `<li class="sop-inbox-row"><div><strong>${escapeHtml(version.document.title)} · Rev. ${escapeHtml(version.document.revision)}</strong>${detail}</div>${renderSopStatusChip(version)}<div class="sop-inbox-actions">${actions}</div></li>`;
   };
   const empty = { returned: "No tienes SOP devueltas.", toReview: "No hay SOP pendientes de revisar.", toPublish: "No hay SOP aprobadas por publicar.", sent: "Todavía no has enviado SOP." }[current.id];
-  return `<section class="sop-inbox" aria-labelledby="sop-inbox-title">
-    <div class="sop-inbox-head"><h3 id="sop-inbox-title"><span class="material-symbols-rounded" aria-hidden="true">inbox</span>Bandeja de revisión</h3></div>
+  return `<section class="sop-inbox" aria-label="Bandeja de revisión">
+    <div class="sop-inbox-tabs" role="tablist">${tabs.map((tab) => `<button type="button" role="tab" class="sop-inbox-tab ${tab.id === current.id ? "is-on" : ""} ${tab.urgent && tab.items.length ? "has-items" : ""}" aria-selected="${tab.id === current.id}" data-action="sop-inbox-tab" data-tab="${tab.id}"><span class="material-symbols-rounded" aria-hidden="true">${tab.icon}</span>${tab.label}<b>${tab.items.length}</b></button>`).join("")}${canUploadSop() ? "" : `<span class="sop-inbox-role"><span class="material-symbols-rounded" aria-hidden="true">badge</span>${escapeHtml(describeSopFunctions())}</span>`}</div>
     ${todoHtml}
-    <div class="sop-inbox-tabs" role="tablist">${tabs.map((tab) => `<button type="button" role="tab" class="sop-inbox-tab ${tab.id === current.id ? "is-on" : ""} ${tab.urgent && tab.items.length ? "has-items" : ""}" aria-selected="${tab.id === current.id}" data-action="sop-inbox-tab" data-tab="${tab.id}"><span class="material-symbols-rounded" aria-hidden="true">${tab.icon}</span>${tab.label}<b>${tab.items.length}</b></button>`).join("")}</div>
     ${current.items.length ? `<ul class="sop-inbox-list">${current.items.map(row).join("")}</ul>` : `<p class="sop-inbox-empty">${empty}</p>`}
   </section>`;
 }

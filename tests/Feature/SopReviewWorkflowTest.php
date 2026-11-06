@@ -268,11 +268,26 @@ class SopReviewWorkflowTest extends TestCase
 
         $this->actingAs($owner)->patchJson("/api/users/{$target->id}/sop-roles", ['create' => true, 'review' => false, 'publish' => false])
             ->assertOk()->assertJsonPath('user.permissions', ['sop.create']);
-        // Sin el campo `create` se respeta el rol de creador ya asignado.
+        // Sin el campo `create` se conserva el rol de creador mientras no se le asigne otra función...
+        $this->patchJson("/api/users/{$target->id}/sop-roles", ['review' => false, 'publish' => false])
+            ->assertOk()->assertJsonPath('user.permissions', ['sop.create']);
+        // ...y al asignarle otra función cambia de rol: ya no es creador.
         $this->patchJson("/api/users/{$target->id}/sop-roles", ['review' => false, 'publish' => true])
-            ->assertOk()->assertJsonCount(2, 'user.permissions');
+            ->assertOk()->assertJsonPath('user.permissions', ['sop.publish']);
         $this->patchJson("/api/users/{$target->id}/sop-roles", ['create' => false, 'review' => false, 'publish' => false])
             ->assertOk()->assertJsonPath('user.permissions', []);
+    }
+
+    public function test_cada_persona_tiene_una_sola_funcion_en_la_sop(): void
+    {
+        $owner = $this->person('140784', [Permission::SOP_MANAGE, Permission::USERS_MANAGE]);
+        $target = $this->person('500031');
+
+        foreach ([['create' => true, 'review' => true], ['create' => true, 'publish' => true], ['review' => true, 'publish' => true]] as $pair) {
+            $this->actingAs($owner)->patchJson("/api/users/{$target->id}/sop-roles", $pair + ['create' => false, 'review' => false, 'publish' => false])
+                ->assertStatus(422)->assertJsonPath('code', 'roles-exclusive');
+        }
+        $this->assertCount(0, $target->fresh()->directPermissions);
     }
 
     public function test_conceder_los_roles_de_sop_no_toca_otros_permisos_de_la_persona(): void

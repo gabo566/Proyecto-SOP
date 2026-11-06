@@ -181,3 +181,18 @@
   .srm-zoom { margin-left: 0; }
   .rv-modal-card { padding: 14px; }
 }
+
+/* ---- Bandeja compacta: botones con contador y menos espacio ---- */
+.sop-inbox { gap: 8px; padding: 10px 14px 12px; border-top-width: 3px; border-radius: 12px; }
+.sop-inbox-tabs { gap: 6px; }
+.sop-inbox-tab { min-height: 34px; padding: 0 12px; font-size: 13px; }
+.sop-inbox-tab .material-symbols-rounded { font-size: 18px; }
+.sop-inbox-todo .rv-callout { padding: 8px 12px; font-size: 13.5px; }
+.sop-inbox-row { padding: 8px 12px; gap: 10px; }
+.sop-inbox-empty { padding: 12px; }
+.sop-inbox .sop-inbox-list { gap: 6px; }
+
+.sop-version-panel.is-compact .sop-version-manager-header { display: none; }
+.sop-inbox-tabs { align-items: center; }
+.sop-inbox-role { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: var(--srm-muted); font-size: 12.5px; font-weight: 700; }
+.sop-inbox-role .material-symbols-rounded { font-size: 17px; }

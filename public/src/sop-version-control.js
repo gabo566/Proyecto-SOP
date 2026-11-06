@@ -1145,13 +1145,16 @@ function renderSopVersionManager(state) {
   }
   if (state.sopDraft && canUploadSop()) return renderSopRevisionFlow(state);
   const error = state.sopDraftError ? `<p class="form-error" role="alert">${escapeHtml(state.sopDraftError)}</p>` : "";
-  return `<section class="sop-version-panel" aria-labelledby="sop-version-title"><div class="sop-version-manager-header"><div class="section-heading"><div class="section-title"><span class="heading-icon material-symbols-rounded" aria-hidden="true">rule_settings</span><div><p class="eyebrow sop-version-access-badge"><span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>${escapeHtml(describeSopFunctions())}</p><h2 id="sop-version-title">Modificar SOP</h2></div></div></div>
+  // Revisor y publicador ven solo su bandeja: sin la cabecera grande, que repetiría el título del menú.
+  const inbox = renderSopInbox(state);
+  const compact = !canUploadSop() && Boolean(inbox);
+  return `<section class="sop-version-panel ${compact ? "is-compact" : ""}" aria-labelledby="sop-version-title"><div class="sop-version-manager-header"><div class="section-heading"><div class="section-title"><span class="heading-icon material-symbols-rounded" aria-hidden="true">${getSopSectionIcon()}</span><div><p class="eyebrow sop-version-access-badge"><span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>${escapeHtml(describeSopFunctions())}</p><h2 id="sop-version-title">${escapeHtml(getSopSectionLabel())}</h2></div></div></div>
     ${canUploadSop() ? `    <form class="sop-version-form sop-version-upload-form" id="sop-version-upload-form"><input class="sop-pdf-native-input" name="pdf" type="file" accept="application/pdf,.pdf" aria-label="Seleccionar archivo PDF de la SOP" />
       <div class="sop-version-actions"><button class="button button--outlined" type="button" data-action="choose-sop-pdf" ${state.sopVersionBusy || state.sopDraft ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">upload_file</span>Subir SOP PDF</button><button class="button button--primary" type="submit" ${state.sopVersionBusy || !state.sopUploadFile || state.sopDraft ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.sopVersionBusy ? "hourglass_top" : "manage_search"}</span>${state.sopVersionBusy ? "Extrayendo SOP…" : "Extraer SOP"}</button><small data-sop-pdf-name>${escapeHtml(state.sopDraft?.pdf?.name || state.sopUploadFile?.name || state.sopUploadFileName || "Selecciona un archivo PDF")}</small></div>
       ${error}</form>` : ""}</div>
-    ${renderSopInbox(state)}
+    ${inbox}
     ${canUploadSop() || canManageSopVersions() ? renderSopCatalog(state) : ""}
-    <p class="sop-version-warning">Las revisiones, estaciones y disponibilidad se guardan en el servidor y las ven todos los equipos. Las evidencias anteriores conservan la versión utilizada.</p>
+    ${canUploadSop() || canManageSopVersions() ? '<p class="sop-version-warning">Las revisiones, estaciones y disponibilidad se guardan en el servidor y las ven todos los equipos. Las evidencias anteriores conservan la versión utilizada.</p>' : ""}
   </section>`;
 }
 
