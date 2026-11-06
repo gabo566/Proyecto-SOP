@@ -122,3 +122,8 @@
 /* Recuadro completo remarcado: las cuatro esquinas y lados con el mismo borde azul, también al pasar el cursor. */
 .uh .uh-card, .uh .uh-card[data-role="admin"], .uh .uh-card[data-review="true"], .uh .uh-card[data-publish="true"], .uh .uh-card.is-inactive, .uh .uh-card[data-active="false"] { border: 5px solid #2f4f84; }
 .uh .uh-card:hover { border-color: #2f4f84; }
+/* Líneas más marcadas: borde exterior en azul marino y separadores internos más visibles. */
+.uh .uh-card, .uh .uh-card[data-role="admin"], .uh .uh-card[data-review="true"], .uh .uh-card[data-publish="true"], .uh .uh-card.is-inactive, .uh .uh-card[data-active="false"] { border-color: #1b2940; }
+.uh .uh-card:hover { border-color: #1b2940; }
+.uh .uh-card-head { border-bottom: 2px solid rgb(27 41 64 / 35%); }
+.uh .uh-card-actions { border-top: 2px solid rgb(27 41 64 / 35%); }
