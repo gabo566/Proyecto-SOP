@@ -13,12 +13,17 @@ function renderSidebar(state) {
   const visibleItems = NAV_ITEMS.filter((item) => item.id !== "users" || role === "admin")
     .filter((item) => item.id !== "reports" || ["supervisor", "admin"].includes(role))
     .filter((item) => item.id !== "sop-admin" || canAccessSopAdmin(user));
-  const navItems = visibleItems.map((item) => `
+  // Contador de la bandeja de revisión: SOP devueltas para quien las subió y pendientes por revisar o publicar.
+  const inboxCount = typeof getSopInboxCount === "function" && canAccessSopAdmin(user) ? getSopInboxCount(state) : 0;
+  const navItems = visibleItems.map((item) => {
+    const badge = item.id === "sop-admin" && inboxCount ? `<b class="nav-badge" aria-label="${inboxCount} pendientes en la bandeja de revisión">${inboxCount}</b>` : "";
+    return `
     <button class="nav-item ${state.activeSection === item.id ? "nav-item--active" : ""}"
       type="button" data-action="navigate" data-nav-id="${item.id}" data-focus-key="nav-${item.id}"
       aria-current="${state.activeSection === item.id ? "page" : "false"}">
-      <span class="material-symbols-rounded" aria-hidden="true">${item.icon}</span><span>${item.label}</span>
-    </button>`).join("");
+      <span class="material-symbols-rounded" aria-hidden="true">${item.icon}</span><span>${item.label}</span>${badge}
+    </button>`;
+  }).join("");
 
   return `${state.navOpen ? '<button class="nav-scrim" type="button" aria-label="Cerrar menú" data-action="close-menu"></button>' : ""}
     <aside class="sidebar ${state.navOpen ? "sidebar--open" : ""}" aria-label="Navegación principal">

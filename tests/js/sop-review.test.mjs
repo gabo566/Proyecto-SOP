@@ -23,8 +23,8 @@ test("una revisión sin estado se considera publicada", () => {
   assert.equal(context.getSopVersionStatus(version()), "pending_review");
 });
 
-test("quien sube la revisión también puede revisarla", () => {
-  assert.equal(context.getSopWorkflowBlock(version(), "review", user(1, "sop.review")), "");
+test("quien sube la revisión no puede revisarla: la revisa otra persona", () => {
+  assert.equal(context.getSopWorkflowBlock(version(), "review", user(1, "sop.review")), "Tú subiste esta revisión: la debe revisar otra persona.");
   assert.equal(context.getSopWorkflowBlock(version(), "review", user(2, "sop.review")), "");
 });
 

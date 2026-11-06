@@ -23,7 +23,7 @@ let sopWsGlobalsBound = false;
 function createSopWsState(state) {
   return {
     draftId: state.sopDraft.id, state, root: null, host: null,
-    procedureIndex: Math.max(0, state.sopDraft.procedures.findIndex((procedure) => procedure.steps.length)), stepIndex: 0, tool: "select", tab: "steps", selectedId: null, zoom: 1, dash: "solid", width: 8,
+    procedureIndex: Math.max(0, state.sopDraft.procedures.findIndex((procedure) => procedure.steps.length)), stepIndex: 0, tool: "select", tab: state.sopDraft.reviewFeedback ? "review" : "steps", selectedId: null, zoom: 1, dash: "solid", width: 8,
     colors: { arrow: "#d31e27", box: "#d31e27", highlight: "#ffe14d", number: "#d31e27", note: "#f0a020", text: "#d31e27" },
     history: new Map(), drag: null, renderSeq: 0, aspect: SOP_PAGE_ASPECT, vp: null, natural: null,
     textEdit: null, fieldSnapshot: null, space: false, busy: false, nudgeAt: 0, thumbChain: Promise.resolve(),
@@ -96,7 +96,8 @@ function buildSopWorkspaceShell() {
         <p class="sop-ws-hint" role="status" data-ws-hint></p>
         <div class="sop-ws-viewport" data-ws-viewport>
           <div class="sop-ws-page" data-ws-page><canvas data-ws-canvas></canvas>
-            <svg class="sop-ws-overlay" data-ws-overlay viewBox="0 0 1000 772" preserveAspectRatio="none" tabindex="0" aria-label="Lienzo de anotaciones"></svg></div>
+            <svg class="sop-ws-overlay" data-ws-overlay viewBox="0 0 1000 772" preserveAspectRatio="none" tabindex="0" aria-label="Lienzo de anotaciones"></svg>
+            <svg class="srm-overlay srm-overlay--editor" data-ws-review-overlay viewBox="0 0 1000 772" preserveAspectRatio="none" aria-hidden="true" hidden></svg></div>
           <p class="sop-ws-status" data-ws-status role="status">Cargando hoja…</p>
         </div>
       </section>
@@ -321,6 +322,8 @@ async function paintSopWsPage() {
     if (sequence !== ws.renderSeq || !canvas.isConnected) return;
     ws.vp = viewport;
     ws.page = page;
+    // SOP devuelta: encima se ven, en ámbar y sin poder editarlas, las marcas que dejó el revisor.
+    if (typeof paintSopFeedbackOverlay === "function") paintSopFeedbackOverlay(root, draft, procedure, ws.aspect);
     status.hidden = true;
     paintSopWsOverlay();
   } catch (error) {
@@ -478,8 +481,10 @@ function renderSopWsInspector() {
   if (!ws?.root) return;
   const procedure = sopWsProcedure();
   ws.stepIndex = Math.min(ws.stepIndex, Math.max(0, procedure.steps.length - 1));
-  const tabs = [["steps", "Pasos"], ["marks", `Marcas · ${(procedure.annotations ?? []).length}`], ["sheet", "Hoja"]];
-  const body = ws.tab === "marks" ? sopWsMarksTabHtml() : ws.tab === "sheet" ? sopWsSheetTabHtml() : sopWsStepsTabHtml();
+  const feedback = ws.state.sopDraft?.reviewFeedback;
+  const reviewerMarks = (feedback?.marks ?? []).filter((mark) => mark.procedureId === procedure.id).length;
+  const tabs = [...(feedback ? [["review", `Revisor · ${reviewerMarks}`]] : []), ["steps", "Pasos"], ["marks", `Marcas · ${(procedure.annotations ?? []).length}`], ["sheet", "Hoja"]];
+  const body = ws.tab === "review" && feedback ? renderSopFeedbackPanel(ws.state.sopDraft, procedure.id) : ws.tab === "marks" ? sopWsMarksTabHtml() : ws.tab === "sheet" ? sopWsSheetTabHtml() : sopWsStepsTabHtml();
   ws.root.querySelector("[data-ws-inspector]").innerHTML = `<div class="sop-flow-tabs" role="tablist">${tabs.map(([id, label]) => `<button type="button" role="tab" class="sop-flow-tab ${ws.tab === id ? "is-on" : ""}" data-ws-tab="${id}" aria-selected="${ws.tab === id}">${label}</button>`).join("")}</div><div class="sop-flow-pane">${body}</div>`;
   updateSopWsStepNav();
 }

@@ -1,0 +1,79 @@
+/* Marcas del revisor sobre las hojas, bandeja de revisión y contador del menú. */
+:root { --srm-mark: #c2410c; --srm-mark-soft: rgb(234 88 12 / 14%); --srm-ink: #1b2a3f; --srm-muted: #5b6b80; --srm-line: #dbe3ef; }
+
+/* ---- Visor de hojas ---- */
+.srm-card { display: grid; gap: 12px; }
+.srm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.srm-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 1.5px solid var(--srm-line); border-radius: 999px; color: #2a3a57; background: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.srm-chip b { padding: 0 7px; border-radius: 999px; color: #fff; background: var(--srm-mark); font-size: 11.5px; }
+.srm-chip.is-on { border-color: #1b2940; color: #fff; background: #1b2940; }
+.srm-chip:active { transform: scale(.97); }
+.srm-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.srm-tool { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 12px; border: 1.5px solid var(--srm-line); border-radius: 10px; color: var(--srm-ink); background: #fff; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.srm-tool .material-symbols-rounded { font-size: 19px; }
+.srm-tool.is-on { border-color: var(--srm-mark); color: #fff; background: var(--srm-mark); }
+.srm-tool:disabled { opacity: .5; cursor: not-allowed; }
+.srm-text { flex: 1 1 260px; min-height: 38px; padding: 0 12px; border: 1.5px solid #c7d3e3; border-radius: 10px; font: inherit; font-size: 13.5px; }
+.srm-text:focus-visible { outline: 3px solid rgb(234 88 12 / 25%); border-color: var(--srm-mark); }
+.srm-hint { margin: -4px 0 0; color: var(--srm-muted); font-size: 12.5px; font-weight: 600; }
+.srm-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 300px); gap: 14px; align-items: start; }
+.srm-stage { position: relative; overflow: hidden; border: 1px solid var(--srm-line); border-radius: 10px; background: #f4f6fa; touch-action: none; user-select: none; min-height: 200px; }
+.srm-stage.is-editable { cursor: crosshair; }
+.srm-img { display: block; width: 100%; height: auto; }
+.srm-loading { margin: 0; padding: 60px 16px; color: var(--srm-muted); font-weight: 700; text-align: center; }
+.srm-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.srm-overlay--editor { z-index: 2; }
+.srm-box { fill: var(--srm-mark-soft); stroke: var(--srm-mark); stroke-width: 4; vector-effect: non-scaling-stroke; }
+.srm-arrow { stroke: var(--srm-mark); stroke-width: 4; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.srm-preview { stroke-dasharray: 8 6; }
+.srm-badge circle, .srm-note circle { fill: var(--srm-mark); stroke: #fff; stroke-width: 3; }
+.srm-badge text, .srm-note text { fill: #fff; font: 800 18px "Segoe UI", system-ui, sans-serif; }
+.srm-side { display: grid; gap: 8px; }
+.srm-side-title { margin: 0; color: var(--srm-ink); font-size: 13.5px; font-weight: 800; }
+.srm-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.srm-list li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: start; gap: 8px; padding: 8px 10px; border: 1px solid #f1d2bd; border-radius: 10px; background: #fff8f2; color: #3b2a1c; font-size: 13px; }
+.srm-num { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #fff; background: var(--srm-mark); font-size: 12px; font-weight: 800; }
+.srm-del { display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 8px; color: #8a2a2a; background: transparent; cursor: pointer; }
+.srm-del:hover { background: #fde2e2; }
+.srm-empty { margin: 0; padding: 12px; border: 1.5px dashed var(--srm-line); border-radius: 10px; color: var(--srm-muted); font-size: 13px; font-weight: 600; text-align: center; }
+
+/* ---- Comentarios del revisor (editor de una SOP devuelta) ---- */
+.srm-feedback { display: grid; gap: 8px; }
+.srm-feedback-title { display: flex; align-items: center; gap: 8px; margin: 0; color: #8a3b0b; font-size: 14px; font-weight: 800; }
+.srm-feedback-note { margin: 0; padding: 10px 12px; border-left: 4px solid var(--srm-mark); border-radius: 0 10px 10px 0; background: #fff4ea; color: #3b2a1c; font-size: 13.5px; }
+
+/* ---- Historial de rondas ---- */
+.srm-history { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.srm-history li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; padding: 10px 12px; border: 1px solid var(--srm-line); border-radius: 10px; background: #fff; }
+.srm-history li > .material-symbols-rounded { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: #fff; background: #2f8f4a; font-size: 18px; }
+.srm-history li.is-returned > .material-symbols-rounded { background: var(--srm-mark); }
+.srm-history b { display: block; color: var(--srm-ink); font-size: 13.5px; }
+.srm-history small { color: var(--srm-muted); font-size: 12px; font-weight: 600; }
+.srm-history p { margin: 6px 0 0; color: #33445d; font-size: 13px; }
+
+/* ---- Bandeja de revisión ---- */
+.sop-inbox { display: grid; gap: 12px; padding: 18px 20px; border: 1px solid #dbe3ef; border-top: 5px solid #1b2940; border-radius: 14px; background: #fff; box-shadow: 0 2px 10px rgb(27 41 64 / 7%); }
+.sop-inbox-head h3 { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--srm-ink); font-size: 18px; font-weight: 800; }
+.sop-inbox-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.sop-inbox-tab { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 1.5px solid var(--srm-line); border-radius: 999px; color: #2a3a57; background: #fff; font: inherit; font-size: 13.5px; font-weight: 800; cursor: pointer; }
+.sop-inbox-tab b { padding: 1px 8px; border-radius: 999px; color: #3a4a66; background: #e6ecf6; font-size: 12px; }
+.sop-inbox-tab.has-items b { color: #fff; background: var(--srm-mark); }
+.sop-inbox-tab.is-on { border-color: #1b2940; color: #fff; background: #1b2940; }
+.sop-inbox-tab.is-on b { color: #1b2940; background: #fff; }
+.sop-inbox-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.sop-inbox-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--srm-line); border-radius: 12px; background: #f8fafc; }
+.sop-inbox-row strong { display: block; color: var(--srm-ink); font-size: 14px; }
+.sop-inbox-row small { display: block; margin-top: 3px; color: var(--srm-muted); font-size: 12.5px; font-weight: 600; }
+.sop-inbox-note { color: #7a3a10 !important; }
+.sop-inbox-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.sop-inbox-empty { margin: 0; padding: 18px; border: 1.5px dashed var(--srm-line); border-radius: 12px; color: var(--srm-muted); font-weight: 700; text-align: center; }
+
+/* ---- Contador en el menú ---- */
+.nav-item { position: relative; }
+.nav-badge { margin-left: auto; min-width: 22px; padding: 1px 7px; border-radius: 999px; color: #fff; background: #c2410c; font-size: 12px; font-weight: 800; text-align: center; box-shadow: 0 0 0 2px rgb(255 255 255 / 85%); }
+
+@media (max-width: 900px) {
+  .srm-body { grid-template-columns: minmax(0, 1fr); }
+  .sop-inbox-row { grid-template-columns: minmax(0, 1fr); }
+  .sop-inbox-actions { justify-content: flex-start; }
+}

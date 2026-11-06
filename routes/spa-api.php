@@ -37,6 +37,7 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
     Route::post('/card-events/batch', [CardEventController::class, 'batch']);
     Route::get('/card-events/report', [CardEventController::class, 'report']);
     Route::get('/sop-versions', [SopVersionController::class, 'index']);
+    Route::get('/sop-versions/mine/summary', [SopVersionController::class, 'summary']);
     Route::get('/sop-versions/{version}/pdf', [SopVersionController::class, 'pdf']);
     Route::get('/sop-catalog', [SopCatalogController::class, 'index']);
     Route::get('/sop-roles', [SopVersionController::class, 'roles']);

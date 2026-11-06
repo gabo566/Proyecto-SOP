@@ -13,7 +13,7 @@ function getSopVersionStatus(version) {
   return version?.status ?? "published";
 }
 
-// Revisar: el revisor y el editor (también sobre lo que ellos mismos suben).
+// Revisar: el revisor y el editor, siempre sobre lo que subió otra persona.
 function canReviewSop(user = getActiveLocalUser()) {
   return canUserDo("sop.review", user) || canManageSopVersions(user);
 }
@@ -42,6 +42,7 @@ function getSopWorkflowBlock(version, action, user = getActiveLocalUser()) {
   if (action === "review") {
     if (!canReviewSop(user)) return "Tu cuenta no tiene la función de revisor.";
     if (status !== "pending_review") return "Esta revisión ya no está pendiente de revisión.";
+    if (sameSopPerson(user.id, version.submittedById)) return "Tú subiste esta revisión: la debe revisar otra persona.";
     return "";
   }
   if (!canPublishSop(user)) return "Tu cuenta no tiene la función de publicador.";
@@ -62,7 +63,8 @@ function renderSopWorkflowActions(version) {
   if (status === "published" || version.id === BUILT_IN_SOP_VERSION_ID) return "";
   const user = getActiveLocalUser();
   const button = (mode, label, icon, primary = false) => `<button class="text-button sop-workflow-button ${primary ? "sop-workflow-button--primary" : ""}" type="button" data-action="sop-review-open" data-version-id="${escapeHtml(version.id)}" data-mode="${mode}"><span class="material-symbols-rounded" aria-hidden="true">${icon}</span>${label}</button>`;
-  if (status === "pending_review" && canReviewSop(user)) return button("review", "Revisar", "rate_review", !getSopWorkflowBlock(version, "review"));
+  if (status === "rejected" && isMySopVersion(version, user)) return `<button class="text-button sop-workflow-button sop-workflow-button--primary" type="button" data-action="sop-resubmit-open" data-version-id="${escapeHtml(version.id)}"><span class="material-symbols-rounded" aria-hidden="true">edit_document</span>Corregir y reenviar</button>${button("view", "Ver detalle", "visibility")}`;
+  if (status === "pending_review" && canReviewSop(user) && !isMySopVersion(version, user)) return button("review", "Revisar", "rate_review", !getSopWorkflowBlock(version, "review"));
   if (status === "approved" && canPublishSop(user)) return button("publish", "Publicar", "rocket_launch", !getSopWorkflowBlock(version, "publish"));
   return button("view", "Ver detalle", "visibility");
 }
@@ -116,17 +118,19 @@ function renderSopReviewScreen(state) {
   if (mode === "review") {
     decision = `<section class="sop-flow-card"><h3 class="sop-flow-h3">Tu revisión</h3>
       ${block ? `<p class="sop-flow-notice"><span class="material-symbols-rounded" aria-hidden="true">block</span>${escapeHtml(block)}</p>` : ""}
-      <label class="sop-review-note"><span>Comentarios <small>(obligatorios si la devuelves)</small></span><textarea id="sop-review-note" rows="4" maxlength="1000" placeholder="Escribe qué revisaste o qué debe corregirse" ${block ? "disabled" : ""}></textarea></label>
+      <label class="sop-review-note"><span>Comentario general <small>(si la devuelves, escribe un comentario o deja marcas en las hojas)</small></span><textarea id="sop-review-note" rows="4" maxlength="1000" placeholder="Escribe qué revisaste o qué debe corregirse" ${block ? "disabled" : ""}>${escapeHtml(state.sopReviewNoteDraft ?? "")}</textarea></label>
       <div class="sop-review-decide"><button class="sop-flow-btn sop-flow-btn--green" type="button" data-action="sop-review-decide" data-decision="approve" ${block || state.sopVersionBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">task_alt</span>Aprobar</button>
-        <button class="sop-flow-btn sop-flow-btn--amber" type="button" data-action="sop-review-decide" data-decision="reject" ${block || state.sopVersionBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">undo</span>Devolver con comentarios</button></div></section>`;
+        <button class="sop-flow-btn sop-flow-btn--amber" type="button" data-action="sop-review-decide" data-decision="reject" ${block || state.sopVersionBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">undo</span>Devolver con comentarios${(state.sopReviewMarks ?? []).length ? ` y ${(state.sopReviewMarks ?? []).length} ${(state.sopReviewMarks ?? []).length === 1 ? "marca" : "marcas"}` : ""}</button></div></section>`;
   } else if (mode === "publish") {
     decision = `<section class="sop-flow-card"><h3 class="sop-flow-h3">Publicación</h3>
       ${block ? `<p class="sop-flow-notice"><span class="material-symbols-rounded" aria-hidden="true">block</span>${escapeHtml(block)}</p>` : '<p class="sop-flow-sub" style="margin:0 0 10px">Al publicarla podrá habilitarse para las estaciones. Esta acción queda registrada a tu nombre.</p>'}
       ${version.reviewNote ? `<p class="sop-review-quote"><b>${escapeHtml(version.reviewedBy ?? "Revisor")}:</b> ${escapeHtml(version.reviewNote)}</p>` : ""}
       <button class="sop-flow-btn sop-flow-btn--green" type="button" data-action="sop-publish-version" ${block || state.sopVersionBusy ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${state.sopVersionBusy ? "hourglass_top" : "rocket_launch"}</span>${state.sopVersionBusy ? "Publicando…" : `Publicar Rev. ${escapeHtml(version.document.revision)}`}</button></section>`;
   } else {
+    const canResubmit = status === "rejected" && isMySopVersion(version);
     decision = `<section class="sop-flow-card"><h3 class="sop-flow-h3">Estado</h3><p class="sop-flow-sub" style="margin:0 0 8px">${(SOP_STATUS_INFO[status] ?? SOP_STATUS_INFO.published).hint}.</p>
-      ${version.reviewNote ? `<p class="sop-review-quote"><b>${escapeHtml(version.reviewedBy ?? "Revisor")}:</b> ${escapeHtml(version.reviewNote)}</p>` : ""}</section>`;
+      ${version.reviewNote ? `<p class="sop-review-quote"><b>${escapeHtml(version.reviewedBy ?? "Revisor")}:</b> ${escapeHtml(version.reviewNote)}</p>` : ""}
+      ${canResubmit ? `<button class="sop-flow-btn sop-flow-btn--green" type="button" data-action="sop-resubmit-open" data-version-id="${escapeHtml(version.id)}"><span class="material-symbols-rounded" aria-hidden="true">edit_document</span>Corregir y reenviar</button>` : ""}</section>`;
   }
   return `<section class="sop-flow sop-review" aria-label="Revisión de la SOP">
     <button class="sop-flow-link sop-review-back" type="button" data-action="sop-review-close"><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Volver al catálogo</button>
@@ -134,6 +138,10 @@ function renderSopReviewScreen(state) {
     ${renderSopQuickBar(version, mode, block, state)}
     ${state.sopDraftError ? `<p class="form-error sop-flow-error" role="alert">${escapeHtml(state.sopDraftError)}</p>` : ""}
     <section class="sop-flow-card">${renderSopReviewTracker(version)}</section>
+    ${mode === "review"
+      ? renderSopMarksViewer(version, { marks: state.sopReviewMarks ?? [], editable: !block, sheetIndex: state.sopReviewSheet ?? 0, tool: state.sopReviewTool ?? "box", text: state.sopReviewMarkText ?? "", heading: "Revisa las hojas y marca lo que deba corregirse" })
+      : sopReviewsOf(version).length ? renderSopMarksViewer(version, { marks: sopReviewsOf(version)[0].marks ?? [], sheetIndex: state.sopReviewSheet ?? 0, heading: `Marcas de ${escapeHtml(sopReviewsOf(version)[0].reviewerName ?? "el revisor")} · ronda ${escapeHtml(sopReviewsOf(version)[0].round)}` }) : ""}
+    ${renderSopReviewHistory(version)}
     <div class="sop-flow-kpis"><div class="sop-flow-kpi"><span>Cambios en total</span><strong>${summary.total ?? rows.length}</strong></div><div class="sop-flow-kpi"><span>Textos y números de pasos</span><strong>${summary.stepRows ?? 0}</strong></div><div class="sop-flow-kpi"><span>Marcas sobre las hojas</span><strong>${summary.markRows ?? 0}</strong></div><div class="sop-flow-kpi"><span>Hojas con pasos</span><strong>${version.procedures.length}</strong></div></div>
     <div class="sop-flow-split">
       <section class="sop-flow-card sop-flow-card--flush"><div class="sop-flow-card-head"><h3 class="sop-flow-h3">Qué cambió</h3>${rows.length > 10 ? `<button type="button" class="sop-flow-link" data-action="sop-review-toggle-rows">${showAll ? "Ver menos" : `Ver los ${rows.length} cambios`}</button>` : ""}</div>
@@ -166,6 +174,7 @@ function bindSopReview(app, { state, render, showToast }) {
   };
   const failureText = (result) => {
     const code = result.data?.code;
+    if (code === "own-version") return "Tú subiste esta revisión: la debe revisar otra persona.";
     if (code === "same-person") return "Una misma persona no puede hacer dos pasos del proceso: pídelo a otra persona.";
     if (code === "note-required") return "Escribe un comentario para devolver la revisión.";
     if (code === "not-pending" || code === "not-approved") return "La revisión cambió de estado; se actualizó la lista.";
@@ -181,6 +190,11 @@ function bindSopReview(app, { state, render, showToast }) {
       if (!canAccessSopAdmin()) return;
       state.sopReview = { id: action.dataset.versionId, mode: action.dataset.mode };
       state.sopReviewShowAll = false;
+      state.sopReviewMarks = [];
+      state.sopReviewSheet = 0;
+      state.sopReviewTool = "box";
+      state.sopReviewMarkText = "";
+      state.sopReviewNoteDraft = "";
       state.sopDraftError = "";
       render();
       window.scrollTo({ top: 0 });
@@ -208,8 +222,9 @@ function bindSopReview(app, { state, render, showToast }) {
       const publishing = name === "sop-publish-version";
       const decision = action.dataset.decision;
       const note = app.querySelector("#sop-review-note")?.value.trim() ?? "";
-      if (!publishing && decision === "reject" && !note) {
-        state.sopDraftError = "Escribe un comentario para devolver la revisión.";
+      const marks = state.sopReviewMarks ?? [];
+      if (!publishing && decision === "reject" && !note && !marks.length) {
+        state.sopDraftError = "Escribe un comentario o deja marcas en las hojas para devolver la revisión.";
         render();
         return;
       }
@@ -218,7 +233,7 @@ function bindSopReview(app, { state, render, showToast }) {
       render();
       const result = publishing
         ? await sopApi("POST", `/api/sop-versions/${encodeURIComponent(version.id)}/publish`)
-        : await sopApi("POST", `/api/sop-versions/${encodeURIComponent(version.id)}/review`, { decision, note });
+        : await sopApi("POST", `/api/sop-versions/${encodeURIComponent(version.id)}/review`, { decision, note, marks });
       state.sopVersionBusy = false;
       if (!result.ok) {
         state.sopDraftError = failureText(result);
@@ -230,9 +245,11 @@ function bindSopReview(app, { state, render, showToast }) {
       const label = `Rev. ${version.document.revision} · ${version.document.id}`;
       recordLocalAuditEvent(publishing ? "sop_version_published" : decision === "approve" ? "sop_version_approved" : "sop_version_returned", { details: label });
       state.sopReview = null;
+      state.sopReviewMarks = [];
+      state.sopReviewNoteDraft = "";
       showToast(publishing ? `Rev. ${version.document.revision} publicada. Ya puede habilitarse para las estaciones.`
         : decision === "approve" ? `Rev. ${version.document.revision} aprobada. Falta que una tercera persona la publique.`
-          : `Rev. ${version.document.revision} devuelta con tus comentarios.`);
+          : `Rev. ${version.document.revision} devuelta. ${version.submittedBy ?? "Quien la subió"} verá tus comentarios${marks.length ? ` y ${marks.length} ${marks.length === 1 ? "marca" : "marcas"}` : ""} en su bandeja.`);
       render();
       window.scrollTo({ top: 0 });
     }

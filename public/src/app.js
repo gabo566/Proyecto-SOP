@@ -236,6 +236,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   openDialog("profile", state.profileDialogOpen, profileDialog);
   restoreFocus(previousFocus, { focusDialog, initial }, state);
   if (typeof mountSopWorkspace === "function") mountSopWorkspace(state);
+  if (typeof hydrateSopMarksViewers === "function") hydrateSopMarksViewers(state);
   labelResponsiveTables(app);
   revealCurrentGuidedStep(false);
   const reportRecords = state.activeSection === "reports"

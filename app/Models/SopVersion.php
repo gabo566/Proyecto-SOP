@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SopVersion extends Model
 {
@@ -23,6 +24,12 @@ class SopVersion extends Model
     protected $keyType = 'string';
 
     protected $guarded = [];
+
+    /** Rondas de revisión (la más reciente primero). */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(SopVersionReview::class)->orderByDesc('round')->orderByDesc('id');
+    }
 
     protected function casts(): array
     {
@@ -57,6 +64,8 @@ class SopVersion extends Model
             'reviewedById' => $this->reviewed_by,
             'reviewedAt' => $this->reviewed_at?->toIso8601String(),
             'reviewNote' => $this->review_note,
+            'reviewRound' => $this->review_round ?? 1,
+            'reviews' => $this->relationLoaded('reviews') ? $this->reviews->map->toClientArray()->values()->all() : [],
             'publishedBy' => $this->published_by_name,
             'publishedById' => $this->published_by,
             'publishedAt' => $this->published_at?->toIso8601String(),

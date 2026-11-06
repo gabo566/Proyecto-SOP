@@ -70,13 +70,79 @@ class SopReviewWorkflowTest extends TestCase
         $this->getJson('/api/sop-versions')->assertJsonPath('versions.0.submittedBy', 'Persona 140784');
     }
 
-    public function test_quien_sube_la_revision_tambien_puede_revisarla_pero_no_publicarla(): void
+    public function test_quien_sube_la_revision_no_puede_revisarla_ni_publicarla(): void
     {
-        ['editor' => $editor, 'version' => $id] = $this->submittedVersion();
+        ['editor' => $editor, 'reviewer' => $reviewer, 'version' => $id] = $this->submittedVersion();
 
-        $this->actingAs($editor)->postJson("/api/sop-versions/{$id}/review", ['decision' => 'approve'])->assertOk();
+        $this->actingAs($editor)->postJson("/api/sop-versions/{$id}/review", ['decision' => 'approve'])
+            ->assertForbidden()->assertJsonPath('code', 'own-version');
+        $this->assertSame('pending_review', SopVersion::find($id)->status);
+
+        $this->actingAs($reviewer)->postJson("/api/sop-versions/{$id}/review", ['decision' => 'approve'])->assertOk();
         $this->actingAs($editor)->postJson("/api/sop-versions/{$id}/publish")->assertForbidden();
         $this->assertSame('approved', SopVersion::find($id)->status);
+    }
+
+    public function test_el_revisor_devuelve_con_marcas_y_quien_subio_corrige_y_reenvia(): void
+    {
+        ['editor' => $editor, 'reviewer' => $reviewer, 'version' => $id] = $this->submittedVersion();
+        $marks = [
+            ['procedureId' => 'sheet-5', 'type' => 'box', 'x' => 0.1, 'y' => 0.2, 'w' => 0.3, 'h' => 0.2, 'text' => 'Falta el torque'],
+            ['procedureId' => 'sheet-5', 'type' => 'note', 'x' => 0.6, 'y' => 0.4, 'text' => 'Revisar la foto'],
+        ];
+
+        $this->actingAs($reviewer)->postJson("/api/sop-versions/{$id}/review", ['decision' => 'reject', 'note' => 'Corrige la hoja 5.', 'marks' => $marks])
+            ->assertOk()->assertJsonPath('version.status', 'rejected')
+            ->assertJsonPath('version.reviews.0.round', 1)
+            ->assertJsonPath('version.reviews.0.marks.0.text', 'Falta el torque')
+            ->assertJsonCount(2, 'version.reviews.0.marks');
+
+        $this->actingAs($editor)->getJson('/api/sop-versions/mine/summary')->assertJsonPath('summary.returned', 1);
+
+        // Otra persona no puede reenviar la versión ajena: solo se actualiza su estación.
+        $payload = [
+            'id' => $id,
+            'document' => ['id' => 'SOP-X', 'title' => 'SOP corregida', 'revision' => '4', 'stationAssignment' => 'RWK:RWK'],
+            'procedures' => [['id' => 'sheet-5', 'sheet' => 5, 'steps' => [['number' => '5.1', 'text' => 'Paso corregido']]]],
+        ];
+        $this->actingAs($reviewer)->post('/api/sop-versions', ['version' => json_encode($payload)], ['Accept' => 'application/json'])
+            ->assertOk()->assertJsonPath('version.status', 'rejected')->assertJsonPath('version.document.title', 'SOP de prueba');
+
+        // Quien la subió corrige y reenvía con el mismo id: vuelve a revisión como ronda 2.
+        $this->actingAs($editor)->post('/api/sop-versions', ['version' => json_encode($payload)], ['Accept' => 'application/json'])
+            ->assertOk()->assertJsonPath('version.status', 'pending_review')->assertJsonPath('version.reviewRound', 2)
+            ->assertJsonPath('version.document.title', 'SOP corregida')
+            ->assertJsonPath('version.reviews.0.decision', 'rejected');
+
+        $this->actingAs($reviewer)->postJson("/api/sop-versions/{$id}/review", ['decision' => 'approve'])
+            ->assertOk()->assertJsonPath('version.reviews.0.round', 2)->assertJsonCount(2, 'version.reviews');
+    }
+
+    public function test_una_version_aprobada_o_publicada_no_cambia_de_contenido(): void
+    {
+        ['editor' => $editor, 'reviewer' => $reviewer, 'version' => $id] = $this->submittedVersion();
+        $this->actingAs($reviewer)->postJson("/api/sop-versions/{$id}/review", ['decision' => 'approve'])->assertOk();
+
+        $payload = [
+            'id' => $id,
+            'document' => ['id' => 'SOP-X', 'title' => 'Otro título', 'revision' => '4', 'stationAssignment' => 'MFG:TDR'],
+            'procedures' => [['id' => 'sheet-9', 'sheet' => 9, 'steps' => []]],
+        ];
+        $this->actingAs($editor)->post('/api/sop-versions', ['version' => json_encode($payload)], ['Accept' => 'application/json'])
+            ->assertOk()->assertJsonPath('version.status', 'approved')
+            ->assertJsonPath('version.document.title', 'SOP de prueba')
+            ->assertJsonPath('version.document.stationAssignment', 'MFG:TDR')
+            ->assertJsonPath('version.procedures.0.id', 'sheet-5');
+    }
+
+    public function test_las_marcas_del_revisor_se_validan(): void
+    {
+        ['reviewer' => $reviewer, 'version' => $id] = $this->submittedVersion();
+
+        $this->actingAs($reviewer)->postJson("/api/sop-versions/{$id}/review", [
+            'decision' => 'reject', 'note' => 'x',
+            'marks' => [['procedureId' => 'sheet-5', 'type' => 'circle', 'x' => 2, 'y' => 0.1]],
+        ])->assertStatus(422)->assertJsonValidationErrors(['marks.0.type', 'marks.0.x']);
     }
 
     public function test_el_publicador_no_sube_ni_revisa(): void

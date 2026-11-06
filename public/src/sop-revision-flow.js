@@ -45,7 +45,8 @@ function renderSopFlowPrepare(state, draft, error) {
     .join("");
   const notice = state.sopDraftNotice ? `<p class="sop-flow-notice"><span class="material-symbols-rounded" aria-hidden="true">info</span>${escapeHtml(state.sopDraftNotice)}</p>` : "";
   return `<div class="sop-flow-stack">
-    <section class="sop-flow-card sop-flow-card--head"><div><h2 class="sop-flow-title">${fromRevision ? "Nueva revisión de la SOP" : "Revisa la SOP extraída"}</h2><p class="sop-flow-sub">${fromRevision ? "Confirma los datos de la revisión y elige qué quieres hacer." : `Se detectaron ${stepCount} pasos en ${sheetsWithSteps} hojas del archivo ${escapeHtml(draft.pdf?.name ?? "PDF")}. Confirma los datos antes de editar.`}</p></div>
+    ${draft.resubmit ? `<section class="sop-flow-card">${renderSopFeedbackPanel(draft)}</section>` : ""}
+    <section class="sop-flow-card sop-flow-card--head"><div><h2 class="sop-flow-title">${draft.resubmit ? "Corrige la SOP devuelta" : fromRevision ? "Nueva revisión de la SOP" : "Revisa la SOP extraída"}</h2><p class="sop-flow-sub">${fromRevision ? "Confirma los datos de la revisión y elige qué quieres hacer." : `Se detectaron ${stepCount} pasos en ${sheetsWithSteps} hojas del archivo ${escapeHtml(draft.pdf?.name ?? "PDF")}. Confirma los datos antes de editar.`}</p></div>
       <span class="sop-flow-chip"><span class="material-symbols-rounded" aria-hidden="true">description</span>${escapeHtml(document.id)}${fromRevision && state.sopDraft.basedOnRevision ? ` · Rev. ${escapeHtml(state.sopDraft.basedOnRevision)}` : ""} · ${sheetsWithSteps} hojas · ${stepCount} pasos</span></section>
     ${notice}${error}
     <section class="sop-flow-card"><div class="sop-flow-fields">
@@ -92,6 +93,7 @@ function renderSopFlowReview(state, draft, error) {
     <section class="sop-flow-card sop-flow-card--head"><div><h2 class="sop-flow-title">${revisionOk ? `Revisión ${escapeHtml(draft.document.revision)} lista para revisar` : "Falta el número de revisión"}</h2><p class="sop-flow-sub">${escapeHtml(draft.document.title)}${stationOk ? ` · Estación ${escapeHtml(stationLabel)}` : ""}</p></div>
       <span class="sop-flow-chip sop-flow-chip--warn"><span class="material-symbols-rounded" aria-hidden="true">groups</span>Otra persona la revisa y una tercera la publica</span></section>
     ${error}
+    ${draft.resubmit ? `<section class="sop-flow-card">${renderSopFeedbackPanel(draft)}</section>` : ""}
     <div class="sop-flow-kpis"><div class="sop-flow-kpi"><span>Cambios en total</span><strong>${summary.rows.length}</strong></div><div class="sop-flow-kpi"><span>Textos y números de pasos</span><strong>${summary.stepRows}</strong></div><div class="sop-flow-kpi"><span>Marcas sobre las hojas</span><strong>${summary.markRows}</strong></div><div class="sop-flow-kpi"><span>Hojas revisadas</span><strong>${summary.reviewed} <small>de ${summary.total}</small></strong></div></div>
     <div class="sop-flow-split">
       <section class="sop-flow-card sop-flow-card--flush"><div class="sop-flow-card-head"><h3 class="sop-flow-h3">Qué cambió</h3>${summary.rows.length > 8 ? `<button type="button" class="sop-flow-link" data-action="sop-flow-toggle-changes">${state.sopFlowShowAll ? "Ver menos" : `Ver los ${summary.rows.length} cambios`}</button>` : ""}</div>

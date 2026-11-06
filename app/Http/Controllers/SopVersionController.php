@@ -22,8 +22,14 @@ class SopVersionController extends Controller
     {
         return response()->json([
             'ok' => true,
-            'versions' => SopVersion::orderByDesc('created_at')->get()->map->toClientArray()->values(),
+            'versions' => SopVersion::with('reviews')->orderByDesc('created_at')->get()->map->toClientArray()->values(),
         ]);
+    }
+
+    /** Contadores para el menú: devueltas y en revisión de quien consulta, y pendientes por revisar o publicar. */
+    public function summary(Request $request): JsonResponse
+    {
+        return response()->json(['ok' => true, 'summary' => $this->versions->summaryFor($request->user())]);
     }
 
     /**
@@ -36,7 +42,7 @@ class SopVersionController extends Controller
         return $user !== null && ($user->hasPermissionTo(Permission::SOP_MANAGE) || $user->hasPermissionTo(Permission::SOP_REVIEW));
     }
 
-    /** Quien revisa: el editor o el revisor, también sobre lo que él mismo subió. */
+    /** Quien revisa: el editor o el revisor; nunca sobre lo que él mismo subió (lo valida el servicio). */
     private function canReview(?User $user): bool
     {
         return $this->canUpload($user);
@@ -74,7 +80,7 @@ class SopVersionController extends Controller
             $request->user(),
         );
 
-        return response()->json(['ok' => true, 'version' => $saved->toClientArray()]);
+        return response()->json(['ok' => true, 'version' => $saved->load('reviews')->toClientArray()]);
     }
 
     public function review(Request $request, SopVersion $version): JsonResponse
@@ -84,9 +90,28 @@ class SopVersionController extends Controller
         $data = $request->validate([
             'decision' => ['required', 'string', 'in:approve,reject'],
             'note' => ['nullable', 'string', 'max:1000'],
+            // Marcas del revisor sobre las hojas (capa de revisión; el operador no las ve).
+            'marks' => ['nullable', 'array', 'max:200'],
+            'marks.*.procedureId' => ['required', 'string', 'max:120'],
+            'marks.*.type' => ['required', 'string', 'in:note,box,arrow'],
+            'marks.*.x' => ['required', 'numeric', 'between:0,1'],
+            'marks.*.y' => ['required', 'numeric', 'between:0,1'],
+            'marks.*.w' => ['nullable', 'numeric', 'between:-1,1'],
+            'marks.*.h' => ['nullable', 'numeric', 'between:-1,1'],
+            'marks.*.text' => ['nullable', 'string', 'max:300'],
         ]);
 
-        $result = $this->versions->review($version, $request->user(), $data['decision'], $data['note'] ?? null);
+        $marks = array_map(fn (array $mark) => [
+            'procedureId' => $mark['procedureId'],
+            'type' => $mark['type'],
+            'x' => round((float) $mark['x'], 4),
+            'y' => round((float) $mark['y'], 4),
+            'w' => round((float) ($mark['w'] ?? 0), 4),
+            'h' => round((float) ($mark['h'] ?? 0), 4),
+            'text' => trim((string) ($mark['text'] ?? '')),
+        ], $data['marks'] ?? []);
+
+        $result = $this->versions->review($version, $request->user(), $data['decision'], $data['note'] ?? null, $marks);
 
         return $this->workflowResponse($result);
     }
@@ -115,10 +140,10 @@ class SopVersionController extends Controller
     private function workflowResponse(string|SopVersion $result): JsonResponse
     {
         if (is_string($result)) {
-            return response()->json(['ok' => false, 'code' => $result], $result === 'same-person' ? 403 : 422);
+            return response()->json(['ok' => false, 'code' => $result], in_array($result, ['same-person', 'own-version'], true) ? 403 : 422);
         }
 
-        return response()->json(['ok' => true, 'version' => $result->toClientArray()]);
+        return response()->json(['ok' => true, 'version' => $result->loadMissing('reviews')->toClientArray()]);
     }
 
     public function destroy(SopVersion $version): JsonResponse
