@@ -179,3 +179,23 @@
 .uh .uh-table thead th { color: #4b5a74; background: #f4f6fa; border-bottom: 1px solid #d3dbe7; }
 .uh .uh-table tbody td { border-bottom: 1px solid #e3e8f0; }
 .uh .uh-expand > td { border-bottom: 1px solid #e3e8f0; }
+
+/* Tabla de usuarios: encabezados y contenido centrados, filas con más aire, función y botón en la misma fila. */
+.uh .uh-table thead th, .uh .uh-table thead th.uh-col-actions { text-align: center; padding: 16px 22px; }
+.uh .uh-table tbody td { text-align: center; padding: 20px 22px; }
+.uh .uh-table tbody td.uh-col-user { text-align: center; }
+.uh .uh-person { justify-content: center; }
+.uh .uh-person .uh-card-id { text-align: left; }
+.uh .uh-col-actions { width: 200px; }
+.uh .uh-funcs-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; }
+.uh .uh-funcs { justify-content: center; margin: 0; gap: 6px; }
+.uh .uh-table .uh-sop--tab { display: inline-block; width: auto; }
+.uh .uh-actions { justify-content: center; gap: 10px; }
+.uh .uh-table tbody td.uh-col-actions { text-align: center; }
+.uh .uh-funcs-row > * { flex: 0 0 auto; width: auto; }
+.uh .uh-funcs { display: inline-flex; }
+.uh .uh-person .uh-card-id span { white-space: normal; overflow: visible; text-overflow: clip; }
+.uh .uh-col-funcs { min-width: 290px; padding-left: 16px; padding-right: 16px; }
+.uh .uh-funcs-row { flex-wrap: nowrap; gap: 8px; }
+.uh .uh-sop-toggle { white-space: nowrap; padding: 0 10px; }
+.uh .uh-person .uh-card-id strong { white-space: normal; overflow: visible; text-overflow: clip; }

@@ -301,14 +301,14 @@ function renderUserRow(user, view, canGrant) {
     <td class="uh-col-user"><div class="uh-person">${renderProfileAvatar(user, "profile-avatar uh-avatar")}<div class="uh-card-id"><strong>${name}</strong><span>N.º ${escapeHtml(user.employeeNumber)} · ${escapeHtml(user.position || "Técnico de FA")}</span></div></div></td>
     <td class="uh-col-status"><span class="uh-status ${user.active ? "is-active" : ""}"><i aria-hidden="true"></i>${user.active ? "Activo" : "Desactivado"}</span></td>
     <td class="uh-col-type"><span class="uh-chip uh-chip--role ${user.role === "admin" ? "is-admin" : ""}">${roleLabel}</span></td>
-    <td class="uh-col-funcs"><div class="uh-funcs">${functions}</div>
+    <td class="uh-col-funcs"><div class="uh-funcs-row"><div class="uh-funcs">${functions}</div>
       <section class="uh-sop uh-sop--tab ${sopOpen ? "is-open" : ""}" aria-label="Funciones en la SOP de ${name}">
         <button class="uh-sop-toggle" type="button" data-action="users-sop-toggle" data-user-id="${id}" aria-expanded="${sopOpen}" aria-controls="uh-sop-${id}"><span class="material-symbols-rounded" aria-hidden="true">tune</span>Editar funciones<span class="material-symbols-rounded uh-sop-chevron" aria-hidden="true">expand_more</span></button>
         <div class="uh-sop-body" id="uh-sop-${id}" ${sopOpen ? "" : "hidden"}>
           ${renderUserSopSwitch("create", flags.create, !canGrant, user.id)}${renderUserSopSwitch("review", flags.review, !canGrant, user.id)}${renderUserSopSwitch("publish", flags.publish, !canGrant, user.id)}
           ${canGrant ? '<small class="uh-lock">Cada persona tiene una sola función.</small>' : '<small class="uh-lock"><span class="material-symbols-rounded" aria-hidden="true">lock</span>Solo la cuenta 140784 asigna estas funciones</small>'}
         </div>
-      </section></td>
+      </section></div></td>
     <td class="uh-col-actions"><div class="uh-actions">
       <button class="uh-icon-action" type="button" data-action="users-password-toggle" data-user-id="${id}" aria-expanded="${passwordOpen}" aria-label="Cambiar contraseña de ${name}" title="Cambiar contraseña"><span class="material-symbols-rounded" aria-hidden="true">key</span></button>
       <button class="uh-icon-action ${user.active ? "uh-icon-action--warn" : "uh-icon-action--ok"}" type="button" data-action="toggle-local-user" data-user-id="${id}" data-active="${user.active ? "false" : "true"}" aria-label="${user.active ? "Desactivar acceso de" : "Reactivar acceso de"} ${name}" title="${user.active ? "Desactivar acceso" : "Reactivar acceso"}"><span class="material-symbols-rounded" aria-hidden="true">${user.active ? "person_off" : "person_check"}</span></button>
