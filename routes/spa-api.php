@@ -54,8 +54,8 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
     Route::get('/audit-events', [AuditEventController::class, 'index']);
     Route::post('/audit-events', [AuditEventController::class, 'store']);
 
-    // Editor y revisor pueden revisar; la guarda está en SopVersionController::canReview.
-    // Subir una revisión: editor o revisor (guarda en SopVersionController::canUpload).
+    // Cada paso exige su propio rol, sin comodines: subir/editar = sop.create, revisar = sop.review,
+    // publicar = sop.publish (guardas en SopVersionController::canUpload y ::canReview).
     Route::post('/sop-versions', [SopVersionController::class, 'store']);
     Route::post('/sop-versions/{version}/review', [SopVersionController::class, 'review']);
     Route::post('/sop-versions/{version}/publish', [SopVersionController::class, 'publish'])->middleware('permission:sop.publish');

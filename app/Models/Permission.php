@@ -15,6 +15,8 @@ class Permission extends Model
 
     public const SOP_MANAGE = 'sop.manage';
 
+    public const SOP_CREATE = 'sop.create';
+
     public const SOP_REVIEW = 'sop.review';
 
     public const SOP_PUBLISH = 'sop.publish';

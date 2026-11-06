@@ -24,7 +24,7 @@ class SopReviewWorkflowTest extends TestCase
         parent::setUp();
 
         Storage::fake('local');
-        foreach ([Permission::SOP_MANAGE, Permission::SOP_REVIEW, Permission::SOP_PUBLISH, Permission::USERS_MANAGE] as $key) {
+        foreach ([Permission::SOP_MANAGE, Permission::SOP_CREATE, Permission::SOP_REVIEW, Permission::SOP_PUBLISH, Permission::USERS_MANAGE] as $key) {
             Permission::firstOrCreate(['key' => $key], ['name' => $key]);
         }
     }
@@ -40,7 +40,7 @@ class SopReviewWorkflowTest extends TestCase
     /** @return array{editor: User, reviewer: User, publisher: User, version: string} */
     private function submittedVersion(): array
     {
-        $editor = $this->person('140784', [Permission::SOP_MANAGE, Permission::USERS_MANAGE]);
+        $editor = $this->person('140784', [Permission::SOP_CREATE, Permission::SOP_MANAGE, Permission::USERS_MANAGE]);
         $reviewer = $this->person('200001', [Permission::SOP_REVIEW]);
         $publisher = $this->person('200002', [Permission::SOP_PUBLISH]);
 
@@ -74,7 +74,9 @@ class SopReviewWorkflowTest extends TestCase
     {
         ['editor' => $editor, 'reviewer' => $reviewer, 'version' => $id] = $this->submittedVersion();
 
-        $this->actingAs($editor)->postJson("/api/sop-versions/{$id}/review", ['decision' => 'approve'])
+        // Aun con el rol de revisor, quien subió la revisión no puede revisarla.
+        $editor->directPermissions()->attach(Permission::where('key', Permission::SOP_REVIEW)->pluck('id'));
+        $this->actingAs($editor->fresh())->postJson("/api/sop-versions/{$id}/review", ['decision' => 'approve'])
             ->assertForbidden()->assertJsonPath('code', 'own-version');
         $this->assertSame('pending_review', SopVersion::find($id)->status);
 
@@ -99,13 +101,14 @@ class SopReviewWorkflowTest extends TestCase
 
         $this->actingAs($editor)->getJson('/api/sop-versions/mine/summary')->assertJsonPath('summary.returned', 1);
 
-        // Otra persona no puede reenviar la versión ajena: solo se actualiza su estación.
+        // Otro creador no puede reenviar la versión ajena: solo se actualiza su estación.
         $payload = [
             'id' => $id,
             'document' => ['id' => 'SOP-X', 'title' => 'SOP corregida', 'revision' => '4', 'stationAssignment' => 'RWK:RWK'],
             'procedures' => [['id' => 'sheet-5', 'sheet' => 5, 'steps' => [['number' => '5.1', 'text' => 'Paso corregido']]]],
         ];
-        $this->actingAs($reviewer)->post('/api/sop-versions', ['version' => json_encode($payload)], ['Accept' => 'application/json'])
+        $otherCreator = $this->person('200005', [Permission::SOP_CREATE]);
+        $this->actingAs($otherCreator)->post('/api/sop-versions', ['version' => json_encode($payload)], ['Accept' => 'application/json'])
             ->assertOk()->assertJsonPath('version.status', 'rejected')->assertJsonPath('version.document.title', 'SOP de prueba');
 
         // Quien la subió corrige y reenvía con el mismo id: vuelve a revisión como ronda 2.
@@ -152,6 +155,24 @@ class SopReviewWorkflowTest extends TestCase
 
         $this->actingAs($publisher)->postJson('/api/sop-versions', ['version' => '{}'])->assertForbidden();
         $this->actingAs($publisher)->postJson("/api/sop-versions/{$id}/review", ['decision' => 'approve'])->assertForbidden();
+    }
+
+    public function test_cada_paso_exige_su_propio_rol_sin_comodines(): void
+    {
+        ['version' => $id] = $this->submittedVersion();
+        $payload = ['version' => json_encode(['id' => 'otra', 'document' => ['title' => 'T', 'revision' => '1'], 'procedures' => []])];
+        $manager = $this->person('600001', [Permission::SOP_MANAGE]);
+        $reviewer = $this->person('600002', [Permission::SOP_REVIEW]);
+        $creator = $this->person('600003', [Permission::SOP_CREATE]);
+
+        // Sin rol de creador no se sube ni se edita: ni el administrador de la SOP ni el revisor.
+        $this->actingAs($manager)->post('/api/sop-versions', $payload, ['Accept' => 'application/json'])->assertForbidden();
+        $this->actingAs($reviewer)->post('/api/sop-versions', $payload, ['Accept' => 'application/json'])->assertForbidden();
+
+        // Sin rol de revisor no se revisa ni se anota: ni el creador ni el administrador de la SOP.
+        $this->actingAs($creator)->postJson("/api/sop-versions/{$id}/review", ['decision' => 'approve'])->assertForbidden();
+        $this->actingAs($manager)->postJson("/api/sop-versions/{$id}/review", ['decision' => 'approve'])->assertForbidden();
+        $this->assertSame('pending_review', SopVersion::find($id)->status);
     }
 
     public function test_revisor_y_publicador_son_funciones_excluyentes(): void
@@ -240,6 +261,20 @@ class SopReviewWorkflowTest extends TestCase
             ->assertOk()->assertJsonPath('user.permissions', []);
     }
 
+    public function test_el_rol_de_creador_se_concede_y_se_conserva_si_no_viaja(): void
+    {
+        $owner = $this->person('140784', [Permission::SOP_MANAGE, Permission::USERS_MANAGE]);
+        $target = $this->person('500030');
+
+        $this->actingAs($owner)->patchJson("/api/users/{$target->id}/sop-roles", ['create' => true, 'review' => false, 'publish' => false])
+            ->assertOk()->assertJsonPath('user.permissions', ['sop.create']);
+        // Sin el campo `create` se respeta el rol de creador ya asignado.
+        $this->patchJson("/api/users/{$target->id}/sop-roles", ['review' => false, 'publish' => true])
+            ->assertOk()->assertJsonCount(2, 'user.permissions');
+        $this->patchJson("/api/users/{$target->id}/sop-roles", ['create' => false, 'review' => false, 'publish' => false])
+            ->assertOk()->assertJsonPath('user.permissions', []);
+    }
+
     public function test_conceder_los_roles_de_sop_no_toca_otros_permisos_de_la_persona(): void
     {
         $owner = $this->person('140784', [Permission::SOP_MANAGE]);
@@ -255,6 +290,7 @@ class SopReviewWorkflowTest extends TestCase
 
         $this->actingAs($editor)->getJson('/api/sop-roles')
             ->assertOk()
+            ->assertJsonPath('creators.0.name', 'Persona 140784')
             ->assertJsonPath('reviewers.0.name', 'Persona 200001')
             ->assertJsonPath('publishers.0.name', 'Persona 200002');
     }

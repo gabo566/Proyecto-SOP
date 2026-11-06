@@ -73,19 +73,22 @@ class UserAccessService
     }
 
     /**
-     * Concede o retira las funciones de revisor y publicador de SOP (permisos directos de la persona).
+     * Concede o retira las funciones de creador, revisor y publicador de SOP (permisos directos de la persona).
+     * Con `$create` nulo se conserva el rol de creador que ya tenga.
      */
-    public function setSopRoles(User $target, bool $review, bool $publish): string|User
+    public function setSopRoles(User $target, bool $review, bool $publish, ?bool $create = null): string|User
     {
-        // Revisor y publicador se excluyen: quien sube y revisa no publica, y quien publica no sube.
+        // Revisor y publicador se excluyen: quien revisa no publica, y quien publica no revisa.
         if ($review && $publish) {
             return 'roles-exclusive';
         }
 
-        $ids = Permission::whereIn('key', [Permission::SOP_REVIEW, Permission::SOP_PUBLISH])->pluck('id', 'key');
+        $create ??= $target->directPermissions()->where('key', Permission::SOP_CREATE)->exists();
+
+        $ids = Permission::whereIn('key', [Permission::SOP_CREATE, Permission::SOP_REVIEW, Permission::SOP_PUBLISH])->pluck('id', 'key');
         $target->directPermissions()->detach($ids->values());
 
-        $grant = collect([Permission::SOP_REVIEW => $review, Permission::SOP_PUBLISH => $publish])
+        $grant = collect([Permission::SOP_CREATE => $create, Permission::SOP_REVIEW => $review, Permission::SOP_PUBLISH => $publish])
             ->filter()->keys()->map(fn (string $key) => $ids[$key])->all();
 
         if ($grant) {

@@ -13,23 +13,24 @@ function getSopVersionStatus(version) {
   return version?.status ?? "published";
 }
 
-// Revisar: el revisor y el editor, siempre sobre lo que subió otra persona.
+// Cada paso exige su propio rol, sin comodines.
+// Revisar y anotar: solo el revisor, siempre sobre lo que subió otra persona.
 function canReviewSop(user = getActiveLocalUser()) {
-  return canUserDo("sop.review", user) || canManageSopVersions(user);
+  return canUserDo("sop.review", user);
 }
 
-// Subir una revisión: el editor o el revisor. El publicador no sube.
+// Subir, crear y editar revisiones: solo el creador. Ni el revisor ni el publicador suben.
 function canUploadSop(user = getActiveLocalUser()) {
-  return canUserDo("sop.review", user) || canManageSopVersions(user);
+  return canUserDo("sop.create", user);
 }
 
 function canPublishSop(user = getActiveLocalUser()) {
   return canUserDo("sop.publish", user);
 }
 
-// Entra a «Modificar SOP» quien edita, revisa o publica; cada acción se valida por separado.
+// Entra a «Modificar SOP» quien crea, revisa, publica o administra; cada acción se valida por separado.
 function canAccessSopAdmin(user = getActiveLocalUser()) {
-  return canManageSopVersions(user) || canReviewSop(user) || canPublishSop(user);
+  return canUploadSop(user) || canReviewSop(user) || canPublishSop(user) || canManageSopVersions(user);
 }
 
 function sameSopPerson(userId, otherId) {
@@ -113,33 +114,40 @@ function renderSopReviewScreen(state) {
   const reviews = sopReviewsOf(version);
   const reviewing = mode === "review";
   const publishing = mode === "publish";
-  const marks = reviewing ? (state.sopReviewMarks ?? []) : (reviews[0]?.marks ?? []);
+  const marks = reviewing ? (state.sopReviewMarks ?? []) : sopLatestMarks(version);
   const busy = Boolean(state.sopVersionBusy);
   const canResubmit = status === "rejected" && isMySopVersion(version);
   const sheetIndex = state.sopReviewSheet ?? 0;
+  const latest = reviews[0];
   const button = (tone, action, icon, label, { badge = "", disabled = false, attrs = "" } = {}) => `<button class="rv-btn rv-btn--${tone}" type="button" data-action="${action}" ${attrs} ${disabled ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">${icon}</span><span>${label}</span>${badge !== "" ? `<b>${badge}</b>` : ""}</button>`;
+  // Solo se muestran los botones que sirven a cada función: el revisor decide, el publicador publica,
+  // el creador corrige lo devuelto.
   const decide = reviewing
     ? `${button("danger", "sop-review-decide", "thumb_down", "No aprobar", { disabled: Boolean(block) || busy, attrs: 'data-decision="reject"' })}${button("ok", "sop-review-decide", "thumb_up", "Aprobar", { disabled: Boolean(block) || busy, attrs: 'data-decision="approve"' })}`
     : publishing
       ? button("ok", "sop-publish-version", busy ? "hourglass_top" : "rocket_launch", busy ? "Publicando…" : `Publicar Rev. ${escapeHtml(version.document.revision)}`, { disabled: Boolean(block) || busy })
-      : canResubmit ? button("ok", "sop-resubmit-open", "edit_document", "Corregir y reenviar", { attrs: `data-version-id="${escapeHtml(version.id)}"` }) : "";
-  const pdfButton = publishing ? "" : button("ghost", "sop-review-export", "picture_as_pdf", "PDF con anotaciones", { badge: marks.length || "", attrs: 'data-kind="marks"' });
+      : canResubmit ? button("navy", "sop-resubmit-open", "edit_document", "Corregir y reenviar", { attrs: `data-version-id="${escapeHtml(version.id)}"` }) : "";
+  const pdfButton = publishing ? "" : button("teal", "sop-review-export", "picture_as_pdf", "PDF con anotaciones", { badge: marks.length || "", attrs: 'data-kind="marks"' });
+  const historyButton = button("info", "sop-review-history", "history", publishing ? "Historial de publicación" : "Historial de revisiones", { badge: reviews.length });
+  // Aviso de lo que toca hacer ahora, según la función de quien mira la pantalla.
+  const callout = reviewing && !block
+    ? { tone: "review", icon: "rate_review", text: "Tienes esta revisión pendiente. Marca sobre la hoja lo que deba corregirse y decide: Aprobar o No aprobar." }
+    : publishing && !block
+      ? { tone: "publish", icon: "rocket_launch", text: `Aprobada por ${version.reviewedBy ?? "el revisor"}. Está lista: revisa la hoja y pulsa Publicar.` }
+      : canResubmit
+        ? { tone: "returned", icon: "undo", text: `${latest?.reviewerName ?? "El revisor"} pidió cambios. Revisa sus anotaciones y pulsa Corregir y reenviar.` }
+        : block
+          ? { tone: "info", icon: "block", text: block }
+          : { tone: "info", icon: (SOP_STATUS_INFO[status] ?? SOP_STATUS_INFO.published).icon, text: `${(SOP_STATUS_INFO[status] ?? SOP_STATUS_INFO.published).hint}.` };
   const rowsHtml = (state.sopReviewShowAll ? rows : rows.slice(0, 12)).map((row) => `<tr><td><b>${escapeHtml(row.sheet)}</b></td><td>${escapeHtml(row.type)}${row.step ? `<small> · paso ${escapeHtml(row.step)}</small>` : ""}</td><td class="${row.before ? "sop-flow-del" : ""}">${row.before ? escapeHtml(row.before) : "—"}</td><td class="${row.after ? "sop-flow-add" : ""}">${row.after ? escapeHtml(row.after) : "—"}</td></tr>`).join("");
-  const latest = reviews[0];
-  // Recuadro 1: comentario general (revisor escribe; quien sube o publica lee).
-  const commentCard = reviewing
-    ? `<section class="rv-card"><label class="rv-label" for="sop-review-note"><span class="material-symbols-rounded" aria-hidden="true">chat</span>Comentario general para quien subió la SOP</label>
-        <textarea id="sop-review-note" rows="4" maxlength="1000" placeholder="Escribe qué debe corregirse. Si no la apruebas, ${escapeHtml(version.submittedBy ?? "quien la subió")} recibirá este comentario y tus marcas en su bandeja." ${block ? "disabled" : ""}>${escapeHtml(state.sopReviewNoteDraft ?? "")}</textarea>
-        <p class="rv-help"><span class="material-symbols-rounded" aria-hidden="true">info</span><b>No aprobar</b> exige un comentario o al menos una marca sobre las hojas.</p></section>`
-    : `<section class="rv-card"><h3 class="rv-label"><span class="material-symbols-rounded" aria-hidden="true">chat</span>${latest ? `Comentario de ${escapeHtml(latest.reviewerName ?? "el revisor")}` : "Estado"}</h3>
-        ${latest?.note ? `<p class="sop-review-quote">${escapeHtml(latest.note)}</p>` : `<p class="rv-help">${escapeHtml((SOP_STATUS_INFO[status] ?? SOP_STATUS_INFO.published).hint)}.</p>`}
-        ${publishing && block ? `<p class="sop-flow-notice"><span class="material-symbols-rounded" aria-hidden="true">block</span>${escapeHtml(block)}</p>` : ""}</section>`;
-  // Recuadro 2: observaciones sobre las hojas.
-  const marksCard = `<section class="rv-card rv-marks">${renderSopMarksList(version, { marks, editable: reviewing && !block, sheetIndex })}</section>`;
-  // Recuadro 3: historial de publicación (lo ven revisor y publicador).
-  const publicationCard = `<section class="rv-card"><h3 class="rv-label"><span class="material-symbols-rounded" aria-hidden="true">how_to_reg</span>Historial de publicación</h3>${renderSopReviewTracker(version)}</section>`;
-  // Recuadro 4: resumen de cambios, colapsado.
-  const changes = `<details class="rv-card rv-changes"><summary><span class="material-symbols-rounded" aria-hidden="true">difference</span>Resumen de cambios<b>${summary.total ?? rows.length}</b></summary>
+  const commentSection = reviewing
+    ? `<section class="rv-sec"><label class="rv-label" for="sop-review-note"><span class="material-symbols-rounded" aria-hidden="true">chat</span>Comentario general</label>
+        <textarea id="sop-review-note" rows="4" maxlength="1000" placeholder="Escribe qué debe corregirse. Si no la apruebas, ${escapeHtml(version.submittedBy ?? "quien la subió")} recibe este comentario y tus marcas en su bandeja." ${block ? "disabled" : ""}>${escapeHtml(state.sopReviewNoteDraft ?? "")}</textarea>
+        <p class="rv-help"><span class="material-symbols-rounded" aria-hidden="true">info</span><span><b>No aprobar</b> exige un comentario o al menos una marca.</span></p></section>`
+    : `<section class="rv-sec"><h3 class="rv-label"><span class="material-symbols-rounded" aria-hidden="true">chat</span>${latest ? `Comentario de ${escapeHtml(latest.reviewerName ?? "el revisor")}` : "Comentario general"}</h3>
+        ${latest?.note ? `<p class="sop-review-quote">${escapeHtml(latest.note)}</p>` : '<p class="rv-help">El revisor no dejó un comentario general.</p>'}</section>`;
+  const cycleSection = `<section class="rv-sec"><h3 class="rv-label"><span class="material-symbols-rounded" aria-hidden="true">how_to_reg</span>Ciclo de la revisión</h3>${renderSopReviewTracker(version)}</section>`;
+  const changes = `<details class="rv-changes"><summary><span class="material-symbols-rounded" aria-hidden="true">difference</span>Resumen de cambios<b>${summary.total ?? rows.length}</b><span class="material-symbols-rounded rv-chevron" aria-hidden="true">expand_more</span></summary>
       ${rows.length ? `<div class="rv-table-wrap"><table class="sop-flow-table"><thead><tr><th>Hoja</th><th>Tipo</th><th>Antes</th><th>Después</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>${rows.length > 12 ? `<button type="button" class="sop-flow-link" data-action="sop-review-toggle-rows">${state.sopReviewShowAll ? "Ver menos" : `Ver los ${rows.length} cambios`}</button>` : ""}` : '<p class="sop-flow-empty">Esta revisión no trae un resumen de cambios guardado.</p>'}</details>`;
   return `<section class="sop-flow sop-review rv" aria-label="Revisión de la SOP">
     <header class="rv-head">
@@ -147,23 +155,21 @@ function renderSopReviewScreen(state) {
       <div class="rv-title"><h2>${escapeHtml(version.document.title)} · Rev. ${escapeHtml(version.document.revision)}</h2>
         <p>${escapeHtml(version.document.id)} · Estación ${escapeHtml(formatWorkStationAssignment(version.document.stationAssignment) || "sin asignar")} · Ronda ${escapeHtml(version.reviewRound ?? 1)} · Subió ${escapeHtml(version.submittedBy ?? version.createdBy ?? "—")}</p></div>
       ${renderSopStatusChip(version)}
-      <div class="rv-actions" role="toolbar" aria-label="Acciones de la revisión">
-        ${button("ghost", "sop-review-history", "history", publishing ? "Historial de publicación" : "Historial de revisiones", { badge: reviews.length })}
-        ${pdfButton}
-        ${decide}
-      </div>
+      <div class="rv-actions" role="toolbar" aria-label="Acciones de la revisión">${historyButton}${pdfButton}${decide}</div>
     </header>
-    ${block && reviewing ? `<p class="sop-flow-notice rv-notice"><span class="material-symbols-rounded" aria-hidden="true">block</span>${escapeHtml(block)}</p>` : ""}
+    <p class="rv-callout rv-callout--${callout.tone}" role="status"><span class="material-symbols-rounded" aria-hidden="true">${callout.icon}</span><span>${escapeHtml(callout.text)}</span></p>
     ${state.sopDraftError ? `<p class="form-error sop-flow-error" role="alert">${escapeHtml(state.sopDraftError)}</p>` : ""}
     <div class="rv-grid">
       <div class="rv-main">${renderSopMarksViewer(version, { marks, editable: reviewing && !block, sheetIndex, tool: state.sopReviewTool ?? "box", zoom: state.sopReviewZoom ?? 100, text: state.sopReviewMarkText ?? "" })}</div>
-      <aside class="rv-side" aria-label="Recuadros de la revisión">
-        ${commentCard}
-        ${marksCard}
-        ${publicationCard}
-        ${changes}
+      <aside class="rv-side" aria-label="Observaciones y comentarios">
+        <div class="rv-panel">
+          <section class="rv-sec rv-marks">${renderSopMarksList(version, { marks, editable: reviewing && !block, sheetIndex })}</section>
+          ${commentSection}
+          ${cycleSection}
+        </div>
       </aside>
     </div>
+    ${changes}
     ${state.sopReviewHistoryOpen ? renderSopReviewHistoryModal(version) : ""}
   </section>`;
 }
@@ -179,7 +185,7 @@ function renderSopReviewHistoryModal(version) {
 
 async function loadSopRoles(state) {
   const result = await sopApi("GET", "/api/sop-roles");
-  state.sopRoles = result.ok ? { reviewers: result.data.reviewers, publishers: result.data.publishers } : { reviewers: [], publishers: [], failed: true };
+  state.sopRoles = result.ok ? { creators: result.data.creators ?? [], reviewers: result.data.reviewers, publishers: result.data.publishers } : { creators: [], reviewers: [], publishers: [], failed: true };
 }
 
 // ¿Existe al menos un revisor y un publicador distintos entre sí y distintos de quien edita?
@@ -245,7 +251,7 @@ function bindSopReview(app, { state, render, showToast }) {
       try {
         if (action.dataset.kind === "marks") {
           const reviews = sopReviewsOf(version);
-          const marks = state.sopReview?.mode === "review" ? (state.sopReviewMarks ?? []) : (reviews[0]?.marks ?? []);
+          const marks = state.sopReview?.mode === "review" ? (state.sopReviewMarks ?? []) : sopLatestMarks(version);
           if (!marks.length) { showToast("Todavía no hay marcas sobre las hojas. Dibuja observaciones y vuelve a exportar.", "warning"); return; }
           await exportSopReviewMarksPdf(version, marks, { reviewer: state.sopReview?.mode === "review" ? getActiveLocalUser()?.name : reviews[0]?.reviewerName });
           showToast("PDF con las anotaciones descargado.");
@@ -305,6 +311,6 @@ function renderSopWorkflowActionsCell(version) {
 
 // Texto corto de lo que puede hacer la cuenta actual en el control de dos personas.
 function describeSopFunctions(user = getActiveLocalUser()) {
-  const functions = [canManageSopVersions(user) && "Editor", canReviewSop(user) && "Revisor", canPublishSop(user) && "Publicador"].filter(Boolean);
+  const functions = [canUploadSop(user) && "Creador", canReviewSop(user) && "Revisor", canPublishSop(user) && "Publicador"].filter(Boolean);
   return functions.length ? `Tu función: ${functions.join(" · ")}` : "Sin funciones de SOP";
 }

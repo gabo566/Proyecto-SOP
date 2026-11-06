@@ -20,15 +20,16 @@ class SopCatalogTest extends TestCase
         parent::setUp();
 
         Storage::fake('local');
-        foreach ([Permission::SOP_MANAGE => 'Modificar SOP', Permission::USERS_MANAGE => 'Usuarios'] as $key => $name) {
+        foreach ([Permission::SOP_MANAGE => 'Modificar SOP', Permission::SOP_CREATE => 'Crear SOP', Permission::USERS_MANAGE => 'Usuarios'] as $key => $name) {
             Permission::firstOrCreate(['key' => $key], ['name' => $name]);
         }
     }
 
+    /** Administra la SOP (catálogo, borrar) y además es creador: sube y edita revisiones. */
     private function manager(): User
     {
         $user = User::factory()->create();
-        $user->directPermissions()->sync(Permission::where('key', Permission::SOP_MANAGE)->pluck('id'));
+        $user->directPermissions()->sync(Permission::whereIn('key', [Permission::SOP_MANAGE, Permission::SOP_CREATE])->pluck('id'));
 
         return $user;
     }

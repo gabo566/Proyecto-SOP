@@ -647,12 +647,13 @@ bindInteractions(app, {
       password: String(formData.get("userPassword") ?? ""),
     });
     if (result === "ok") {
+      const wantsCreate = formData.get("sopCreate") === "on";
       const wantsReview = formData.get("sopReview") === "on";
       const wantsPublish = formData.get("sopPublish") === "on";
       let rolesNote = "";
-      if ((wantsReview || wantsPublish) && canManageSopVersions()) {
+      if ((wantsCreate || wantsReview || wantsPublish) && canManageSopVersions()) {
         const created = listLocalUsers().find((user) => user.employeeNumber === String(formData.get("employeeNumber") ?? "").trim());
-        const rolesResult = created ? await setLocalUserSopRoles(created.id, { review: wantsReview, publish: wantsPublish }) : "error";
+        const rolesResult = created ? await setLocalUserSopRoles(created.id, { create: wantsCreate, review: wantsReview, publish: wantsPublish }) : "error";
         if (rolesResult !== "ok") rolesNote = " No se pudieron asignar sus funciones de SOP; hazlo desde su tarjeta.";
       }
       state.usersNewOpen = false;
@@ -772,6 +773,43 @@ loadLocalSession().then(() => {
   window.setTimeout(() => document.documentElement.classList.remove("app-boot"), 600);
   if (getAuthenticatedLocalUser()) return loadSopData();
 });
+
+// Mantiene al día las funciones de la persona y sus pendientes sin recargar la página: si el administrador
+// le asigna un rol, o llega una revisión por revisar o publicar, los botones y el contador cambian solos.
+var sopLiveSyncBusy = false;
+var SOP_ROLE_LABELS = { "sop.create": "Creador", "sop.review": "Revisor", "sop.publish": "Publicador" };
+async function syncSopLive() {
+  if (sopLiveSyncBusy || document.hidden || !getAuthenticatedLocalUser()) return;
+  sopLiveSyncBusy = true;
+  try {
+    const before = new Set(getActiveLocalUser().permissions ?? []);
+    const permissionsChanged = await syncLocalSessionPermissions();
+    if (!getAuthenticatedLocalUser()) return;
+    let versionsChanged = false;
+    if (canAccessSopAdmin()) {
+      const signature = (list) => (list ?? []).map((item) => `${item.id}:${item.status}:${item.reviewRound ?? 1}`).join("|");
+      const previous = signature(state.sopVersionHistory);
+      state.sopVersionHistory = await listStoredSopVersions();
+      versionsChanged = previous !== signature(state.sopVersionHistory);
+    }
+    if (permissionsChanged) {
+      const gained = Object.keys(SOP_ROLE_LABELS).filter((key) => canUserDo(key) && !before.has(key)).map((key) => SOP_ROLE_LABELS[key]);
+      const lost = Object.keys(SOP_ROLE_LABELS).filter((key) => !canUserDo(key) && before.has(key)).map((key) => SOP_ROLE_LABELS[key]);
+      if (gained.length) showToast(`Ahora eres ${gained.join(" y ")} de la SOP.`, "success");
+      else if (lost.length) showToast(`Ya no tienes la función de ${lost.join(" y ")}.`, "warning");
+    }
+    // No se redibuja mientras la persona escribe o está en medio de una edición o revisión.
+    const typing = document.activeElement?.matches?.("input, textarea, select, [contenteditable='true']");
+    if ((permissionsChanged || versionsChanged) && !typing && !state.sopDraft) render();
+  } catch (error) {
+    console.warn("No se pudo actualizar el estado de la SOP.", error);
+  } finally {
+    sopLiveSyncBusy = false;
+  }
+}
+window.setInterval(() => void syncSopLive(), 20_000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) void syncSopLive(); });
+window.addEventListener("focus", () => void syncSopLive());
 
 var ACTIVE_SECTION_KEY = "sop-operador-active-section";
 

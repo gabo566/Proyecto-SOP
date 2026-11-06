@@ -76,9 +76,16 @@ class UserController extends Controller
         $data = $request->validate([
             'review' => ['required', 'boolean'],
             'publish' => ['required', 'boolean'],
+            // Si no viaja, se conserva el rol de creador que ya tiene la persona.
+            'create' => ['sometimes', 'boolean'],
         ]);
 
-        $updated = $this->access->setSopRoles($user, (bool) $data['review'], (bool) $data['publish']);
+        $updated = $this->access->setSopRoles(
+            $user,
+            (bool) $data['review'],
+            (bool) $data['publish'],
+            array_key_exists('create', $data) ? (bool) $data['create'] : null,
+        );
 
         return is_string($updated)
             ? $this->failure($updated)

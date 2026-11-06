@@ -35,6 +35,21 @@ async function loadLocalSession() {
   return sopSession.user;
 }
 
+// Vuelve a pedir al servidor las funciones de la persona con la sesión abierta. Devuelve true si cambiaron,
+// para que un rol asignado por el administrador se vea sin cerrar sesión.
+async function syncLocalSessionPermissions() {
+  const current = sopSession.user;
+  if (!current) return false;
+  const result = await sopApi("GET", "/api/me");
+  const fresh = result.ok ? result.data.user : null;
+  if (!fresh || String(fresh.id) !== String(current.id)) return false;
+  const signature = (user) => `${user.role}|${[...(user.permissions ?? [])].sort().join(",")}`;
+  const changed = signature(current) !== signature(fresh);
+  sopSession.user = fresh;
+  if (changed) await refreshLocalUsers();
+  return changed;
+}
+
 function listLocalUsers() {
   return sopSession.users;
 }
@@ -124,15 +139,15 @@ async function setLocalUserActive(id, active) {
   return "ok";
 }
 
-// Funciones de SOP (revisor y publicador): solo las concede quien administra la SOP (cuenta 140784).
-async function setLocalUserSopRoles(userId, { review, publish }) {
+// Funciones de SOP (creador, revisor y publicador): solo las concede quien administra la SOP (cuenta 140784).
+async function setLocalUserSopRoles(userId, { create, review, publish }) {
   if (!canManageSopVersions()) return "forbidden";
   const target = listLocalUsers().find((user) => String(user.id) === String(userId));
-  const result = await sopApi("PATCH", `/api/users/${encodeURIComponent(userId)}/sop-roles`, { review: Boolean(review), publish: Boolean(publish) });
+  const result = await sopApi("PATCH", `/api/users/${encodeURIComponent(userId)}/sop-roles`, { create: Boolean(create), review: Boolean(review), publish: Boolean(publish) });
   if (!result.ok) return failureCode(result);
   await refreshLocalUsers();
-  const granted = [review && "revisor", publish && "publicador"].filter(Boolean);
-  recordLocalAuditEvent("user_sop_roles_changed", { targetUserId: userId, targetUserName: target?.name, targetRole: target?.role, details: granted.length ? `Funciones: ${granted.join(" y ")}` : "Sin funciones de revisión ni publicación" });
+  const granted = [create && "creador", review && "revisor", publish && "publicador"].filter(Boolean);
+  recordLocalAuditEvent("user_sop_roles_changed", { targetUserId: userId, targetUserName: target?.name, targetRole: target?.role, details: granted.length ? `Funciones: ${granted.join(" y ")}` : "Sin funciones de creación, revisión ni publicación" });
   return "ok";
 }
 
@@ -230,6 +245,7 @@ const USER_FILTERS = [
   { id: "all", label: "Todos", icon: "groups" },
   { id: "operator", label: "Usuarios comunes", icon: "person" },
   { id: "admin", label: "Administradores", icon: "admin_panel_settings" },
+  { id: "create", label: "Creadores", icon: "edit_document" },
   { id: "review", label: "Revisores", icon: "rate_review" },
   { id: "publish", label: "Publicadores", icon: "rocket_launch" },
   { id: "inactive", label: "Desactivados", icon: "person_off" },
@@ -237,13 +253,14 @@ const USER_FILTERS = [
 
 function getUserSopFlags(user) {
   const permissions = user.permissions ?? [];
-  return { edit: permissions.includes("sop.manage"), review: permissions.includes("sop.review"), publish: permissions.includes("sop.publish") };
+  return { edit: permissions.includes("sop.manage"), create: permissions.includes("sop.create"), review: permissions.includes("sop.review"), publish: permissions.includes("sop.publish") };
 }
 
 function userMatchesFilter(user, filter) {
   const flags = getUserSopFlags(user);
   if (filter === "operator") return user.role !== "admin";
   if (filter === "admin") return user.role === "admin";
+  if (filter === "create") return flags.create;
   if (filter === "review") return flags.review;
   if (filter === "publish") return flags.publish;
   if (filter === "inactive") return !user.active;
@@ -259,7 +276,7 @@ function renderUserStrengthMeter() {
 }
 
 function renderUserSopSwitch(role, checked, disabled, userId = "", name = "") {
-  const text = role === "admin" ? ["Administrador", "Gestiona cuentas, contraseñas y reportes"] : role === "review" ? ["Revisor", "Sube y revisa las revisiones de la SOP"] : ["Publicador", "Solo publica las revisiones ya aprobadas"];
+  const text = role === "admin" ? ["Administrador", "Gestiona cuentas, contraseñas y reportes"] : role === "create" ? ["Creador", "Sube, crea y edita las SOP"] : role === "review" ? ["Revisor", "Revisa, anota y aprueba; no sube ni edita"] : ["Publicador", "Solo publica las revisiones ya aprobadas"];
   const hook = role === "admin" ? "data-admin-toggle" : "data-sop-role-toggle";
   return `<label class="uh-switch ${disabled ? "is-locked" : ""}"><input type="checkbox" ${userId ? `${hook} data-role="${role}" data-user-id="${escapeHtml(userId)}"` : `name="${name}"`} ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} /><span class="uh-switch-track" aria-hidden="true"></span><span class="uh-switch-text"><b>${text[0]}</b><small>${text[1]}</small></span></label>`;
 }
@@ -270,15 +287,15 @@ function renderUserCard(user, view, canGrant) {
   const passwordOpen = String(view.passwordFor) === String(user.id);
   const sopOpen = (view.sopOpen ?? []).map(String).includes(String(user.id));
   const roleLabel = user.role === "admin" ? "Administrador" : LOCAL_USER_ROLES[user.role] === "Operador" ? "Usuario común" : (LOCAL_USER_ROLES[user.role] ?? user.role);
-  return `<article class="uh-card ${user.active ? "" : "is-inactive"}" data-user-card data-user-id="${escapeHtml(user.id)}" data-search="${escapeHtml(search)}" data-role="${escapeHtml(user.role)}" data-active="${user.active}" data-review="${flags.review}" data-publish="${flags.publish}">
+  return `<article class="uh-card ${user.active ? "" : "is-inactive"}" data-user-card data-user-id="${escapeHtml(user.id)}" data-search="${escapeHtml(search)}" data-role="${escapeHtml(user.role)}" data-active="${user.active}" data-create="${flags.create}" data-review="${flags.review}" data-publish="${flags.publish}">
     <header class="uh-card-head">${renderProfileAvatar(user, "profile-avatar uh-avatar")}
       <div class="uh-card-id"><strong>${escapeHtml(user.name)}</strong><span>N.º ${escapeHtml(user.employeeNumber)} · ${escapeHtml(user.position || "Técnico de FA")}</span></div>
       <span class="uh-status ${user.active ? "is-active" : ""}"><i aria-hidden="true"></i>${user.active ? "Activo" : "Desactivado"}</span></header>
-    <div class="uh-badges"><span class="uh-chip uh-chip--role ${user.role === "admin" ? "is-admin" : ""}">${escapeHtml(roleLabel)}</span>${flags.edit ? '<span class="uh-chip uh-chip--edit"><span class="material-symbols-rounded" aria-hidden="true">edit_document</span>Editor</span>' : ""}${flags.review ? '<span class="uh-chip uh-chip--review"><span class="material-symbols-rounded" aria-hidden="true">rate_review</span>Revisor</span>' : ""}${flags.publish ? '<span class="uh-chip uh-chip--publish"><span class="material-symbols-rounded" aria-hidden="true">rocket_launch</span>Publicador</span>' : ""}</div>
+    <div class="uh-badges"><span class="uh-chip uh-chip--role ${user.role === "admin" ? "is-admin" : ""}">${escapeHtml(roleLabel)}</span>${flags.create ? '<span class="uh-chip uh-chip--create"><span class="material-symbols-rounded" aria-hidden="true">edit_document</span>Creador</span>' : ""}${flags.review ? '<span class="uh-chip uh-chip--review"><span class="material-symbols-rounded" aria-hidden="true">rate_review</span>Revisor</span>' : ""}${flags.publish ? '<span class="uh-chip uh-chip--publish"><span class="material-symbols-rounded" aria-hidden="true">rocket_launch</span>Publicador</span>' : ""}</div>
     <section class="uh-sop uh-sop--tab ${sopOpen ? "is-open" : ""}" aria-label="Funciones en la SOP de ${escapeHtml(user.name)}">
       <button class="uh-sop-toggle" type="button" data-action="users-sop-toggle" data-user-id="${escapeHtml(user.id)}" aria-expanded="${sopOpen}" aria-controls="uh-sop-${escapeHtml(user.id)}"><span class="material-symbols-rounded" aria-hidden="true">verified_user</span>Funciones en la SOP<span class="material-symbols-rounded uh-sop-chevron" aria-hidden="true">expand_more</span></button>
       <div class="uh-sop-body" id="uh-sop-${escapeHtml(user.id)}" ${sopOpen ? "" : "hidden"}>
-        ${renderUserSopSwitch("admin", user.role === "admin", !canGrant, user.id)}${renderUserSopSwitch("review", flags.review, !canGrant, user.id)}${renderUserSopSwitch("publish", flags.publish, !canGrant, user.id)}
+        ${renderUserSopSwitch("admin", user.role === "admin", !canGrant, user.id)}${renderUserSopSwitch("create", flags.create, !canGrant, user.id)}${renderUserSopSwitch("review", flags.review, !canGrant, user.id)}${renderUserSopSwitch("publish", flags.publish, !canGrant, user.id)}
         ${canGrant ? "" : '<small class="uh-lock"><span class="material-symbols-rounded" aria-hidden="true">lock</span>Solo la cuenta 140784 asigna estas funciones</small>'}</div></section>
     <footer class="uh-card-actions"><button class="uh-action" type="button" data-action="users-password-toggle" data-user-id="${escapeHtml(user.id)}" aria-expanded="${passwordOpen}"><span class="material-symbols-rounded" aria-hidden="true">key</span>Cambiar contraseña</button>
       <button class="uh-action ${user.active ? "uh-action--danger" : "uh-action--ok"}" type="button" data-action="toggle-local-user" data-user-id="${escapeHtml(user.id)}" data-active="${user.active ? "false" : "true"}"><span class="material-symbols-rounded" aria-hidden="true">${user.active ? "person_off" : "person_check"}</span>${user.active ? "Desactivar acceso" : "Reactivar acceso"}</button><button class="uh-action uh-action--danger uh-action--delete" type="button" data-action="delete-local-user" data-user-id="${escapeHtml(user.id)}" title="Eliminar la cuenta por completo" ${String(getActiveLocalUser()?.id) === String(user.id) ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">delete</span>Eliminar</button></footer>
@@ -298,8 +315,8 @@ function renderUserCreateForm(canGrant) {
       <label class="uh-role-card"><input type="radio" name="userRole" value="operator" checked /><span class="uh-role-body"><span class="material-symbols-rounded" aria-hidden="true">person</span><b>Usuario común</b><small>Valida SOP en su estación</small></span></label>
       <label class="uh-role-card"><input type="radio" name="userRole" value="admin" /><span class="uh-role-body"><span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span><b>Administrador</b><small>Gestiona cuentas y reportes</small></span></label></fieldset>
     <section class="uh-sop uh-sop--new"><p class="uh-sop-title"><span class="material-symbols-rounded" aria-hidden="true">verified_user</span>Funciones en la SOP <small>(opcional)</small></p>
-      ${renderUserSopSwitch("review", false, !canGrant, "", "sopReview")}${renderUserSopSwitch("publish", false, !canGrant, "", "sopPublish")}
-      ${canGrant ? '<small class="uh-lock">Una misma persona no puede editar, revisar y publicar la misma revisión.</small>' : '<small class="uh-lock"><span class="material-symbols-rounded" aria-hidden="true">lock</span>Solo la cuenta 140784 asigna estas funciones</small>'}</section>
+      ${renderUserSopSwitch("create", false, !canGrant, "", "sopCreate")}${renderUserSopSwitch("review", false, !canGrant, "", "sopReview")}${renderUserSopSwitch("publish", false, !canGrant, "", "sopPublish")}
+      ${canGrant ? '<small class="uh-lock">Una misma persona no puede subir, revisar y publicar la misma revisión.</small>' : '<small class="uh-lock"><span class="material-symbols-rounded" aria-hidden="true">lock</span>Solo la cuenta 140784 asigna estas funciones</small>'}</section>
     <div class="uh-new-grid uh-new-grid--pass">${renderUserPasswordField("userPassword", "Contraseña inicial")}${renderUserPasswordField("userPasswordConfirm", "Confirmar contraseña", true)}</div>
     ${renderUserStrengthMeter()}
     <div class="uh-form-actions"><button class="uh-btn uh-btn--ghost" type="button" data-action="users-new-toggle">Cancelar</button><button class="uh-btn uh-btn--green" type="submit"><span class="material-symbols-rounded" aria-hidden="true">person_add</span>Crear usuario</button></div>

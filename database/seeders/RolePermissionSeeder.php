@@ -14,6 +14,7 @@ class RolePermissionSeeder extends Seeder
             Permission::USERS_MANAGE => 'Crear usuarios, cambiar contraseñas y activar o desactivar accesos',
             Permission::EVIDENCE_REVIEW => 'Revisar y aprobar la evidencia de retrabajos',
             Permission::SOP_MANAGE => 'Modificar y activar versiones de la SOP',
+            Permission::SOP_CREATE => 'Crear, subir y editar revisiones de la SOP',
             Permission::SOP_REVIEW => 'Revisar y aprobar o devolver revisiones de la SOP',
             Permission::SOP_PUBLISH => 'Publicar revisiones de la SOP ya aprobadas',
         ];

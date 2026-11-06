@@ -1010,12 +1010,17 @@ function bindInteractions(app, handlers) {
 // Concede o retira la función de revisor o publicador desde la tarjeta de una persona.
 async function changeUserSopRole(toggle) {
   const card = toggle.closest("[data-user-card]");
+  const create = card.querySelector('[data-role="create"]').checked;
   const review = card.querySelector('[data-role="review"]').checked;
   const publish = card.querySelector('[data-role="publish"]').checked;
-  const label = toggle.dataset.role === "review" ? "Revisor" : "Publicador";
+  const label = { create: "Creador", review: "Revisor", publish: "Publicador" }[toggle.dataset.role] ?? "Función";
   card.querySelectorAll("[data-sop-role-toggle]").forEach((input) => { input.disabled = true; });
-  const result = await setLocalUserSopRoles(toggle.dataset.userId, { review, publish });
-  if (result === "ok") showToast(toggle.checked ? `${label} habilitado.` : `${label} retirado.`, "success");
+  const result = await setLocalUserSopRoles(toggle.dataset.userId, { create, review, publish });
+  if (result === "ok") {
+    showToast(toggle.checked ? `${label} habilitado.` : `${label} retirado.`, "success");
+    // Si la persona cambió sus propias funciones, se actualizan de inmediato los botones y el menú.
+    if (String(toggle.dataset.userId) === String(getActiveLocalUser().id)) await syncLocalSessionPermissions();
+  }
   else {
     toggle.checked = !toggle.checked;
     showToast(result === "forbidden" ? "Solo la cuenta 140784 puede asignar estas funciones." : "No se pudo cambiar la función; intenta de nuevo.", "warning");
@@ -1048,6 +1053,8 @@ function syncCardsToForm(persist) {
 // Revisor y publicador no pueden estar activos a la vez: al activar uno se apaga el otro.
 function enforceSopRoleExclusive(input) {
   if (!input.checked) return;
+  // El rol de creador no se excluye con ningún otro: solo revisor y publicador.
+  if (input.dataset.role === "create" || input.name === "sopCreate") return;
   const scope = input.closest("[data-user-card]") ?? input.closest("#local-user-form");
   const reviewing = input.dataset.role === "review" || input.name === "sopReview";
   const other = scope?.querySelector(reviewing ? '[data-role="publish"], [name="sopPublish"]' : '[data-role="review"], [name="sopReview"]');

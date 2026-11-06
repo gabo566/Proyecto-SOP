@@ -36,16 +36,16 @@ class SopVersionController extends Controller
      * Alta o actualización (upsert por id). La revisión viaja como multipart:
      * `version` (JSON) y, solo si cambia, `pdf`.
      */
-    /** Quien sube la SOP: el editor o el revisor (el publicador solo publica). */
+    /** Quien sube y edita la SOP: solo el creador (sop.create). El revisor y el publicador no suben. */
     private function canUpload(?User $user): bool
     {
-        return $user !== null && ($user->hasPermissionTo(Permission::SOP_MANAGE) || $user->hasPermissionTo(Permission::SOP_REVIEW));
+        return $user !== null && $user->hasPermissionTo(Permission::SOP_CREATE);
     }
 
-    /** Quien revisa: el editor o el revisor; nunca sobre lo que él mismo subió (lo valida el servicio). */
+    /** Quien revisa y anota: solo el revisor (sop.review); nunca sobre lo que él mismo subió (lo valida el servicio). */
     private function canReview(?User $user): bool
     {
-        return $this->canUpload($user);
+        return $user !== null && $user->hasPermissionTo(Permission::SOP_REVIEW);
     }
 
     public function store(Request $request): JsonResponse
@@ -121,7 +121,7 @@ class SopVersionController extends Controller
         return $this->workflowResponse($this->versions->publish($version, $request->user()));
     }
 
-    /** Quién puede revisar y quién publicar, para avisar al editor al enviar una revisión. */
+    /** Quién puede crear, revisar y publicar, para avisar al creador al enviar una revisión. */
     public function roles(): JsonResponse
     {
         $holders = fn (string $key) => User::with(['role.permissions', 'directPermissions'])
@@ -132,6 +132,7 @@ class SopVersionController extends Controller
 
         return response()->json([
             'ok' => true,
+            'creators' => $holders(Permission::SOP_CREATE),
             'reviewers' => $holders(Permission::SOP_REVIEW),
             'publishers' => $holders(Permission::SOP_PUBLISH),
         ]);

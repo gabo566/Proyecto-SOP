@@ -8,6 +8,12 @@ function sopReviewsOf(version) {
   return Array.isArray(version?.reviews) ? version.reviews : [];
 }
 
+// Marcas de la ronda más reciente que las tiene: el publicador y quien sube ven las anotaciones del revisor
+// aunque la última ronda haya sido una aprobación sin marcas.
+function sopLatestMarks(version) {
+  return sopReviewsOf(version).find((review) => (review.marks ?? []).length)?.marks ?? [];
+}
+
 // Última devolución (la ronda que quien subió debe atender).
 function sopLatestReturn(version) {
   return sopReviewsOf(version).find((review) => review.decision === "rejected") ?? null;
@@ -236,6 +242,14 @@ function renderSopInbox(state) {
     canUploadSop() && { id: "sent", label: "Mis envíos", icon: "outbox", items: buckets.sent },
   ].filter(Boolean);
   if (!tabs.length) return "";
+  // Avisos de lo que toca hacer ahora, con un botón que abre el primer pendiente.
+  const plural = (n, one, many) => (n === 1 ? one : many);
+  const todo = [
+    canReviewSop() && buckets.toReview.length && { tone: "review", icon: "rate_review", first: buckets.toReview[0], text: `Tienes ${buckets.toReview.length} ${plural(buckets.toReview.length, "revisión pendiente", "revisiones pendientes")} por revisar`, action: "sop-review-open", mode: "review", label: "Revisar ahora", button: "ok" },
+    canPublishSop() && buckets.toPublish.length && { tone: "publish", icon: "rocket_launch", first: buckets.toPublish[0], text: `Hay ${buckets.toPublish.length} ${plural(buckets.toPublish.length, "publicación pendiente", "publicaciones pendientes")}`, action: "sop-review-open", mode: "publish", label: "Publicar ahora", button: "ok" },
+    canUploadSop() && buckets.returned.length && { tone: "returned", icon: "undo", first: buckets.returned[0], text: `${plural(buckets.returned.length, "Te devolvieron una SOP", `Te devolvieron ${buckets.returned.length} SOP`)} con anotaciones`, action: "sop-resubmit-open", mode: "", label: "Corregir ahora", button: "navy" },
+  ].filter(Boolean);
+  const todoHtml = todo.length ? `<div class="sop-inbox-todo">${todo.map((item) => `<p class="rv-callout rv-callout--${item.tone}" role="status"><span class="material-symbols-rounded" aria-hidden="true">${item.icon}</span><span><b>${item.text}</b> · ${escapeHtml(item.first.document.title)} Rev. ${escapeHtml(item.first.document.revision)}</span><button type="button" class="rv-btn rv-btn--${item.button} rv-callout-btn" data-action="${item.action}" data-version-id="${escapeHtml(item.first.id)}" ${item.mode ? `data-mode="${item.mode}"` : ""}><span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span><span>${item.label}</span></button></p>`).join("")}</div>` : "";
   const current = tabs.find((tab) => tab.id === state.sopInboxTab) ?? tabs.find((tab) => tab.urgent && tab.items.length) ?? tabs[0];
   const row = (version) => {
     const status = getSopVersionStatus(version);
@@ -252,6 +266,7 @@ function renderSopInbox(state) {
   const empty = { returned: "No tienes SOP devueltas.", toReview: "No hay SOP pendientes de revisar.", toPublish: "No hay SOP aprobadas por publicar.", sent: "Todavía no has enviado SOP." }[current.id];
   return `<section class="sop-inbox" aria-labelledby="sop-inbox-title">
     <div class="sop-inbox-head"><h3 id="sop-inbox-title"><span class="material-symbols-rounded" aria-hidden="true">inbox</span>Bandeja de revisión</h3></div>
+    ${todoHtml}
     <div class="sop-inbox-tabs" role="tablist">${tabs.map((tab) => `<button type="button" role="tab" class="sop-inbox-tab ${tab.id === current.id ? "is-on" : ""} ${tab.urgent && tab.items.length ? "has-items" : ""}" aria-selected="${tab.id === current.id}" data-action="sop-inbox-tab" data-tab="${tab.id}"><span class="material-symbols-rounded" aria-hidden="true">${tab.icon}</span>${tab.label}<b>${tab.items.length}</b></button>`).join("")}</div>
     ${current.items.length ? `<ul class="sop-inbox-list">${current.items.map(row).join("")}</ul>` : `<p class="sop-inbox-empty">${empty}</p>`}
   </section>`;

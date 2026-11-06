@@ -45,9 +45,18 @@ test("solo se publica una revisión aprobada y solo se revisa una pendiente", ()
   assert.match(context.getSopWorkflowBlock(version({ status: "approved" }), "review", user(3, "sop.review")), /ya no está pendiente/);
 });
 
-test("entra a Modificar SOP quien edita, revisa o publica", () => {
+test("entra a Modificar SOP quien crea, revisa, publica o administra", () => {
   assert.equal(context.canAccessSopAdmin(user(5)), false);
-  for (const grant of ["sop.manage", "sop.review", "sop.publish"]) assert.equal(context.canAccessSopAdmin(user(5, grant)), true);
+  for (const grant of ["sop.manage", "sop.create", "sop.review", "sop.publish"]) assert.equal(context.canAccessSopAdmin(user(5, grant)), true);
+});
+
+test("cada paso exige su propio rol: sin comodines entre creador, revisor y publicador", () => {
+  assert.equal(context.canUploadSop(user(5, "sop.create")), true);
+  assert.equal(context.canUploadSop(user(5, "sop.review", "sop.publish", "sop.manage")), false);
+  assert.equal(context.canReviewSop(user(5, "sop.review")), true);
+  assert.equal(context.canReviewSop(user(5, "sop.create", "sop.publish", "sop.manage")), false);
+  assert.equal(context.canPublishSop(user(5, "sop.publish")), true);
+  assert.equal(context.canPublishSop(user(5, "sop.create", "sop.review", "sop.manage")), false);
 });
 
 test("la cobertura exige un revisor y un publicador distintos entre sí y de quien edita", () => {

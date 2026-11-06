@@ -110,7 +110,8 @@
 .uh .uh-chip--review { background: #2f4f84; }
 .uh .uh-chip--publish { background: #b9801f; }
 .uh .uh-chip--role.is-admin { background: #1b2940; }
-.uh .uh-chip:not(.uh-chip--role):not(.uh-chip--edit):not(.uh-chip--review):not(.uh-chip--publish) { color: #3d4a62; background: #d7dfeb; }
+.uh .uh-chip:not(.uh-chip--role):not(.uh-chip--edit):not(.uh-chip--create):not(.uh-chip--review):not(.uh-chip--publish) { color: #3d4a62; background: #d7dfeb; }
 .uh .uh-status.is-active { color: #2b5a33; background: #d5e7d8; }
 .uh .uh-card-actions .uh-action:not(.uh-action--danger):not(.uh-action--ok) { color: #2f4f84; border-color: #b5c3da; }
 .uh .uh-filter[aria-pressed="true"] { background: #1b2940; border-color: #1b2940; }
+.uh .uh-chip--create { color: #fff; background: #2c6b63; }
