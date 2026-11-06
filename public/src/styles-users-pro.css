@@ -127,3 +127,7 @@
 .uh .uh-card:hover { border-color: #1b2940; }
 .uh .uh-card-head { border-bottom: 2px solid rgb(27 41 64 / 35%); }
 .uh .uh-card-actions { border-top: 2px solid rgb(27 41 64 / 35%); }
+/* Líneas en el mismo azul del recuadro para que combinen. */
+.uh .uh-card, .uh .uh-card[data-role="admin"], .uh .uh-card[data-review="true"], .uh .uh-card[data-publish="true"], .uh .uh-card.is-inactive, .uh .uh-card[data-active="false"], .uh .uh-card:hover { border-color: #2f4f84; }
+.uh .uh-card-head { border-bottom-color: #2f4f84; }
+.uh .uh-card-actions { border-top-color: #2f4f84; }
