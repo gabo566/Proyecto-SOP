@@ -115,3 +115,6 @@
 .uh .uh-card-actions .uh-action:not(.uh-action--danger):not(.uh-action--ok) { color: #2f4f84; border-color: #b5c3da; }
 .uh .uh-filter[aria-pressed="true"] { background: #1b2940; border-color: #1b2940; }
 .uh .uh-chip--create { color: #fff; background: #2c6b63; }
+
+/* Margen izquierdo uniforme: todas las tarjetas de usuario llevan el mismo borde de acento, sin importar su rol. */
+.uh .uh-card, .uh .uh-card[data-role="admin"], .uh .uh-card[data-review="true"], .uh .uh-card[data-publish="true"], .uh .uh-card.is-inactive, .uh .uh-card[data-active="false"] { border-left: 5px solid #2f4f84; }
