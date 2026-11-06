@@ -281,26 +281,44 @@ function renderUserSopSwitch(role, checked, disabled, userId = "", name = "") {
   return `<label class="uh-switch ${disabled ? "is-locked" : ""}"><input type="checkbox" ${userId ? `${hook} data-role="${role}" data-user-id="${escapeHtml(userId)}"` : `name="${name}"`} ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} /><span class="uh-switch-track" aria-hidden="true"></span><span class="uh-switch-text"><b>${text[0]}</b><small>${text[1]}</small></span></label>`;
 }
 
-function renderUserCard(user, view, canGrant) {
+// Una fila de la tabla de usuarios: persona, estado, tipo de cuenta, funciones en la SOP y acciones.
+// La edición de funciones abre un panel junto a la fila y el cambio de contraseña ocupa una fila extra debajo.
+function renderUserRow(user, view, canGrant) {
   const flags = getUserSopFlags(user);
   const search = `${user.name} ${user.employeeNumber} ${user.position ?? ""}`.toLocaleLowerCase("es-MX");
   const passwordOpen = String(view.passwordFor) === String(user.id);
   const sopOpen = (view.sopOpen ?? []).map(String).includes(String(user.id));
-  const roleLabel = user.role === "admin" ? "Administrador" : LOCAL_USER_ROLES[user.role] === "Operador" ? "Usuario común" : (LOCAL_USER_ROLES[user.role] ?? user.role);
-  return `<article class="uh-card ${user.active ? "" : "is-inactive"}" data-user-card data-user-id="${escapeHtml(user.id)}" data-search="${escapeHtml(search)}" data-role="${escapeHtml(user.role)}" data-active="${user.active}" data-create="${flags.create}" data-review="${flags.review}" data-publish="${flags.publish}">
-    <header class="uh-card-head">${renderProfileAvatar(user, "profile-avatar uh-avatar")}
-      <div class="uh-card-id"><strong>${escapeHtml(user.name)}</strong><span>N.º ${escapeHtml(user.employeeNumber)} · ${escapeHtml(user.position || "Técnico de FA")}</span></div>
-      <span class="uh-status ${user.active ? "is-active" : ""}"><i aria-hidden="true"></i>${user.active ? "Activo" : "Desactivado"}</span></header>
-    <div class="uh-badges"><span class="uh-chip uh-chip--role ${user.role === "admin" ? "is-admin" : ""}">${escapeHtml(roleLabel)}</span>${flags.create ? '<span class="uh-chip uh-chip--create"><span class="material-symbols-rounded" aria-hidden="true">edit_document</span>Creador</span>' : ""}${flags.review ? '<span class="uh-chip uh-chip--review"><span class="material-symbols-rounded" aria-hidden="true">rate_review</span>Revisor</span>' : ""}${flags.publish ? '<span class="uh-chip uh-chip--publish"><span class="material-symbols-rounded" aria-hidden="true">rocket_launch</span>Publicador</span>' : ""}</div>
-    <section class="uh-sop uh-sop--tab ${sopOpen ? "is-open" : ""}" aria-label="Funciones en la SOP de ${escapeHtml(user.name)}">
-      <button class="uh-sop-toggle" type="button" data-action="users-sop-toggle" data-user-id="${escapeHtml(user.id)}" aria-expanded="${sopOpen}" aria-controls="uh-sop-${escapeHtml(user.id)}"><span class="material-symbols-rounded" aria-hidden="true">verified_user</span>Funciones en la SOP<span class="material-symbols-rounded uh-sop-chevron" aria-hidden="true">expand_more</span></button>
-      <div class="uh-sop-body" id="uh-sop-${escapeHtml(user.id)}" ${sopOpen ? "" : "hidden"}>
-        ${renderUserSopSwitch("admin", user.role === "admin", !canGrant, user.id)}${renderUserSopSwitch("create", flags.create, !canGrant, user.id)}${renderUserSopSwitch("review", flags.review, !canGrant, user.id)}${renderUserSopSwitch("publish", flags.publish, !canGrant, user.id)}
-        ${canGrant ? "" : '<small class="uh-lock"><span class="material-symbols-rounded" aria-hidden="true">lock</span>Solo la cuenta 140784 asigna estas funciones</small>'}</div></section>
-    <footer class="uh-card-actions"><button class="uh-action" type="button" data-action="users-password-toggle" data-user-id="${escapeHtml(user.id)}" aria-expanded="${passwordOpen}"><span class="material-symbols-rounded" aria-hidden="true">key</span>Cambiar contraseña</button>
-      <button class="uh-action ${user.active ? "uh-action--danger" : "uh-action--ok"}" type="button" data-action="toggle-local-user" data-user-id="${escapeHtml(user.id)}" data-active="${user.active ? "false" : "true"}"><span class="material-symbols-rounded" aria-hidden="true">${user.active ? "person_off" : "person_check"}</span>${user.active ? "Desactivar acceso" : "Reactivar acceso"}</button><button class="uh-action uh-action--danger uh-action--delete" type="button" data-action="delete-local-user" data-user-id="${escapeHtml(user.id)}" title="Eliminar la cuenta por completo" ${String(getActiveLocalUser()?.id) === String(user.id) ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">delete</span>Eliminar</button></footer>
-    ${passwordOpen ? `<form class="uh-password" id="local-password-form"><input type="hidden" name="passwordUserId" value="${escapeHtml(user.id)}" />${renderUserPasswordField("newPassword", "Nueva contraseña")}${renderUserStrengthMeter()}<div class="uh-form-actions"><button class="uh-btn uh-btn--ghost" type="button" data-action="users-password-toggle" data-user-id="${escapeHtml(user.id)}">Cancelar</button><button class="uh-btn uh-btn--blue" type="submit"><span class="material-symbols-rounded" aria-hidden="true">lock_reset</span>Guardar contraseña</button></div></form>` : ""}
-  </article>`;
+  const roleLabel = user.role === "admin" ? "Administrador" : "Usuario común";
+  const id = escapeHtml(user.id);
+  const name = escapeHtml(user.name);
+  const isSelf = String(getActiveLocalUser()?.id) === String(user.id);
+  const functions = [
+    flags.create && '<span class="uh-chip uh-chip--create">Creador</span>',
+    flags.review && '<span class="uh-chip uh-chip--review">Revisor</span>',
+    flags.publish && '<span class="uh-chip uh-chip--publish">Publicador</span>',
+  ].filter(Boolean).join("") || '<span class="uh-none">Sin función</span>';
+  const row = `<tr class="uh-row ${user.active ? "" : "is-inactive"}" data-user-card data-user-id="${id}" data-search="${escapeHtml(search)}" data-role="${escapeHtml(user.role)}" data-active="${user.active}" data-create="${flags.create}" data-review="${flags.review}" data-publish="${flags.publish}">
+    <td class="uh-col-user"><div class="uh-person">${renderProfileAvatar(user, "profile-avatar uh-avatar")}<div class="uh-card-id"><strong>${name}</strong><span>N.º ${escapeHtml(user.employeeNumber)} · ${escapeHtml(user.position || "Técnico de FA")}</span></div></div></td>
+    <td class="uh-col-status"><span class="uh-status ${user.active ? "is-active" : ""}"><i aria-hidden="true"></i>${user.active ? "Activo" : "Desactivado"}</span></td>
+    <td class="uh-col-type"><span class="uh-chip uh-chip--role ${user.role === "admin" ? "is-admin" : ""}">${roleLabel}</span></td>
+    <td class="uh-col-funcs"><div class="uh-funcs">${functions}</div>
+      <section class="uh-sop uh-sop--tab ${sopOpen ? "is-open" : ""}" aria-label="Funciones en la SOP de ${name}">
+        <button class="uh-sop-toggle" type="button" data-action="users-sop-toggle" data-user-id="${id}" aria-expanded="${sopOpen}" aria-controls="uh-sop-${id}"><span class="material-symbols-rounded" aria-hidden="true">tune</span>Editar funciones<span class="material-symbols-rounded uh-sop-chevron" aria-hidden="true">expand_more</span></button>
+        <div class="uh-sop-body" id="uh-sop-${id}" ${sopOpen ? "" : "hidden"}>
+          ${renderUserSopSwitch("create", flags.create, !canGrant, user.id)}${renderUserSopSwitch("review", flags.review, !canGrant, user.id)}${renderUserSopSwitch("publish", flags.publish, !canGrant, user.id)}
+          ${canGrant ? '<small class="uh-lock">Cada persona tiene una sola función.</small>' : '<small class="uh-lock"><span class="material-symbols-rounded" aria-hidden="true">lock</span>Solo la cuenta 140784 asigna estas funciones</small>'}
+        </div>
+      </section></td>
+    <td class="uh-col-actions"><div class="uh-actions">
+      <button class="uh-icon-action" type="button" data-action="users-password-toggle" data-user-id="${id}" aria-expanded="${passwordOpen}" aria-label="Cambiar contraseña de ${name}" title="Cambiar contraseña"><span class="material-symbols-rounded" aria-hidden="true">key</span></button>
+      <button class="uh-icon-action ${user.active ? "uh-icon-action--warn" : "uh-icon-action--ok"}" type="button" data-action="toggle-local-user" data-user-id="${id}" data-active="${user.active ? "false" : "true"}" aria-label="${user.active ? "Desactivar acceso de" : "Reactivar acceso de"} ${name}" title="${user.active ? "Desactivar acceso" : "Reactivar acceso"}"><span class="material-symbols-rounded" aria-hidden="true">${user.active ? "person_off" : "person_check"}</span></button>
+      <button class="uh-icon-action uh-icon-action--danger" type="button" data-action="delete-local-user" data-user-id="${id}" aria-label="Eliminar la cuenta de ${name}" title="Eliminar la cuenta por completo" ${isSelf ? "disabled" : ""}><span class="material-symbols-rounded" aria-hidden="true">delete</span></button>
+    </div></td>
+  </tr>`;
+  const expand = passwordOpen
+    ? `<tr class="uh-expand" data-expand-for="${id}"><td colspan="5"><form class="uh-password" id="local-password-form"><input type="hidden" name="passwordUserId" value="${id}" />${renderUserPasswordField("newPassword", "Nueva contraseña")}${renderUserStrengthMeter()}<div class="uh-form-actions"><button class="uh-btn uh-btn--ghost" type="button" data-action="users-password-toggle" data-user-id="${id}">Cancelar</button><button class="uh-btn uh-btn--blue" type="submit"><span class="material-symbols-rounded" aria-hidden="true">lock_reset</span>Guardar contraseña</button></div></form></td></tr>`
+    : "";
+  return row + expand;
 }
 
 function renderUserCreateForm(canGrant) {
@@ -337,14 +355,14 @@ function renderLocalUsersPanel(view = {}) {
   ];
   const needle = search.trim().toLocaleLowerCase("es-MX");
   const visible = users.filter((user) => userMatchesFilter(user, filter));
-  const cards = users.map((user) => renderUserCard(user, view, canGrant)).join("");
+  const rows = users.map((user) => renderUserRow(user, view, canGrant)).join("");
   return `<section class="users-panel uh" id="users-panel">
     <div class="uh-kpis">${kpis.map((kpi) => `<button class="uh-kpi uh-kpi--${kpi.tone}" type="button" data-action="users-filter" data-filter="${kpi.filter}"><span class="material-symbols-rounded" aria-hidden="true">${kpi.icon}</span><span><small>${kpi.label}</small><strong>${kpi.value}</strong></span></button>`).join("")}</div>
     ${view.newOpen ? renderUserCreateForm(canGrant) : ""}
     <div class="uh-toolbar"><label class="uh-search"><span class="material-symbols-rounded" aria-hidden="true">search</span><input type="search" data-users-search placeholder="Buscar por nombre, número o puesto" value="${escapeHtml(search)}" aria-label="Buscar usuarios" autocomplete="off" /></label>
       <button class="uh-btn uh-btn--green" type="button" data-action="users-new-toggle" aria-expanded="${Boolean(view.newOpen)}"><span class="material-symbols-rounded" aria-hidden="true">${view.newOpen ? "close" : "person_add"}</span>${view.newOpen ? "Cerrar" : "Nuevo usuario"}</button>
       <div class="uh-filters" role="group" aria-label="Filtrar usuarios">${USER_FILTERS.map((item) => `<button class="uh-filter" type="button" data-action="users-filter" data-filter="${item.id}" aria-pressed="${item.id === filter}"><span class="material-symbols-rounded" aria-hidden="true">${item.icon}</span>${item.label}<b>${counts[item.id]}</b></button>`).join("")}</div></div>
-    <div class="uh-grid" data-users-grid>${cards}</div>
+    <div class="uh-table-wrap"><table class="uh-table" aria-label="Usuarios registrados"><thead><tr><th scope="col">Usuario</th><th scope="col">Estado</th><th scope="col">Tipo de cuenta</th><th scope="col">Funciones en la SOP</th><th scope="col" class="uh-col-actions">Acciones</th></tr></thead><tbody data-users-grid>${rows}</tbody></table></div>
     <p class="uh-empty" data-users-empty ${visible.some((user) => !needle || `${user.name} ${user.employeeNumber} ${user.position ?? ""}`.toLocaleLowerCase("es-MX").includes(needle)) ? "hidden" : ""}><span class="material-symbols-rounded" aria-hidden="true">search_off</span>Ningún usuario coincide con la búsqueda.</p>
   </section>
     <section class="audit-panel" id="audit-panel"><div class="section-heading"><div><p class="eyebrow">Eventos guardados en el servidor</p><h2>Actividad de usuarios</h2></div><span>${readLocalAuditTrail().length} eventos · máximo 1,000</span></div>${renderLocalAuditTable()}</section>`;
@@ -363,6 +381,8 @@ function applyUsersFilter(root, filter, search) {
             : filter === "inactive" ? card.dataset.active === "false" : true;
     const visible = matchesFilter && (!needle || card.dataset.search.includes(needle));
     card.hidden = !visible;
+    // La fila de contraseña abierta acompaña a su usuario.
+    root.querySelectorAll(`[data-expand-for="${card.dataset.userId}"]`).forEach((row) => { row.hidden = !visible; });
     if (visible) shown += 1;
   });
   root.querySelectorAll(".uh-filter").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.filter === filter)));
