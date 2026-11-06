@@ -50,6 +50,8 @@ Boost replaces these bootstrap instructions with guidelines tailored to the appl
 
 > **REGLA PRINCIPAL:** todos los servicios van en UNA sola ventana de Windows Terminal ("servicios"), una pestaña por servicio. Nunca abras ventanas nuevas ni pestañas repetidas. Antes de lanzar, revisa si el servicio ya funciona (puerto en escucha, `/ready` del túnel); si ya funciona, no lances otro. Si un intento falla, no reintentes a ciegas: diagnostica, cierra lo fallido y avisa. Al terminar deben quedar solo las pestañas que funcionan.
 >
+> La ventana "servicios" tiene exactamente **4 pestañas**, todas funcionando: "SOP servidor" (4174), "SOP túnel", "BurnTrack Laravel" (4173) y "BurnTrack Tunel". Si falta una, se relanza una sola vez; si sobra o falló, se cierra.
+>
 > La ventana "servicios" corre como Administrador. Una sesión de Claude sin elevar no puede unirse a ella ni cerrarle ventanas: si `wt -w servicios` no crea la pestaña dentro de esa ventana, detente al primer fallo y pide al usuario que la abra él (o que ejecute Claude como administrador).
 
 - Consultas, lectura, build, tests, migraciones y comandos cortos: se ejecutan normal, en segundo plano si hace falta.
