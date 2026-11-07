@@ -601,3 +601,12 @@ body:has(.station-intake-screen.vk-app) .sidebar::after {
   -webkit-mask-image: linear-gradient(to top, #000 35%, transparent 100%);
           mask-image: linear-gradient(to top, #000 35%, transparent 100%);
 }
+
+/* ---- Palabra SOP e icono remarcados en el menú (solo en la pantalla de registro) ---- */
+body:has(.station-intake-screen.vk-app) .nav-key { color: #ffffff; font-weight: 800; letter-spacing: .06em; }
+body:has(.station-intake-screen.vk-app) .nav-item:has(.nav-key) { color: #ffffff; font-weight: 700; }
+body:has(.station-intake-screen.vk-app) .nav-item:has(.nav-key) .material-symbols-rounded {
+  color: #93c5fd;
+  font-size: 34px;
+  font-variation-settings: "FILL" 1, "wght" 600;
+}

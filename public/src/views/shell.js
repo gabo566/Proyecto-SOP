@@ -23,7 +23,7 @@ function renderSidebar(state) {
     <button class="nav-item ${state.activeSection === item.id ? "nav-item--active" : ""}"
       type="button" data-action="navigate" data-nav-id="${item.id}" data-focus-key="nav-${item.id}"
       aria-current="${state.activeSection === item.id ? "page" : "false"}">
-      <span class="material-symbols-rounded" aria-hidden="true">${icon}</span><span>${label}</span>${badge}
+      <span class="material-symbols-rounded" aria-hidden="true">${icon}</span><span>${String(label).replace("SOP", '<b class="nav-key">SOP</b>')}</span>${badge}
     </button>`;
   }).join("");
 
