@@ -564,6 +564,14 @@ function bindInteractions(app, handlers) {
       case "close-menu": state.navOpen = false; render(); break;
       case "brand-home": state.navOpen = false; render(); break;
       case "logout-local-user": void endLocalUserSession(); break;
+      case "clear-station-intake":
+        // Vacía los cuatro campos del equipo; la estación y la SOP elegidas se conservan.
+        ["nodePartNumber", "serial", "componentPartNumber", "componentSerial"].forEach((key) => { state.form[key] = ""; });
+        state.scanErrors = {};
+        state.formError = "";
+        render();
+        app.querySelector('[data-form-field="nodePartNumber"]')?.focus();
+        break;
       case "open-help":
         state.dialogTriggerFocusKey = action.dataset.focusKey || "help-open";
         state.helpDialogOpen = true;

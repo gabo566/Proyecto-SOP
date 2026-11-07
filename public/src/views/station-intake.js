@@ -64,6 +64,23 @@ function renderDisassemblyChoice(choice, filter = "", panelOpen = false) {
     <div class="station-disassembly-done"><button type="button" class="button button--primary" data-action="close-disassembly-panel">Listo</button></div></fieldset></div>`;
 }
 
+// Menú lateral de la pantalla de registro: solo enlaces a funciones que ya existen en la app.
+function renderIntakeSidebar() {
+  const canSeeReports = ["supervisor", "admin"].includes(getActiveLocalUser()?.role);
+  const item = (icon, label, attrs = "", active = false) => `<button type="button" class="vk-nav-item ${active ? "vk-nav-item--active" : ""}" ${attrs} ${active ? 'aria-current="page"' : ""}><span class="material-symbols-rounded" aria-hidden="true">${icon}</span><span>${label}</span></button>`;
+  return `<aside class="vk-sidebar" aria-label="Navegación principal">
+    <a class="vk-sidebar-brand" href="#top" aria-label="Ingrasys"><img src="./public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" /></a>
+    <nav class="vk-nav" aria-label="Secciones">
+      ${item("check_circle", "Validaciones", "", true)}
+      ${item("description", "SOPs", 'data-action="navigate" data-nav-id="overview"')}
+      ${canSeeReports ? item("bar_chart", "Reportes", 'data-action="navigate" data-nav-id="reports"') : ""}
+      ${item("person", "Mi perfil", 'data-action="open-profile"')}
+      ${item("help", "Ayuda", 'data-action="open-help"')}
+    </nav>
+    <div class="vk-nav-foot">${item("logout", "Cerrar sesión", 'data-action="logout-local-user"')}</div>
+  </aside>`;
+}
+
 function renderStationIntake(state) {
   const user = getAuthenticatedLocalUser();
   const currentAssignment = getWorkStationAssignment(state.form.stationAssignment);
@@ -95,7 +112,7 @@ function renderStationIntake(state) {
       ? `<span class="station-choice-status">${getEnabledSopVersionsForStation(state, rwkAssignment.value).length} SOP habilitada${getEnabledSopVersionsForStation(state, rwkAssignment.value).length === 1 ? "" : "s"}</span>`
       : '<span class="station-choice-status station-choice-status--disabled">Sin SOP habilitadas por Administración</span>';
 
-  return `<div class="station-intake-screen" aria-labelledby="station-intake-title">
+  return `<div class="station-intake-screen vk-app" aria-labelledby="station-intake-title">${renderIntakeSidebar()}<div class="vk-main">
     <section class="station-intake-banner" aria-label="Registrar validación">
       <div class="vk-head-brand">
         <a class="station-intake-banner-brand" href="#top" aria-label="Ingrasys">
@@ -119,15 +136,21 @@ function renderStationIntake(state) {
         <fieldset class="station-choice-grid"><legend class="sr-only">Tipo de estación</legend>
           <label class="station-choice station-choice--mfg ${isMfg ? "station-choice--selected" : ""} ${enabledMfgAssignments.length ? "" : "station-choice--disabled"}">
             <input type="radio" name="stationAssignmentType" data-station-type data-focus-key="station-MFG" value="MFG" ${isMfg ? "checked" : ""} ${enabledMfgAssignments.length ? "" : "disabled"} />
-            <span class="station-choice-radio" aria-hidden="true"></span><span class="station-code station-code--mfg"><span class="material-symbols-rounded" aria-hidden="true">precision_manufacturing</span>MFG</span><span class="station-choice-copy"><strong>Manufactura</strong><small>Estación de proceso en línea de producción.</small></span>
+            <span class="vk-card-photo"><img src="./public/assets/intake/foto-manufactura.jpg" alt="" /></span>
+            <span class="vk-card-body">
+            <span class="station-choice-radio" aria-hidden="true"></span><span class="station-code station-code--mfg vk-code-icon"><img src="./public/assets/intake/icono-manufactura.png" alt="" /><span class="sr-only">MFG</span></span><span class="station-choice-copy"><strong>Manufactura</strong><small>Estación de proceso en línea de producción.</small></span>
             ${renderStationPills(enabledMfgAssignments, mfgSelected ? assignment : null, "Estaciones de manufactura")}
             ${mfgSelected || !enabledMfgAssignments.length ? mfgStatus : stationHint}
+            </span>
           </label>
           <label class="station-choice station-choice--rwk ${selectedType === "RWK" ? "station-choice--selected" : ""} ${enabledRwkAssignments.length ? "" : "station-choice--disabled"}">
             <input type="radio" name="stationAssignmentType" data-station-type data-focus-key="station-RWK" value="RWK" ${selectedType === "RWK" ? "checked" : ""} ${enabledRwkAssignments.length ? "" : "disabled"} />
-            <span class="station-choice-radio" aria-hidden="true"></span><span class="station-code station-code--rwk"><span class="material-symbols-rounded" aria-hidden="true">build_circle</span>RWK</span><span class="station-choice-copy"><strong>Retrabajo</strong><small>Desensamble, retrabajo o reparación del equipo.</small></span>
+            <span class="vk-card-photo"><img src="./public/assets/intake/foto-retrabajo.jpg" alt="" /></span>
+            <span class="vk-card-body">
+            <span class="station-choice-radio" aria-hidden="true"></span><span class="station-code station-code--rwk vk-code-icon"><img src="./public/assets/intake/icono-retrabajo.png" alt="" /><span class="sr-only">RWK</span></span><span class="station-choice-copy"><strong>Retrabajo</strong><small>Desensamble, retrabajo o reparación del equipo.</small></span>
             ${rwkStationControl}
             ${rwkSelected || !enabledRwkAssignments.length ? rwkStatus : stationHint}
+            </span>
           </label>
         </fieldset>
         ${renderCardSheetsOverlay(state)}
@@ -148,13 +171,13 @@ function renderStationIntake(state) {
         <div class="station-summary-item station-summary-operator"><span class="material-symbols-rounded" aria-hidden="true">account_circle</span><span><small>Operador que realiza la acción</small><strong>${escapeHtml(user.name)}</strong><small>No. de empleado ${escapeHtml(user.employeeNumber)} · ${escapeHtml(user.position || "Técnico de FA")}</small></span></div>
         <div class="station-summary-item station-summary-sop"><span class="material-symbols-rounded" aria-hidden="true">description</span><span><small>SOP seleccionada · ${escapeHtml(assignment?.type ?? "")} · ${escapeHtml(assignment?.label ?? "")}</small><strong>${escapeHtml(activeVersion?.document?.title ?? "No hay una SOP habilitada")}</strong><small>${activeVersion ? `${escapeHtml(activeVersion.document.id)} · Rev. ${escapeHtml(activeVersion.document.revision)}` : "Administración debe asignar y habilitar una SOP."}</small></span></div>
       </section>
-      <footer class="station-intake-footer"><p class="station-intake-status ${canContinue ? "station-intake-status--ready" : ""}" id="station-intake-status" role="status" aria-live="polite"><span class="material-symbols-rounded" aria-hidden="true">${canContinue ? "check_circle" : "info"}</span><span>${escapeHtml(status)}</span></p>
+      <footer class="station-intake-footer"><button type="button" class="vk-btn vk-btn--clear" data-action="clear-station-intake"><span class="material-symbols-rounded" aria-hidden="true">restart_alt</span>Limpiar</button><p class="station-intake-status ${canContinue ? "station-intake-status--ready" : ""}" id="station-intake-status" role="status" aria-live="polite"><span class="material-symbols-rounded" aria-hidden="true">${canContinue ? "check_circle" : "info"}</span><span>${escapeHtml(status)}</span></p>
         ${error}
-        <button class="button button--primary station-intake-continue" type="submit" ${canContinue ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>Abrir la SOP</button>
+        <button class="button button--primary station-intake-continue" type="submit" ${canContinue ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>Continuar</button>
       </footer>
     </form>
     <p class="station-intake-footnote">La selección y los identificadores se conservarán en el registro de esta validación.</p>
-  </div>${renderToast()}`;
+  </div></div>${renderToast()}`;
 }
 
 

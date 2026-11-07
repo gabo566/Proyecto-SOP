@@ -316,3 +316,149 @@
   background-position: right 14px center;
   background-size: 20px 20px;
 }
+
+/* ===== Réplica del mockup: menú lateral, columna principal, tarjetas con foto, pie con Limpiar y Continuar ===== */
+.station-intake-screen.vk-app {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  min-height: 100vh;
+  padding: 0;
+  background: var(--vk-bg);
+}
+
+/* Menú lateral */
+.station-intake-screen .vk-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 16px;
+  color: #ffffff;
+  background: linear-gradient(180deg, #0a1b3f 0%, #0c2456 60%, #0b1d47 100%);
+}
+.station-intake-screen .vk-sidebar-brand { display: block; width: 150px; padding: 4px 8px 12px; }
+.station-intake-screen .vk-sidebar-brand img { display: block; width: 100%; height: auto; }
+.station-intake-screen .vk-nav { display: flex; flex-direction: column; gap: 6px; }
+.station-intake-screen .vk-nav-foot { margin-top: auto; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .12); }
+.station-intake-screen .vk-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #e5ecf8;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.station-intake-screen .vk-nav-item:hover { background: rgba(255, 255, 255, .08); }
+.station-intake-screen .vk-nav-item .material-symbols-rounded { font-size: 22px; }
+.station-intake-screen .vk-nav-item--active { background: #2563eb; color: #ffffff; font-weight: 600; box-shadow: 0 8px 18px rgba(37, 99, 235, .35); }
+
+/* Columna principal */
+.station-intake-screen .vk-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 0 22px 22px; }
+.station-intake-screen .vk-main > .station-intake-banner { margin: 0 -22px; border-radius: 0; }
+.station-intake-screen .vk-main > .station-intake-user { margin-top: 10px; }
+.station-intake-screen .vk-main > .station-intake-user { position: static; align-self: flex-end; }
+.station-intake-screen .vk-head-icon { color: #93c5fd; }
+
+/* Tarjetas de estación con foto a la izquierda y check arriba a la derecha */
+.station-intake-screen .station-choice {
+  position: relative;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid var(--vk-line);
+}
+.station-intake-screen .station-choice > input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.station-intake-screen .vk-card-photo { display: block; overflow: hidden; border-radius: 10px; }
+.station-intake-screen .vk-card-photo img { display: block; width: 100%; height: 150px; object-fit: cover; }
+.station-intake-screen .vk-card-body { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; padding-right: 26px; }
+.station-intake-screen .station-choice-radio { position: absolute; top: 0; right: 0; }
+.station-intake-screen .vk-code-icon { display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; padding: 0; border-radius: 12px; background: transparent; box-shadow: none; }
+.station-intake-screen .vk-code-icon img { display: block; width: 60px; height: 60px; border-radius: 12px; object-fit: cover; }
+.station-intake-screen .station-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.station-intake-screen .station-pill { min-height: 34px; padding: 0 14px; border: 0; border-radius: 999px; background: #e8f0ff; color: #1d4ed8; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.station-intake-screen .station-pill--on { background: #16a34a; color: #ffffff; }
+.station-intake-screen .station-choice-status { font-weight: 600; }
+
+/* Campos: icono de escaneo en el campo (ya definido) y etiquetas más marcadas */
+.station-intake-screen .station-asset-section { padding: 20px 22px; }
+
+/* Pie: Limpiar a la izquierda, Continuar a la derecha */
+.station-intake-screen .station-intake-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 4px 0 0;
+}
+.station-intake-screen .station-intake-footer .station-intake-status { flex: 1 1 260px; margin: 0; }
+.station-intake-screen .vk-btn--clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 22px;
+  border: 1px solid var(--vk-line-strong);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--vk-ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.station-intake-screen .vk-btn--clear:hover { background: var(--vk-bg); }
+.station-intake-screen .station-intake-continue { min-height: 52px; border-radius: 10px; }
+
+/* Responsivo: en tableta el menú pasa arriba en fila; en teléfono se compacta */
+@media (max-width: 1000px) {
+  .station-intake-screen.vk-app { grid-template-columns: minmax(0, 1fr); }
+  .station-intake-screen .vk-sidebar { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 16px; }
+  .station-intake-screen .vk-sidebar-brand { width: 120px; padding: 0 8px 0 0; }
+  .station-intake-screen .vk-nav { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+  .station-intake-screen .vk-nav-item { width: auto; min-height: 40px; padding: 0 12px; font-size: 14px; }
+  .station-intake-screen .vk-nav-foot { margin-top: 0; padding-top: 0; border-top: 0; margin-left: auto; }
+  .station-intake-screen .vk-main { padding: 0 16px 18px; }
+  .station-intake-screen .vk-main > .station-intake-banner { margin: 0 -16px; }
+}
+@media (max-width: 700px) {
+  .station-intake-screen .station-choice { grid-template-columns: minmax(0, 1fr); }
+  .station-intake-screen .vk-card-photo img { height: 130px; }
+  .station-intake-screen .station-intake-footer { flex-direction: column-reverse; align-items: stretch; }
+  .station-intake-screen .vk-btn--clear, .station-intake-screen .station-intake-continue { width: 100%; justify-content: center; }
+}
+
+/* Ajustes finales al mockup: check de selección azul y sin logo repetido en el encabezado (ya está en el menú lateral). */
+.station-intake-screen .station-choice--selected .station-choice-radio { background: #2563eb; border-color: #2563eb; }
+.station-intake-screen .station-choice--selected .station-choice-radio::after,
+.station-intake-screen .station-choice--selected .station-choice-radio::before { background: #ffffff; border-color: #ffffff; }
+.station-intake-screen .vk-head-brand > .station-intake-banner-brand { display: none; }
+
+/* Pie en una sola fila: Limpiar a la izquierda, estado al centro, Continuar a la derecha. */
+.station-intake-screen .station-intake-footer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+.station-intake-screen .station-intake-footer > .form-error { grid-column: 1 / -1; }
+.station-intake-screen .station-intake-footer .station-intake-continue { justify-self: end; }
+@media (max-width: 700px) {
+  .station-intake-screen .station-intake-footer { grid-template-columns: minmax(0, 1fr); }
+  .station-intake-screen .station-intake-footer .station-intake-continue,
+  .station-intake-screen .vk-btn--clear { justify-self: stretch; width: 100%; }
+}
+.station-intake-screen .station-choice--selected::after { color: #2563eb; }
