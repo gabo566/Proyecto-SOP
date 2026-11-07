@@ -473,3 +473,13 @@
 .station-intake-screen.vk-app .vk-head-brand,
 .station-intake-screen.vk-app .station-intake-banner .station-intake-user { position: relative; z-index: 1; }
 
+
+/* ---- Validación contra el mockup: ancho de secciones y pie a 1365 px (como en la imagen); tarjetas 4 px más arriba ---- */
+.station-intake-screen.vk-app .station-choice-section,
+.station-intake-screen.vk-app .station-asset-section,
+.station-intake-screen.vk-app .station-intake-footer { max-width: 1365px; box-sizing: border-box; }
+.station-intake-screen.vk-app .station-choice-grid { margin-top: 14px !important; }
+.station-intake-screen.vk-app .station-choice-grid { margin-right: 17px !important; }
+.station-intake-screen.vk-app .station-asset-grid { margin-right: 20px !important; }
+.station-intake-screen.vk-app .station-choice-section { padding-bottom: 14px !important; }
+.station-intake-screen.vk-app .station-choice-grid { width: auto !important; min-width: 0; box-sizing: border-box; }
