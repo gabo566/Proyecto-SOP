@@ -272,7 +272,7 @@
   border: 2px solid #cbd5e1;
   border-radius: 10px;
   background-color: #ffffff;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d4ed8' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M8 12h8'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d4ed8' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 16px center;
   background-size: 28px 28px;
@@ -483,3 +483,26 @@
 .station-intake-screen.vk-app .station-asset-grid { margin-right: 20px !important; }
 .station-intake-screen.vk-app .station-choice-section { padding-bottom: 14px !important; }
 .station-intake-screen.vk-app .station-choice-grid { width: auto !important; min-width: 0; box-sizing: border-box; }
+
+/* ---- Una sola marca de selección: en la tarjeta elegida se ve solo el check (sin el punto de radio). ---- */
+.station-intake-screen.vk-app .station-choice--selected .station-choice-radio { display: none; }
+
+/* ---- Fondo del menú existente en esta pantalla: líneas diagonales y puntos, como el mockup. Solo cuando la pantalla de registro está abierta. ---- */
+.sidebar:has(+ .main-area .station-intake-screen.vk-app) {
+  background: linear-gradient(180deg, #0a1a3d 0%, #0b2a6b 58%, #0b1f4f 100%) !important;
+}
+.sidebar:has(+ .main-area .station-intake-screen.vk-app)::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, rgba(147, 197, 253, .42) 1px, transparent 1.6px) 0 0 / 12px 12px,
+    repeating-linear-gradient(-35deg, rgba(255, 255, 255, .07) 0 1px, transparent 1px 22px);
+  -webkit-mask-image: linear-gradient(to top, #000 25%, transparent 100%);
+          mask-image: linear-gradient(to top, #000 25%, transparent 100%);
+}
+
