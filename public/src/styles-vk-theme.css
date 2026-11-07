@@ -208,7 +208,35 @@
 }
 
 /* Ventana de hojas del desensamble: más ancha para aprovechar el espacio disponible (dentro de la pantalla de registro). */
+.station-intake-screen .station-disassembly-overlay { grid-template-columns: minmax(0, 1fr); }
 .station-intake-screen .station-disassembly--modal {
-  width: min(1180px, calc(100vw - 32px));
-  max-width: calc(100vw - 32px);
+  width: min(1180px, 100%);
+  max-width: 100%;
+}
+
+/* Responsivo: la pantalla y la ventana de hojas se adaptan a tableta y teléfono. */
+@media (max-width: 900px) {
+  .station-intake-screen .station-intake-user { position: static; justify-self: end; margin: 0 0 10px auto; }
+  .station-intake-screen .station-disassembly--modal { padding: 16px; }
+}
+@media (max-width: 600px) {
+  .station-intake-screen .station-intake-banner-heading h1 { font-size: 30px; }
+  .station-intake-screen .station-disassembly--modal { padding: 14px; max-height: 92vh; }
+  .station-intake-screen .station-disassembly-bar { gap: 8px; }
+  .station-intake-screen .station-disassembly-search { flex: 1 1 100%; }
+}
+
+/* Chip de usuario en tableta y teléfono: fondo claro (queda fuera de la banda oscura). */
+@media (max-width: 900px) {
+  .station-intake-screen .station-intake-user {
+    background: var(--vk-card);
+    border: 1px solid var(--vk-line);
+    border-radius: var(--vk-radius);
+    box-shadow: none;
+    color: var(--vk-ink);
+    padding: 6px 12px 6px 6px;
+  }
+  .station-intake-screen .station-intake-user strong,
+  .station-intake-screen .station-intake-user b { color: var(--vk-ink); }
+  .station-intake-screen .station-intake-user small { color: var(--vk-muted); }
 }
