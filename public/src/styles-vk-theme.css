@@ -1,0 +1,177 @@
+/* Estilo VKS (tema oscuro con resplandor azul y acento naranja).
+   Tokens globales en :root; las reglas se limitan a secciones marcadas (hoy: .station-intake-screen).
+   Para revertir una sección basta con quitar sus reglas de este archivo. */
+:root {
+  --vk-bg: #070b12;
+  --vk-ink: #e8edf5;
+  --vk-muted: #a7b3c6;
+  --vk-subtle: #7d8ba1;
+  --vk-line: rgba(255, 255, 255, .09);
+  --vk-line-strong: rgba(255, 255, 255, .18);
+  --vk-card: rgba(255, 255, 255, .03);
+  --vk-blue: #3b82f6;
+  --vk-blue-soft: #60a5fa;
+  --vk-orange: #f97316;
+  --vk-orange-deep: #ea580c;
+  --vk-ok: #22c55e;
+  --vk-ok-ink: #86efac;
+  --vk-danger-ink: #fca5a5;
+  --vk-font: Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --vk-mono: ui-monospace, Consolas, "Courier New", monospace;
+}
+
+/* ---- Registrar validación ---- */
+.station-intake-screen {
+  color: var(--vk-ink);
+  font-family: var(--vk-font);
+  background:
+    radial-gradient(1100px 620px at 85% -12%, rgba(59, 130, 246, .22), transparent 62%),
+    radial-gradient(900px 500px at -8% 112%, rgba(249, 115, 22, .13), transparent 60%),
+    var(--vk-bg);
+  border-radius: 0;
+}
+
+/* Encabezado */
+.station-intake-screen .station-intake-banner {
+  background: var(--vk-card);
+  border: 1px solid var(--vk-line);
+  box-shadow: none;
+  border-radius: 22px;
+}
+.station-intake-screen .station-intake-banner-heading h1 {
+  color: var(--vk-ink);
+  font-weight: 800;
+  letter-spacing: -.03em;
+}
+.station-intake-screen .station-intake-banner-icon {
+  background: linear-gradient(135deg, var(--vk-orange), var(--vk-orange-deep));
+  box-shadow: 0 10px 30px rgba(249, 115, 22, .35);
+}
+.station-intake-screen .station-intake-user button { color: var(--vk-ink); }
+
+/* Progreso */
+.station-intake-screen .operator-flow-progress {
+  background: var(--vk-card);
+  border: 1px solid var(--vk-line);
+  border-radius: 18px;
+  box-shadow: none;
+}
+.station-intake-screen .operator-flow-step { color: var(--vk-subtle); }
+.station-intake-screen .operator-flow-step span {
+  border: 1px solid var(--vk-line-strong);
+  color: #cbd5e1;
+  background: transparent;
+}
+.station-intake-screen .operator-flow-step strong { color: var(--vk-subtle); }
+.station-intake-screen .operator-flow-step--active span {
+  background: var(--vk-blue);
+  border-color: var(--vk-blue);
+  color: #fff;
+  box-shadow: 0 0 22px rgba(59, 130, 246, .6);
+}
+.station-intake-screen .operator-flow-step--active strong { color: var(--vk-ink); }
+.station-intake-screen .operator-flow-progress i { background: rgba(255, 255, 255, .12); }
+
+/* Secciones */
+.station-intake-screen .station-choice-section,
+.station-intake-screen .station-asset-section,
+.station-intake-screen .station-work-summary {
+  background: rgba(255, 255, 255, .025);
+  border: 1px solid var(--vk-line);
+  border-radius: 22px;
+  box-shadow: none;
+}
+.station-intake-screen .station-section-title h2 { color: var(--vk-ink); font-weight: 800; letter-spacing: -.02em; }
+.station-intake-screen .station-section-title p { color: var(--vk-muted); }
+.station-intake-screen .station-section-num {
+  background: var(--vk-blue);
+  color: #fff;
+  box-shadow: 0 0 22px rgba(59, 130, 246, .45);
+}
+
+/* Tarjetas de estación */
+.station-intake-screen .station-choice {
+  background: var(--vk-card);
+  border: 1px solid var(--vk-line);
+  border-radius: 20px;
+  color: var(--vk-ink);
+  box-shadow: none;
+  transition: border-color .2s, box-shadow .2s, background .2s;
+}
+.station-intake-screen .station-choice:hover { border-color: var(--vk-line-strong); }
+.station-intake-screen .station-choice--selected,
+.station-intake-screen .station-choice--rwk.station-choice--selected,
+.station-intake-screen .station-choice--rwk.station-choice--selected:hover {
+  border-color: var(--vk-blue);
+  background: rgba(59, 130, 246, .10);
+  box-shadow: 0 0 0 1px var(--vk-blue), 0 16px 44px rgba(59, 130, 246, .28);
+}
+.station-intake-screen .station-choice-copy strong { color: var(--vk-ink); }
+.station-intake-screen .station-choice-copy small { color: var(--vk-muted); }
+.station-intake-screen .station-choice-status { color: var(--vk-blue-soft); }
+.station-intake-screen .station-choice-status--disabled { color: var(--vk-danger-ink); }
+.station-intake-screen .station-choice--disabled { opacity: .5; }
+.station-intake-screen .station-choice-radio { border-color: rgba(255, 255, 255, .3); }
+.station-intake-screen .station-choice--selected .station-choice-radio { border-color: var(--vk-blue); background: var(--vk-blue); }
+.station-intake-screen .station-code--rwk {
+  background: linear-gradient(135deg, var(--vk-orange), var(--vk-orange-deep));
+  box-shadow: 0 10px 30px rgba(249, 115, 22, .3);
+}
+
+/* Campos de captura */
+.station-intake-screen .station-field-label { color: #cbd5e1; font-weight: 700; }
+.station-intake-screen .station-field-label .material-symbols-rounded { color: var(--vk-blue-soft); }
+.station-intake-screen .station-scan-field input {
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 12px;
+  color: #f1f5f9;
+  font-family: var(--vk-mono);
+  box-shadow: none;
+}
+.station-intake-screen .station-scan-field input::placeholder { color: #6b7a90; }
+.station-intake-screen .station-scan-field input:focus {
+  outline: none;
+  border-color: var(--vk-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, .25);
+}
+.station-intake-screen .station-scan-field input:not(:placeholder-shown):not([aria-invalid="true"]) {
+  border-color: rgba(34, 197, 94, .5);
+  background: rgba(34, 197, 94, .06);
+}
+.station-intake-screen .station-scan-error { color: var(--vk-danger-ink); }
+
+/* Resumen */
+.station-intake-screen .station-summary-item {
+  background: var(--vk-card);
+  border: 1px solid var(--vk-line);
+  border-radius: 16px;
+  color: var(--vk-ink);
+}
+.station-intake-screen .station-summary-item small { color: var(--vk-subtle); }
+.station-intake-screen .station-summary-item strong { color: var(--vk-ink); }
+.station-intake-screen .station-summary-item > .material-symbols-rounded { color: var(--vk-blue-soft); }
+
+/* Acciones secundarias y pie */
+.station-intake-screen .station-intake-review-entry .button {
+  background: transparent;
+  color: var(--vk-ink);
+  border: 1px solid var(--vk-line-strong);
+  border-radius: 999px;
+}
+.station-intake-screen .station-intake-status { color: var(--vk-muted); }
+.station-intake-screen .station-intake-status--ready { color: var(--vk-ok-ink); }
+.station-intake-screen .station-intake-footnote { color: var(--vk-subtle); }
+.station-intake-screen .station-intake-continue {
+  background: linear-gradient(135deg, var(--vk-orange), var(--vk-orange-deep));
+  color: #fff;
+  border: 0;
+  border-radius: 999px;
+  font-weight: 800;
+  box-shadow: 0 14px 40px rgba(249, 115, 22, .35);
+}
+.station-intake-screen .station-intake-continue:disabled {
+  background: rgba(255, 255, 255, .08);
+  color: var(--vk-subtle);
+  box-shadow: none;
+}
