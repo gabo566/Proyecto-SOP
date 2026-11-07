@@ -535,3 +535,39 @@
 .station-intake-screen.vk-app .station-choice { height: 218px; }
 .station-intake-screen.vk-app .vk-card-photo, .station-intake-screen.vk-app .vk-card-photo img { height: 200px; }
 .station-intake-screen.vk-app .station-scan-field input { height: 58px; }
+
+/* ---- Flecha/check de más al capturar el PN del nodo: el check va solo dentro del campo (como en el mockup). ---- */
+.station-intake-screen.vk-app .station-field-label::after { content: none !important; display: none !important; }
+
+/* ---- Menú idéntico a la imagen (solo mientras se muestra la pantalla de registro; los elementos son los del menú existente) ---- */
+body:has(.station-intake-screen.vk-app) { --sidebar-width: 258px; }
+body:has(.station-intake-screen.vk-app) .sidebar { width: 258px; }
+body:has(.station-intake-screen.vk-app) .sidebar .brand {
+  height: auto;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 30px 0 0 38px;
+  justify-content: flex-start;
+  overflow: visible;
+  background: transparent;
+  border-bottom: 0;
+}
+body:has(.station-intake-screen.vk-app) .sidebar .brand .brand-full { width: 175px; max-width: none; margin: 0; mix-blend-mode: normal; filter: none; }
+body:has(.station-intake-screen.vk-app) .side-nav { top: 134px; left: 14px; right: 14px; gap: 5px; }
+body:has(.station-intake-screen.vk-app) .nav-item {
+  height: 63px;
+  min-height: 63px;
+  justify-content: flex-start;
+  gap: 33px;
+  padding: 0 0 0 33px;
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: 500;
+  color: #e6edf9;
+}
+body:has(.station-intake-screen.vk-app) .nav-item .material-symbols-rounded { font-size: 30px; }
+body:has(.station-intake-screen.vk-app) .nav-item.active,
+body:has(.station-intake-screen.vk-app) .nav-item[aria-current="page"] { background: #2563eb; color: #ffffff; box-shadow: none; }
+body:has(.station-intake-screen.vk-app) .side-nav { top: 162px !important; }
+body:has(.station-intake-screen.vk-app) .nav-item { gap: 24px; padding: 0 0 0 28px; font-size: 18px; white-space: nowrap; }
+body:has(.station-intake-screen.vk-app) .side-nav { margin-top: 28px !important; }
