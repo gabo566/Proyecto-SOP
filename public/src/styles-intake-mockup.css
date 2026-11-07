@@ -3,7 +3,7 @@
 
 .station-intake-screen.vk-app {
   display: grid;
-  grid-template-columns: 258px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   min-height: 100vh;
   padding: 0;
   background: #eef3fb;
@@ -449,3 +449,27 @@
 @media (max-width: 1100px) {
   .station-intake-screen.vk-app .vk-nav-foot .vk-nav-item { margin: 0; padding-left: 12px; }
 }
+
+/* ---- Fondo del encabezado: franja azul diagonal y líneas finas, como el mockup. El menú existente no se modifica. ---- */
+.station-intake-screen.vk-app .station-intake-banner { position: relative; overflow: hidden; }
+.station-intake-screen.vk-app .station-intake-banner::before {
+  content: "";
+  position: absolute;
+  top: -12px;
+  bottom: -12px;
+  left: 46%;
+  width: 84px;
+  transform: skewX(-24deg);
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0) 0%, rgba(59, 130, 246, .55) 45%, rgba(37, 99, 235, .9) 100%);
+  pointer-events: none;
+}
+.station-intake-screen.vk-app .station-intake-banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(115deg, rgba(255, 255, 255, .035) 0 1px, transparent 1px 26px);
+  pointer-events: none;
+}
+.station-intake-screen.vk-app .vk-head-brand,
+.station-intake-screen.vk-app .station-intake-banner .station-intake-user { position: relative; z-index: 1; }
+

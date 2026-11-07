@@ -64,23 +64,6 @@ function renderDisassemblyChoice(choice, filter = "", panelOpen = false) {
     <div class="station-disassembly-done"><button type="button" class="button button--primary" data-action="close-disassembly-panel">Listo</button></div></fieldset></div>`;
 }
 
-// Menú lateral de la pantalla de registro: solo enlaces a funciones que ya existen en la app.
-function renderIntakeSidebar() {
-  const canSeeReports = ["supervisor", "admin"].includes(getActiveLocalUser()?.role);
-  const item = (icon, label, attrs = "", active = false) => `<button type="button" class="vk-nav-item ${active ? "vk-nav-item--active" : ""}" ${attrs} ${active ? 'aria-current="page"' : ""}><span class="material-symbols-rounded" aria-hidden="true">${icon}</span><span>${label}</span></button>`;
-  return `<aside class="vk-sidebar" aria-label="Navegación principal">
-    <a class="vk-sidebar-brand" href="#top" aria-label="Ingrasys"><img src="./public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" /></a>
-    <nav class="vk-nav" aria-label="Secciones">
-      ${item("check_circle", "Validaciones", "", true)}
-      ${item("description", "SOPs", 'data-action="navigate" data-nav-id="overview"')}
-      ${canSeeReports ? item("bar_chart", "Reportes", 'data-action="navigate" data-nav-id="reports"') : ""}
-      ${item("person", "Mi perfil", 'data-action="open-profile"')}
-      ${item("help", "Ayuda", 'data-action="open-help"')}
-    </nav>
-    <div class="vk-nav-foot">${item("logout", "Cerrar sesión", 'data-action="logout-local-user"')}</div>
-  </aside>`;
-}
-
 function renderStationIntake(state) {
   const user = getAuthenticatedLocalUser();
   const currentAssignment = getWorkStationAssignment(state.form.stationAssignment);
@@ -112,7 +95,7 @@ function renderStationIntake(state) {
       ? `<span class="station-choice-status">${getEnabledSopVersionsForStation(state, rwkAssignment.value).length} SOP habilitada${getEnabledSopVersionsForStation(state, rwkAssignment.value).length === 1 ? "" : "s"}</span>`
       : '<span class="station-choice-status station-choice-status--disabled">Sin SOP habilitadas por Administración</span>';
 
-  return `<div class="station-intake-screen vk-app" aria-labelledby="station-intake-title">${renderIntakeSidebar()}<div class="vk-main">
+  return `<div class="station-intake-screen vk-app" aria-labelledby="station-intake-title"><div class="vk-main">
     <section class="station-intake-banner" aria-label="Registrar validación">
       <div class="vk-head-brand">
         <a class="station-intake-banner-brand" href="#top" aria-label="Ingrasys">

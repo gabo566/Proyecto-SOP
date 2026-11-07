@@ -168,9 +168,8 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
   const canManageSops = state.activeSection === "sop-admin" && canAccessSopAdmin(user);
   if (!state.operatorFlowReady && !canBrowseAdminSection && !canManageSops) {
     normalizeStationIntakeAssignment(state);
-    app.innerHTML = `${user?.role === "admin"
-      ? `${renderSidebar(state)}<main class="main-area">${renderStationIntake(state)}</main>`
-      : renderStationIntake(state)}${renderProfileDialog(state)}${renderToast()}`;
+    // El menú existente de la app (renderSidebar) se muestra también en esta pantalla, sin cambios.
+    app.innerHTML = `${renderSidebar(state)}<main class="main-area">${renderStationIntake(state)}</main>${renderProfileDialog(state)}${renderToast()}`;
     // Quien entra por la selección de estación también llega a su perfil desde el menú del banner.
     const intakeProfileDialog = document.querySelector("#profile-dialog");
     intakeProfileDialog.addEventListener("close", () => handleNativeDialogClose("profileDialogOpen"));
