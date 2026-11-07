@@ -206,3 +206,9 @@
   border: 1px solid #c9dafc;
   box-shadow: none;
 }
+
+/* Ventana de hojas del desensamble: más ancha para aprovechar el espacio disponible (dentro de la pantalla de registro). */
+.station-intake-screen .station-disassembly--modal {
+  width: min(1180px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+}
