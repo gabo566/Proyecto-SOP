@@ -1,0 +1,451 @@
+/* Réplica del mockup de Registrar validación (medidas tomadas de la imagen a 1672 px de ancho).
+   Todas las reglas empiezan con .station-intake-screen.vk-app para ganar a las hojas anteriores. */
+
+.station-intake-screen.vk-app {
+  display: grid;
+  grid-template-columns: 258px minmax(0, 1fr);
+  min-height: 100vh;
+  padding: 0;
+  background: #eef3fb;
+  font-family: Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #111827;
+}
+
+/* ---- Menú lateral ---- */
+.station-intake-screen.vk-app .vk-sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 0;
+  background: linear-gradient(180deg, #0a1a3d 0%, #0b2a6b 58%, #0b1f4f 100%);
+  color: #ffffff;
+  gap: 0;
+}
+.station-intake-screen.vk-app .vk-sidebar-brand { display: block; width: 175px; margin: 30px 0 0 38px; padding: 0; background: transparent; }
+.station-intake-screen.vk-app .vk-sidebar-brand img { display: block; width: 100%; height: auto; }
+.station-intake-screen.vk-app .vk-nav { display: flex; flex-direction: column; gap: 5px; margin: 36px 14px 0; }
+.station-intake-screen.vk-app .vk-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 33px;
+  width: 100%;
+  height: 63px;
+  padding: 0 0 0 33px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #e6edf9;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.station-intake-screen.vk-app .vk-nav-item:hover { background: rgba(255, 255, 255, .08); }
+.station-intake-screen.vk-app .vk-nav-item .material-symbols-rounded { font-size: 30px; }
+.station-intake-screen.vk-app .vk-nav-item--active { background: #2563eb; color: #ffffff; font-weight: 500; box-shadow: none; }
+.station-intake-screen.vk-app .vk-nav-foot { margin: 24px 34px 0 28px; padding: 22px 0 0; border-top: 1px solid rgba(255, 255, 255, .22); }
+.station-intake-screen.vk-app .vk-nav-foot .vk-nav-item { margin: 0 -28px 0 -28px; width: auto; padding-left: 28px; }
+
+/* ---- Columna principal ---- */
+.station-intake-screen.vk-app .vk-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  padding: 0 20px 22px 29px;
+}
+
+/* ---- Encabezado azul ---- */
+.station-intake-screen.vk-app .station-intake-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 90px;
+  min-height: 90px;
+  margin: 0 -20px 0 -29px;
+  padding: 0 34px 0 50px;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(100deg, #0a1a3d 0%, #12327a 58%, #1d4fd1 100%);
+  box-shadow: none;
+  color: #ffffff;
+}
+.station-intake-screen.vk-app .vk-head-brand { display: flex; align-items: center; gap: 35px; min-width: 0; }
+.station-intake-screen.vk-app .vk-head-divider { display: none; }
+.station-intake-screen.vk-app .vk-head-icon { font-size: 46px; color: #93c5fd; }
+.station-intake-screen.vk-app .station-intake-banner h1 {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: #ffffff;
+  text-shadow: none;
+}
+.station-intake-screen.vk-app .station-intake-banner .station-intake-user {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0 0 0 30px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: #ffffff;
+  position: relative;
+}
+.station-intake-screen.vk-app .station-intake-banner .station-intake-user::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 22px;
+  width: 1px;
+  height: 46px;
+  background: rgba(255, 255, 255, .3);
+}
+.station-intake-screen.vk-app .station-intake-banner .station-intake-user strong { font-size: 17px; font-weight: 700; color: #ffffff; }
+.station-intake-screen.vk-app .station-intake-banner .station-intake-user small { font-size: 14px; color: rgba(255, 255, 255, .85); }
+
+/* ---- Progreso: sin tarjeta, círculos de 42 px y línea azul hasta el paso activo ---- */
+.station-intake-screen.vk-app .operator-flow-progress {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0;
+  height: auto;
+  margin: 19px 0 0;
+  padding: 0 255px 0 237px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.station-intake-screen.vk-app .operator-flow-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 120px;
+}
+.station-intake-screen.vk-app .operator-flow-step span {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 2px solid #c4ccda;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #4b5563;
+  font-size: 18px;
+  font-weight: 700;
+}
+.station-intake-screen.vk-app .operator-flow-step strong { font-size: 17px; font-weight: 500; color: #374151; white-space: nowrap; }
+.station-intake-screen.vk-app .operator-flow-step--active span { background: #1d4ed8; border-color: #1d4ed8; color: #ffffff; box-shadow: none; }
+.station-intake-screen.vk-app .operator-flow-step--active strong { color: #1d4ed8; font-weight: 600; }
+.station-intake-screen.vk-app .operator-flow-progress > i {
+  flex: 1 1 auto;
+  height: 3px;
+  margin-top: 20px;
+  border-radius: 2px;
+  background: #d5dce8;
+}
+.station-intake-screen.vk-app .operator-flow-progress > i:first-of-type { background: linear-gradient(90deg, #2563eb 0 60%, #d5dce8 60%); }
+
+/* ---- Secciones ---- */
+.station-intake-screen.vk-app .station-choice-section,
+.station-intake-screen.vk-app .station-asset-section {
+  margin-top: 23px;
+  padding: 14px 23px 26px 29px;
+  background: #ffffff;
+  border: 1px solid #e3e8f2;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(15, 31, 61, .05);
+}
+.station-intake-screen.vk-app .station-asset-section { margin-top: 25px; }
+.station-intake-screen.vk-app .station-section-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 35px;
+  text-align: left;
+}
+.station-intake-screen.vk-app .station-section-title > div { text-align: left; }
+.station-intake-screen.vk-app .station-section-num {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+  box-shadow: none;
+}
+.station-intake-screen.vk-app .station-section-title h2 { margin: 0; font-size: 26px; line-height: 32px; font-weight: 600; letter-spacing: 0; color: #0f1f3d; }
+.station-intake-screen.vk-app .station-section-title p { margin: 4px 0 0; font-size: 17px; line-height: 22px; color: #1f2937; }
+
+/* ---- Tarjetas de estación ---- */
+.station-intake-screen.vk-app .station-choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 23px; margin: 14px 23px 0 18px; }
+.station-intake-screen.vk-app .station-choice {
+  position: relative;
+  display: grid;
+  grid-template-columns: 198px minmax(0, 1fr);
+  gap: 28px;
+  align-items: center;
+  height: 201px;
+  padding: 9px 9px 9px 9px;
+  border: 1px solid #d9dfea;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: none;
+}
+.station-intake-screen.vk-app .station-choice--selected,
+.station-intake-screen.vk-app .station-choice--rwk.station-choice--selected,
+.station-intake-screen.vk-app .station-choice--rwk.station-choice--selected:hover {
+  border: 2px solid #2563eb;
+  background: #eaf2ff;
+  box-shadow: none;
+}
+.station-intake-screen.vk-app .station-choice > input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.station-intake-screen.vk-app .vk-card-photo { display: block; width: 198px; height: 184px; border-radius: 10px; overflow: hidden; }
+.station-intake-screen.vk-app .vk-card-photo img { display: block; width: 198px; height: 184px; object-fit: cover; }
+.station-intake-screen.vk-app .vk-card-body {
+  position: static;
+  display: grid;
+  grid-template-columns: 67px minmax(0, 1fr);
+  column-gap: 23px;
+  align-items: start;
+  min-width: 0;
+  padding: 0;
+}
+.station-intake-screen.vk-app .vk-code-icon { display: block; width: 67px; height: 67px; padding: 0; border: 0; border-radius: 12px; background: transparent; box-shadow: none; }
+.station-intake-screen.vk-app .vk-code-icon img { display: block; width: 67px; height: 67px; border-radius: 12px; object-fit: cover; }
+.station-intake-screen.vk-app .station-choice-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding-top: 2px; }
+.station-intake-screen.vk-app .station-choice-copy strong { font-size: 24px; line-height: 28px; font-weight: 600; color: #111827; }
+.station-intake-screen.vk-app .station-choice-copy small { font-size: 16px; line-height: 21px; color: #4b5563; }
+.station-intake-screen.vk-app .station-pills { grid-column: 1 / -1; justify-self: start; margin-top: 28px; display: flex; gap: 8px; }
+.station-intake-screen.vk-app .station-pill { min-height: 33px; padding: 0 16px; border: 0; border-radius: 8px; background: #dbeafe; color: #1e3a8a; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
+.station-intake-screen.vk-app .station-pill--on { background: #16a34a; color: #ffffff; }
+.station-intake-screen.vk-app .station-choice-status { grid-column: 1 / -1; margin-top: 12px; display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; color: #1d4ed8; }
+.station-intake-screen.vk-app .station-choice-status::before { content: "description"; font-family: "Material Symbols Rounded"; font-size: 20px; font-weight: 400; line-height: 1; }
+.station-intake-screen.vk-app .station-choice-status--hint,
+.station-intake-screen.vk-app .station-choice-status--disabled { color: #1d4ed8; }
+.station-intake-screen.vk-app .station-choice-status--hint::before { content: "" ; }
+.station-intake-screen.vk-app .station-choice-status--disabled::before { content: "block"; color: #b42318; }
+.station-intake-screen.vk-app .station-choice-status--disabled { color: #b42318; }
+.station-intake-screen.vk-app .station-choice-radio {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #9ca3af;
+  border-radius: 50%;
+  background: #ffffff;
+}
+.station-intake-screen.vk-app .station-choice--selected .station-choice-radio { background: #2563eb; border-color: #2563eb; }
+.station-intake-screen.vk-app .station-choice--selected .station-choice-radio::after,
+.station-intake-screen.vk-app .station-choice--selected .station-choice-radio::before { display: none; }
+.station-intake-screen.vk-app .station-choice--selected::after {
+  color: #2563eb;
+  top: 18px;
+  right: 20px;
+  font-size: 30px;
+  font-variation-settings: "FILL" 1;
+}
+.station-intake-screen.vk-app .station-choice--disabled { opacity: .55; }
+
+/* ---- Campos de captura ---- */
+.station-intake-screen.vk-app .station-asset-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 39px; row-gap: 17px; margin-top: 16px; padding-right: 0; }
+.station-intake-screen.vk-app .station-scan-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.station-intake-screen.vk-app .station-field-label { display: flex; align-items: center; gap: 10px; font-size: 17px; line-height: 24px; font-weight: 600; color: #111827; }
+.station-intake-screen.vk-app .station-field-label .material-symbols-rounded { font-size: 24px; color: #1d4ed8; }
+.station-intake-screen.vk-app .station-field-label em { font-style: normal; color: #dc2626; }
+.station-intake-screen.vk-app .station-scan-field input {
+  height: 51px;
+  padding: 0 52px 0 27px;
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d4ed8' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M8 12h8'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 28px 28px;
+  color: #111827;
+  font-family: Roboto, system-ui, sans-serif;
+  font-size: 20px;
+  box-shadow: none;
+}
+.station-intake-screen.vk-app .station-scan-field input::placeholder { color: #6b7280; font-size: 20px; }
+.station-intake-screen.vk-app .station-scan-field input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, .2); }
+.station-intake-screen.vk-app .station-scan-field input:not(:placeholder-shown):not([aria-invalid="true"]) {
+  border-color: #16a34a;
+  background-color: #f0fdf4;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%2316a34a'/%3E%3Cpath d='M7 12.5l3.2 3.2L17 9' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 26px 26px;
+  font-weight: 700;
+  font-family: ui-monospace, Consolas, "Courier New", monospace;
+}
+.station-intake-screen.vk-app .station-scan-error { font-size: 13px; color: #b42318; }
+
+/* ---- Pie: Limpiar y Continuar a 61 px de alto ---- */
+.station-intake-screen.vk-app .station-intake-footer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  margin-top: 33px;
+  padding: 0;
+}
+.station-intake-screen.vk-app .vk-btn--clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  height: 61px;
+  padding: 0 34px 0 30px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.station-intake-screen.vk-app .vk-btn--clear .material-symbols-rounded { font-size: 26px; color: #111827; }
+.station-intake-screen.vk-app .station-intake-footer .station-intake-status { margin: 0; font-size: 15px; }
+.station-intake-screen.vk-app .station-intake-continue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  height: 61px;
+  width: 281px;
+  min-height: 61px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 10px;
+  background: #1d4ed8;
+  color: #ffffff;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 600;
+  box-shadow: none;
+}
+.station-intake-screen.vk-app .station-intake-continue:hover { background: #1e40af; }
+.station-intake-screen.vk-app .station-intake-continue:disabled { background: #cbd5e1; color: #6b7280; }
+.station-intake-screen.vk-app .station-intake-continue .material-symbols-rounded { font-size: 26px; }
+
+/* ---- Lo que el mockup no muestra ---- */
+.station-intake-screen.vk-app .station-work-summary,
+.station-intake-screen.vk-app .station-intake-footnote,
+.station-intake-screen.vk-app .station-intake-review-entry { display: none; }
+
+/* ---- Tableta: menú arriba, tarjetas en una columna ---- */
+@media (max-width: 1100px) {
+  .station-intake-screen.vk-app { grid-template-columns: minmax(0, 1fr); }
+  .station-intake-screen.vk-app .vk-sidebar { min-height: 0; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 16px; }
+  .station-intake-screen.vk-app .vk-sidebar-brand { width: 120px; margin: 0 8px 0 0; }
+  .station-intake-screen.vk-app .vk-nav { flex-direction: row; flex-wrap: wrap; margin: 0; gap: 4px; }
+  .station-intake-screen.vk-app .vk-nav-item { width: auto; height: 40px; padding: 0 12px; font-size: 15px; gap: 10px; }
+  .station-intake-screen.vk-app .vk-nav-foot { margin: 0 0 0 auto; padding: 0; border-top: 0; }
+  .station-intake-screen.vk-app .vk-main { padding: 0 16px 18px; }
+  .station-intake-screen.vk-app .station-intake-banner { margin: 0 -16px; padding: 0 20px; height: auto; min-height: 90px; }
+  .station-intake-screen.vk-app .operator-flow-progress { padding: 0 24px; }
+  .station-intake-screen.vk-app .station-choice-grid { grid-template-columns: minmax(0, 1fr); margin: 14px 0 0; }
+  .station-intake-screen.vk-app .station-choice { height: auto; }
+  .station-intake-screen.vk-app .station-choice-section,
+  .station-intake-screen.vk-app .station-asset-section { padding: 14px 16px 22px; }
+}
+@media (max-width: 700px) {
+  .station-intake-screen.vk-app .station-intake-banner h1 { font-size: 24px; }
+  .station-intake-screen.vk-app .station-choice { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .station-intake-screen.vk-app .vk-card-photo, .station-intake-screen.vk-app .vk-card-photo img { width: 100%; height: 150px; }
+  .station-intake-screen.vk-app .station-asset-grid { grid-template-columns: minmax(0, 1fr); }
+  .station-intake-screen.vk-app .operator-flow-step strong { font-size: 13px; white-space: normal; text-align: center; }
+  .station-intake-screen.vk-app .operator-flow-progress { padding: 0 8px; }
+  .station-intake-screen.vk-app .station-intake-footer { grid-template-columns: minmax(0, 1fr); }
+  .station-intake-screen.vk-app .station-intake-continue, .station-intake-screen.vk-app .vk-btn--clear { width: 100%; justify-content: center; }
+}
+
+/* ---- Ajustes de alineación medidos contra el mockup (sobreescriben reglas heredadas) ---- */
+.station-intake-screen.vk-app { gap: 0 !important; column-gap: 0 !important; row-gap: 0 !important; }
+.station-intake-screen.vk-app .station-section-title,
+.station-intake-screen.vk-app .station-choice-section .station-section-title,
+.station-intake-screen.vk-app .station-asset-section .station-section-title {
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  gap: 35px !important;
+}
+.station-intake-screen.vk-app .station-section-title > div { display: block; text-align: left; }
+.station-intake-screen.vk-app .station-choice-section { padding: 14px 23px 26px 16px !important; }
+.station-intake-screen.vk-app .station-asset-section { padding: 14px 23px 26px 21px !important; }
+.station-intake-screen.vk-app .station-choice-grid { margin: 14px 23px 0 2px !important; }
+.station-intake-screen.vk-app .station-asset-grid { margin: 16px 0 0 8px !important; }
+.station-intake-screen.vk-app .vk-btn--clear { width: 209px; justify-content: flex-start; padding: 0 36px; }
+
+/* ---- Segunda ronda de medidas ---- */
+.station-intake-screen.vk-app .station-intake-banner .station-intake-user { top: auto; right: auto; z-index: auto; }
+.station-intake-screen.vk-app .operator-flow-progress { margin: 19px 0 0 !important; padding: 0 198px 0 195px !important; }
+.station-intake-screen.vk-app .operator-flow-step { min-width: 84px; width: 84px; }
+.station-intake-screen.vk-app .station-choice-section { margin-top: 29px !important; }
+.station-intake-screen.vk-app .station-choice-grid { margin: 14px 0 0 2px !important; }
+
+/* ---- Tercera ronda: separaciones exactas y títulos alineados a la izquierda ---- */
+.station-intake-screen.vk-app .vk-main { gap: 0 !important; }
+.station-intake-screen.vk-app .station-choice-section { margin-top: 22px !important; padding-right: 1px !important; }
+.station-intake-screen.vk-app .station-asset-section { margin-top: 17px !important; }
+.station-intake-screen.vk-app .station-intake-footer { margin-top: 27px !important; }
+.station-intake-screen.vk-app .station-asset-section .station-section-title > div,
+.station-intake-screen.vk-app .station-asset-section .station-section-title h2,
+.station-intake-screen.vk-app .station-asset-section .station-section-title p { text-align: left !important; align-self: flex-start; }
+
+/* ---- Cuarta ronda: sin márgenes heredados entre bloques; distancias fijadas a las medidas del mockup ---- */
+.station-intake-screen.vk-app .station-choice-section,
+.station-intake-screen.vk-app .station-asset-section { margin-bottom: 0 !important; }
+.station-intake-screen.vk-app .station-choice-section { margin-top: 8px !important; padding-top: 18px !important; }
+.station-intake-screen.vk-app .station-choice-grid { margin-top: 18px !important; }
+.station-intake-screen.vk-app .station-asset-section { margin-top: 17px !important; }
+.station-intake-screen.vk-app .station-intake-footer { margin-top: 27px !important; }
+
+/* ---- Quinta ronda: alturas y distancias exactas ---- */
+.station-intake-screen.vk-app .station-choice-section { padding-bottom: 10px !important; }
+.station-intake-screen.vk-app .station-asset-section { margin-top: 13px !important; }
+.station-intake-screen.vk-app .station-intake-footer { margin-top: 15px !important; }
+
+/* ---- Tarjetas: título alineado al icono y línea de SOP en una sola línea ---- */
+.station-intake-screen.vk-app .station-choice-copy { padding-top: 10px; }
+.station-intake-screen.vk-app .station-choice-status { font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- Responsivo del réplica: anula las medidas fijas de escritorio (que van con !important) ---- */
+@media (max-width: 1100px) {
+  .station-intake-screen.vk-app .operator-flow-progress { padding: 0 24px !important; }
+  .station-intake-screen.vk-app .station-choice-section,
+  .station-intake-screen.vk-app .station-asset-section { padding: 14px 16px 22px !important; margin-top: 16px !important; }
+  .station-intake-screen.vk-app .station-choice-grid { margin: 14px 0 0 !important; }
+  .station-intake-screen.vk-app .station-asset-grid { margin: 16px 0 0 !important; }
+  .station-intake-screen.vk-app .station-intake-footer { margin-top: 18px !important; }
+}
+@media (max-width: 700px) {
+  .station-intake-screen.vk-app .operator-flow-progress { padding: 0 6px !important; }
+  .station-intake-screen.vk-app .operator-flow-step { min-width: 0; width: auto; flex: 1 1 0; }
+  .station-intake-screen.vk-app .operator-flow-step strong { font-size: 13px; white-space: normal; text-align: center; }
+  .station-intake-screen.vk-app .station-choice { grid-template-columns: minmax(0, 1fr) !important; height: auto !important; }
+  .station-intake-screen.vk-app .vk-card-body { grid-template-columns: 67px minmax(0, 1fr); }
+  .station-intake-screen.vk-app .station-choice-status { white-space: normal; }
+  .station-intake-screen.vk-app .station-intake-footer { grid-template-columns: minmax(0, 1fr); }
+  .station-intake-screen.vk-app .station-intake-footer .station-intake-continue,
+  .station-intake-screen.vk-app .vk-btn--clear { width: 100% !important; justify-content: center; }
+}
+@media (max-width: 1100px) {
+  .station-intake-screen.vk-app .vk-nav-foot .vk-nav-item { margin: 0; padding-left: 12px; }
+}
