@@ -610,3 +610,19 @@ body:has(.station-intake-screen.vk-app) .nav-item:has(.nav-key) .material-symbol
   font-size: 34px;
   font-variation-settings: "FILL" 1, "wght" 600;
 }
+
+/* ---- Marco de las tarjetas de estación con brillo suave en las esquinas ---- */
+.station-intake-screen.vk-app .station-choice {
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, .35), 0 0 16px rgba(59, 130, 246, .22);
+  background-image:
+    radial-gradient(circle at 0% 0%, rgba(147, 197, 253, .45), rgba(147, 197, 253, 0) 22%),
+    radial-gradient(circle at 100% 100%, rgba(147, 197, 253, .45), rgba(147, 197, 253, 0) 22%);
+}
+.station-intake-screen.vk-app .station-choice--selected,
+.station-intake-screen.vk-app .station-choice--rwk.station-choice--selected,
+.station-intake-screen.vk-app .station-choice--rwk.station-choice--selected:hover {
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, .55), 0 0 22px rgba(37, 99, 235, .35);
+  background-image:
+    radial-gradient(circle at 0% 0%, rgba(147, 197, 253, .55), rgba(147, 197, 253, 0) 22%),
+    radial-gradient(circle at 100% 100%, rgba(147, 197, 253, .55), rgba(147, 197, 253, 0) 22%);
+}
