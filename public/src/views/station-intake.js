@@ -95,13 +95,37 @@ function renderStationIntake(state) {
       ? `<span class="station-choice-status">${getEnabledSopVersionsForStation(state, rwkAssignment.value).length} SOP habilitada${getEnabledSopVersionsForStation(state, rwkAssignment.value).length === 1 ? "" : "s"}</span>`
       : '<span class="station-choice-status station-choice-status--disabled">Sin SOP habilitadas por Administración</span>';
 
+  // Datos reales para el resumen del encabezado.
+  const capturedFields = ["nodePartNumber", "serial", "componentPartNumber", "componentSerial"].filter((key) => String(state.form[key] ?? "").trim()).length;
+  const stationsEnabledCount = enabledMfgAssignments.length + enabledRwkAssignments.length;
+  const areaLabel = assignment ? `${assignment.type} · ${assignment.label}` : "";
+
   return `<div class="station-intake-screen" aria-labelledby="station-intake-title">
     <div class="station-intake-user">${renderProfileMenu(getActiveLocalUser())}</div>
     <section class="station-intake-banner" aria-label="Registrar validación">
-      <a class="station-intake-banner-brand" href="#top" aria-label="Ingrasys">
-        <img src="./public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" />
-      </a>
-      <div class="station-intake-banner-heading"><span class="station-intake-banner-icon" aria-hidden="true"><span class="material-symbols-rounded">fact_check</span></span><div><h1 id="station-intake-title">Registrar validación</h1></div></div>
+      <div class="vk-hero-copy">
+        <a class="station-intake-banner-brand" href="#top" aria-label="Ingrasys">
+          <img src="./public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" />
+        </a>
+        <p class="vk-eyebrow"><span aria-hidden="true">—</span>Registro de validación${areaLabel ? ` · ${escapeHtml(areaLabel)}` : ""}</p>
+        <h1 id="station-intake-title">Registrar <span class="vk-hero-accent">validación</span></h1>
+        <p class="vk-hero-sub">Elige tu estación, captura los datos del equipo y revisa la SOP asignada antes de guardar.</p>
+        <div class="vk-hero-actions">
+          <a class="vk-btn vk-btn--primary" href="#station-choice-title"><span class="material-symbols-rounded" aria-hidden="true">arrow_downward</span>Elegir estación</a>
+          <a class="vk-btn vk-btn--ghost" href="#station-asset-title">Capturar equipo</a>
+        </div>
+      </div>
+      <dl class="vk-hero-stats" aria-label="Resumen de la validación">
+        <div class="vk-stat">
+          <dt>Campos del equipo</dt>
+          <dd>${capturedFields}<small>/4</small></dd>
+          <span class="vk-stat-bar" aria-hidden="true"><i style="width: ${capturedFields * 25}%"></i></span>
+        </div>
+        <div class="vk-stat vk-stat--blue">
+          <dt>Estaciones con SOP habilitada</dt>
+          <dd>${stationsEnabledCount}</dd>
+        </div>
+      </dl>
     </section>
     ${canAccessSopAdmin() && getActiveLocalUser()?.role !== "admin" ? '<div class="station-intake-review-entry"><button class="button button--outlined" type="button" data-action="open-sop-admin-from-intake"><span class="material-symbols-rounded" aria-hidden="true">rate_review</span>Revisar o publicar SOP</button></div>' : ""}
     <nav class="operator-flow-progress" aria-label="Progreso del registro">
