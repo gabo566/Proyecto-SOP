@@ -3,15 +3,15 @@
    Tokens globales en :root; las reglas se limitan a secciones marcadas (hoy: .station-intake-screen).
    Para revertir una sección basta con quitar sus reglas de este archivo. */
 :root {
-  --vk-bg: #f7f8fa;
+  --vk-bg: #eef3fb;
   --vk-ink: #171a21;
   --vk-muted: #5b6270;
   --vk-line: #e2e2e2;
   --vk-line-strong: #c9ced6;
   --vk-card: #ffffff;
   --vk-blue: #3d7bff;
-  --vk-blue-btn: #2f63e0;
-  --vk-blue-text: #2f63e0;
+  --vk-blue-btn: #2563eb;
+  --vk-blue-text: #1d4ed8;
   --vk-blue-tint: #eef4ff;
   --vk-cyan: #2ec0fd;
   --vk-green: #8ec735;
@@ -36,91 +36,48 @@
   border-radius: 0;
 }
 
-/* Hero claro (composición de la captura de VKS): texto a la izquierda, datos reales a la derecha. */
+/* Encabezado azul marino del mockup: marca, título y chip de usuario en una sola barra. */
 .station-intake-screen .station-intake-banner {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  display: flex;
   align-items: center;
-  gap: 28px;
-  padding: 36px 40px;
-  background:
-    radial-gradient(circle at 88% 18%, rgba(61, 123, 255, .14), rgba(255, 255, 255, 0) 34%),
-    radial-gradient(circle at 6% 100%, rgba(249, 115, 22, .08), rgba(255, 255, 255, 0) 30%),
-    linear-gradient(160deg, #ffffff, #f3f6fb);
-  border: 1px solid var(--vk-line);
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 72px;
+  padding: 14px 24px;
+  background: linear-gradient(100deg, #0a1b3f 0%, #12306e 55%, #1d4ed8 100%);
+  border: 0;
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(23, 26, 33, .04);
+  box-shadow: 0 6px 20px rgba(10, 27, 63, .18);
+  color: #ffffff;
 }
-.station-intake-screen .vk-hero-copy { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.station-intake-screen .station-intake-banner-brand {
-  width: 150px;
-  padding: 0;
-  background: transparent;
-  border-radius: 0;
-  box-shadow: none;
-  justify-self: start;
-}
+.station-intake-screen .vk-head-brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.station-intake-screen .station-intake-banner-brand { width: 120px; flex: none; padding: 0; background: transparent; border-radius: 0; box-shadow: none; justify-self: auto; }
 .station-intake-screen .station-intake-banner-brand img { display: block; width: 100%; height: auto; }
-.station-intake-screen .vk-eyebrow {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--vk-muted);
-}
-.station-intake-screen .vk-eyebrow span { color: var(--vk-blue-text); margin-right: 8px; }
+.station-intake-screen .vk-head-divider { width: 1px; height: 32px; background: rgba(255, 255, 255, .25); }
+.station-intake-screen .vk-head-icon { font-size: 30px; color: #93c5fd; }
 .station-intake-screen .station-intake-banner h1 {
   margin: 0;
-  font-size: clamp(34px, 4.4vw, 56px);
-  line-height: 1.05;
-  font-weight: 700;
-  letter-spacing: -1.5px;
-  color: var(--vk-ink);
-}
-.station-intake-screen .vk-hero-accent { color: var(--vk-blue); }
-.station-intake-screen .vk-hero-sub { margin: 0; max-width: 46ch; font-size: 17px; line-height: 1.6; color: var(--vk-muted); }
-.station-intake-screen .vk-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; }
-.station-intake-screen .vk-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 22px;
-  border-radius: var(--vk-radius);
-  border: 1px solid transparent;
-  font-size: 15px;
+  font-size: 24px;
+  line-height: 1.2;
   font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
+  letter-spacing: -.2px;
+  color: #ffffff;
+  text-shadow: none;
 }
-.station-intake-screen .vk-btn .material-symbols-rounded { font-size: 18px; }
-.station-intake-screen .vk-btn--primary { background: var(--vk-orange); color: #ffffff; }
-.station-intake-screen .vk-btn--primary:hover { background: var(--vk-orange-hover); }
-.station-intake-screen .vk-btn--ghost { background: #ffffff; color: var(--vk-ink); border-color: var(--vk-line-strong); }
-.station-intake-screen .vk-btn--ghost:hover { background: var(--vk-bg); }
-
-/* Tarjetas de datos reales (estilo de las tarjetas flotantes de la captura). */
-.station-intake-screen .vk-hero-stats { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.station-intake-screen .vk-stat {
+.station-intake-screen .station-intake-banner .station-intake-user {
+  position: static;
+  width: auto;
   margin: 0;
-  padding: 20px 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  border-radius: 12px;
-  background: #ffffff;
-  border: 1px solid var(--vk-line);
-  box-shadow: 0 14px 40px rgba(23, 26, 33, .10);
+  justify-self: auto;
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 999px;
+  color: #ffffff;
+  padding: 4px 12px 4px 4px;
 }
-.station-intake-screen .vk-stat dt { font-size: 13px; font-weight: 500; color: var(--vk-muted); }
-.station-intake-screen .vk-stat dd { margin: 0; font-size: 44px; line-height: 1; font-weight: 700; letter-spacing: -1px; color: var(--vk-ink); }
-.station-intake-screen .vk-stat dd small { margin-left: 4px; font-size: 18px; font-weight: 600; letter-spacing: 0; color: var(--vk-muted); }
-.station-intake-screen .vk-stat-bar { display: block; height: 6px; margin-top: 8px; border-radius: 999px; background: #eef1f6; overflow: hidden; }
-.station-intake-screen .vk-stat-bar i { display: block; height: 100%; border-radius: 999px; background: var(--vk-blue); transition: width .3s ease; }
-.station-intake-screen .vk-stat--blue { background: var(--vk-blue-tint); border-color: #c9dafc; box-shadow: 0 14px 40px rgba(61, 123, 255, .12); }
-.station-intake-screen .vk-stat--blue dd { color: var(--vk-blue-text); }
+.station-intake-screen .station-intake-banner .station-intake-user strong,
+.station-intake-screen .station-intake-banner .station-intake-user b { color: #ffffff; }
+.station-intake-screen .station-intake-banner .station-intake-user small { color: rgba(255, 255, 255, .75); }
 
 /* Progreso */
 .station-intake-screen .operator-flow-progress {
@@ -303,15 +260,6 @@
   .station-intake-screen .station-intake-user small { color: var(--vk-muted); }
 }
 
-/* Chip de usuario encima del hero (ya no se superpone con las tarjetas de datos). */
-.station-intake-screen .station-intake-user {
-  position: static;
-  width: max-content;
-  max-width: 100%;
-  margin: 0 0 12px auto;
-  justify-self: end;
-}
-
 /* Responsivo del hero: en tableta una columna; en teléfono las tarjetas quedan en dos columnas compactas. */
 @media (max-width: 900px) {
   .station-intake-screen .station-intake-banner { grid-template-columns: minmax(0, 1fr); padding: 26px 22px; gap: 22px; }
@@ -326,28 +274,45 @@
   .station-intake-screen .vk-hero-actions .vk-btn { flex: 1 1 100%; }
 }
 
-/* Detalles del hero claro: sin sombras heredadas, chip de usuario legible y separación del guion del eyebrow. */
-.station-intake-screen .station-intake-banner h1,
-.station-intake-screen .vk-eyebrow,
-.station-intake-screen .vk-hero-sub { text-shadow: none; }
-.station-intake-screen .vk-eyebrow span { margin-right: 10px; }
-.station-intake-screen .station-intake-user {
-  background: var(--vk-card);
-  border: 1px solid var(--vk-line);
-  border-radius: var(--vk-radius);
-  box-shadow: none;
-  color: var(--vk-ink);
-  padding: 6px 12px 6px 6px;
-}
-.station-intake-screen .station-intake-user strong,
-.station-intake-screen .station-intake-user b { color: var(--vk-ink); text-shadow: none; }
-.station-intake-screen .station-intake-user small { color: var(--vk-muted); text-shadow: none; }
+/* Línea de progreso azul hasta el paso activo (como el mockup). */
+.station-intake-screen .operator-flow-progress i:first-of-type { background: var(--vk-blue); height: 2px; }
 
-/* Texto del hero alineado a la izquierda de su columna (la cabecera base lo centraba). */
-.station-intake-screen .station-intake-banner { justify-items: start; }
-.station-intake-screen .vk-hero-copy { justify-self: start; width: 100%; max-width: 560px; }
-.station-intake-screen .vk-hero-copy,
-.station-intake-screen .vk-hero-copy p,
-.station-intake-screen .vk-hero-copy h1 { text-align: left; }
-.station-intake-screen .vk-hero-actions { justify-content: flex-start; }
-.station-intake-screen .station-intake-banner-brand img { width: 170px; max-width: 100%; }
+/* Campos de captura con icono de escaneo dentro del campo (como el mockup). */
+.station-intake-screen .station-scan-field input {
+  padding-right: 44px;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d4ed8' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M8 12h8'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 20px 20px;
+}
+.station-intake-screen .station-scan-field input:not(:placeholder-shown):not([aria-invalid="true"]) {
+  background-color: var(--vk-green-tint);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234d7a0f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E");
+}
+
+/* Botón principal azul, como el mockup. */
+.station-intake-screen .station-intake-continue {
+  min-height: 52px;
+  padding: 0 28px;
+  font-size: 16px;
+  background: var(--vk-blue-btn);
+  box-shadow: 0 8px 22px rgba(37, 99, 235, .28);
+}
+.station-intake-screen .station-intake-continue:hover { background: var(--vk-blue-text); }
+
+/* Responsivo del encabezado: en pantallas chicas el chip baja debajo del título. */
+@media (max-width: 700px) {
+  .station-intake-screen .station-intake-banner { flex-wrap: wrap; padding: 14px 16px; }
+  .station-intake-screen .station-intake-banner h1 { font-size: 20px; }
+  .station-intake-screen .vk-head-brand { flex: 1 1 100%; }
+  .station-intake-screen .station-intake-banner-brand { width: 96px; }
+  .station-intake-screen .station-intake-banner .station-intake-user { margin-left: auto; }
+}
+
+/* Icono de validado: una sola vez, a la derecha del campo. */
+.station-intake-screen .station-scan-field input:not(:placeholder-shown):not([aria-invalid="true"]) {
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 20px 20px;
+}
