@@ -64,27 +64,6 @@ function renderDisassemblyChoice(choice, filter = "", panelOpen = false) {
     <div class="station-disassembly-done"><button type="button" class="button button--primary" data-action="close-disassembly-panel">Listo</button></div></fieldset></div>`;
 }
 
-// Columna derecha: la SOP asignada a la estación elegida (datos reales de la versión habilitada).
-function renderIntakeSopAside(state, assignment, activeVersion) {
-  const steps = (activeVersion?.procedures ?? []).flatMap((procedure) => procedure.steps ?? []);
-  const sheets = activeVersion?.procedures?.length ?? 0;
-  const firstSteps = steps.slice(0, 4);
-  return `<aside class="vk-side-card" aria-label="SOP asignada">
-    <header class="vk-side-head"><span class="material-symbols-rounded" aria-hidden="true">description</span><h3>SOP asignada</h3></header>
-    ${activeVersion ? `<div class="vk-sop-block">
-      <div class="vk-sop-thumb"><span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span></div>
-      <div class="vk-sop-info"><strong>${escapeHtml(activeVersion.document.title)}</strong><small>${escapeHtml(activeVersion.document.id)}</small><span class="vk-sop-ver">Rev. ${escapeHtml(activeVersion.document.revision)}</span></div>
-    </div>
-    <dl class="vk-sop-meta">
-      <div><dt>Hojas</dt><dd>${sheets}</dd></div>
-      <div><dt>Pasos</dt><dd>${steps.length}</dd></div>
-      <div><dt>Estación</dt><dd>${escapeHtml(assignment?.label ?? "—")}</dd></div>
-    </dl>
-    <h4 class="vk-side-sub">Primeros pasos</h4>
-    <ol class="vk-sop-steps">${firstSteps.map((step) => `<li>${escapeHtml(step.text ?? "")}</li>`).join("")}</ol>` : `<p class="vk-side-empty">Administración debe asignar y habilitar una SOP para esta estación.</p>`}
-  </aside>`;
-}
-
 function renderStationIntake(state) {
   const user = getAuthenticatedLocalUser();
   const currentAssignment = getWorkStationAssignment(state.form.stationAssignment);
@@ -116,20 +95,17 @@ function renderStationIntake(state) {
       ? `<span class="station-choice-status">${getEnabledSopVersionsForStation(state, rwkAssignment.value).length} SOP habilitada${getEnabledSopVersionsForStation(state, rwkAssignment.value).length === 1 ? "" : "s"}</span>`
       : '<span class="station-choice-status station-choice-status--disabled">Sin SOP habilitadas por Administración</span>';
 
-  // Datos reales para la barra superior (notificaciones pendientes y subtítulo por tipo de estación).
-  const inboxPending = typeof getSopInboxCount === "function" ? getSopInboxCount(state) : 0;
-  const sopSubtitle = `SOP · ${assignment?.type === "RWK" ? "Retrabajo" : "Manufactura"}`;
   return `<div class="station-intake-screen vk-app" aria-labelledby="station-intake-title"><div class="vk-main">
-    <section class="station-intake-banner vk-topbar" aria-label="Barra superior">
+    <section class="station-intake-banner" aria-label="Registrar validación">
       <div class="vk-head-brand">
+        <a class="station-intake-banner-brand" href="#top" aria-label="Ingrasys">
+          <img src="./public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" />
+        </a>
+        <span class="vk-head-divider" aria-hidden="true"></span>
         <span class="vk-head-icon material-symbols-rounded" aria-hidden="true">fact_check</span>
-        <div class="vk-head-text"><h1 id="station-intake-title">Registrar validación</h1><small>${escapeHtml(sopSubtitle)}</small></div>
+        <h1 id="station-intake-title">Registrar validación</h1>
       </div>
-      <label class="vk-search"><span class="material-symbols-rounded" aria-hidden="true">search</span><input type="search" placeholder="Buscar SOP, estación o equipo…" disabled aria-label="Buscar (próximamente)" /><kbd>Ctrl K</kbd></label>
-      <div class="vk-topbar-end">
-        <button type="button" class="vk-bell" aria-label="${inboxPending} pendientes en la bandeja de revisión"><span class="material-symbols-rounded" aria-hidden="true">notifications</span>${inboxPending ? `<b>${inboxPending}</b>` : ""}</button>
-        <div class="station-intake-user">${renderProfileMenu(getActiveLocalUser())}</div>
-      </div>
+      <div class="station-intake-user">${renderProfileMenu(getActiveLocalUser())}</div>
     </section>
     ${canAccessSopAdmin() && getActiveLocalUser()?.role !== "admin" ? '<div class="station-intake-review-entry"><button class="button button--outlined" type="button" data-action="open-sop-admin-from-intake"><span class="material-symbols-rounded" aria-hidden="true">rate_review</span>Revisar o publicar SOP</button></div>' : ""}
     <nav class="operator-flow-progress" aria-label="Progreso del registro">
@@ -137,7 +113,7 @@ function renderStationIntake(state) {
       <div class="operator-flow-step"><span>2</span><strong>Ver SOP asignada</strong></div><i></i>
       <div class="operator-flow-step"><span>3</span><strong>Confirmar y guardar</strong></div>
     </nav>
-    <form id="station-intake-form" class="station-intake-form" novalidate><div class="vk-form-grid"><div class="vk-form-main">
+    <form id="station-intake-form" class="station-intake-form" novalidate>
       <section class="station-choice-section" aria-labelledby="station-choice-title">
         <div class="station-section-title"><span class="station-section-num" aria-hidden="true">1</span><div><h2 id="station-choice-title">¿En qué área de la línea de producción te encuentras?</h2><p>Toca una estación. Solo aparecen las que tienen SOP habilitada.</p></div></div>
         <fieldset class="station-choice-grid"><legend class="sr-only">Tipo de estación</legend>
@@ -180,9 +156,8 @@ function renderStationIntake(state) {
       </section>
       <footer class="station-intake-footer"><button type="button" class="vk-btn vk-btn--clear" data-action="clear-station-intake"><span class="material-symbols-rounded" aria-hidden="true">sync</span>Limpiar</button><p class="station-intake-status ${canContinue ? "station-intake-status--ready" : ""}" id="station-intake-status" role="status" aria-live="polite"><span class="material-symbols-rounded" aria-hidden="true">${canContinue ? "check_circle" : "info"}</span><span>${escapeHtml(status)}</span></p>
         ${error}
-        <button type="button" class="vk-btn vk-btn--ghost" disabled><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Anterior</button>
-        <button class="button button--primary station-intake-continue" type="submit" ${canContinue ? "" : "disabled"}>Siguiente<span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span></button>
-      </footer></div>${renderIntakeSopAside(state, assignment, activeVersion)}</div>
+        <button class="button button--primary station-intake-continue" type="submit" ${canContinue ? "" : "disabled"}><span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>Continuar</button>
+      </footer>
     </form>
     <p class="station-intake-footnote">La selección y los identificadores se conservarán en el registro de esta validación.</p>
   </div></div>${renderToast()}`;
