@@ -199,7 +199,7 @@ function render({ focusKey, focusDialog = false, initial = false } = {}) {
     ? renderSopVersionManager(state)
     : renderSummaryMetrics(todayRecords, state);
   app.innerHTML = `${renderSidebar(state)}<main class="main-area" id="main-content">
-    ${renderTopbar(state)}<div class="dashboard-content">${dashboard}${renderFooter()}</div></main>
+    ${renderTopbar(state)}<div class="dashboard-content">${renderBksPrefix(state)}${dashboard}${renderFooter()}</div></main>
     ${renderOperatorValidationDialog(getProcedure(), state)}${renderRecordsDialog(records, state.recordsQuery, state.workItems)}${renderWorkItemDialog(state)}${renderEvidenceReviewDialog(state)}${renderEvidenceImageDialog(state)}${renderStepImageDialog()}${renderHelpDialog()}${renderProfileDialog(state)}${renderOperatorHandoffDialog(state)}
     ${renderToast()}`;
 
