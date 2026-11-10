@@ -560,6 +560,7 @@ function bindInteractions(app, handlers) {
         state.activeSection = "sop-admin";
         render();
         break;
+      case "toggle-theme": toggleTheme(); render(); break;
       case "open-menu": state.navOpen = true; render(); break;
       case "close-menu": state.navOpen = false; render(); break;
       case "brand-home": state.navOpen = false; render(); break;

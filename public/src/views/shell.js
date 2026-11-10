@@ -7,8 +7,45 @@ const NAV_ITEMS = [
   { id: "sop-admin", label: "Modificar SOP", icon: "edit_document", target: "sop-version-title" },
 ];
 
+// Modo día/noche: preferencia por visitante (localStorage) aplicada como data-theme en <html>.
+const THEME_STORAGE_KEY = "sop-theme";
+
+function getStoredTheme() {
+  try {
+    return localStorage.getItem(THEME_STORAGE_KEY) === "dark" ? "dark" : "light";
+  } catch {
+    return "light";
+  }
+}
+
+function applyTheme(theme) {
+  const next = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = next;
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, next);
+  } catch {
+    // Sin almacenamiento disponible el tema solo dura la sesión actual.
+  }
+  return next;
+}
+
+function toggleTheme() {
+  return applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+}
+
+function renderThemeToggle() {
+  const dark = document.documentElement.dataset.theme === "dark";
+  const label = dark ? "Cambiar a modo día" : "Cambiar a modo noche";
+  return `
+    <button class="nav-item nav-theme-toggle" type="button" data-action="toggle-theme" data-focus-key="nav-theme"
+      aria-pressed="${dark ? "true" : "false"}" aria-label="${label}" title="${label}">
+      <span class="material-symbols-rounded" aria-hidden="true">${dark ? "light_mode" : "dark_mode"}</span><span>${dark ? "Modo día" : "Modo noche"}</span>
+    </button>`;
+}
+
 function renderSidebar(state) {
   const user = getActiveLocalUser();
+  applyTheme(getStoredTheme());
   const role = user.role;
   const visibleItems = NAV_ITEMS.filter((item) => item.id !== "users" || role === "admin")
     .filter((item) => item.id !== "reports" || ["supervisor", "admin"].includes(role))
@@ -33,7 +70,7 @@ function renderSidebar(state) {
         <img class="brand-full" src="./public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" />
         <img class="brand-mark" src="./public/assets/ingrasys-emblem.png" alt="" aria-hidden="true" />
       </a>
-      <nav class="side-nav">${navItems}</nav>
+      <nav class="side-nav">${navItems}${renderThemeToggle()}</nav>
     </aside>`;
 }
 
@@ -45,6 +82,22 @@ function formatTopbarDate(date = new Date()) {
 
 function formatTopbarTime(date = new Date()) {
   return new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit", hour12: true }).format(date).replace(/\./g, "");
+}
+
+// Cabecera de las secciones (Seguimiento, Producción, Trazabilidad, Reportes, etc.): mismo diseño que el registro de validación.
+function renderAppBanner(state = {}) {
+  const user = getActiveLocalUser();
+  // Título fijo en todas las secciones del menú.
+  return `<div class="station-intake-screen vk-app app-banner-wrap"><div class="vk-main">
+    <section class="station-intake-banner vk-topbar" aria-label="Cabecera">
+      <div class="vk-nvidia-brand"><img class="vk-emblem" src="./public/assets/intake/nvidia-emblem.png" alt="" aria-hidden="true" /><img class="vk-wordmark" src="./public/assets/intake/nvidia-wordmark.png" alt="NVIDIA" /><span>RACKS</span></div>
+      <div class="vk-head-center"><h1 id="section-title">SOPs / SIPs</h1></div>
+      <div class="vk-head-end">
+        <img class="vk-ingrasys" src="./public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" />
+        <div class="station-intake-user">${renderProfileMenu(user)}</div>
+      </div>
+    </section>
+  </div></div>`;
 }
 
 function renderTopbar(state = {}) {
