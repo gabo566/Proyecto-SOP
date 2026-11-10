@@ -102,6 +102,7 @@ function renderProcedurePanel(procedure, state) {
     ${ownerMessage}
     <div class="guided-page-layout sop-page-checklist-layout" data-page-zoom="${pageZoom}">
       <section class="guided-sop-page" aria-label="Hoja completa ${escapeHtml(procedure.sheet)} de la SOP">
+        ${renderVksStepBanner(procedure, state)}
         <div class="guided-page-toolbar">
           <div class="guided-page-heading"><span class="material-symbols-rounded" aria-hidden="true">search</span><strong><span class="guided-page-sheet">Hoja ${escapeHtml(procedure.sheet)}</span><span class="guided-page-title">${escapeHtml(procedure.title)}</span></strong></div>
           <div class="sop-page-zoom-controls" role="group" aria-label="Tamaño de la hoja SOP">
@@ -121,6 +122,7 @@ function renderProcedurePanel(procedure, state) {
           <p class="guided-pdf-status" role="status" aria-live="polite">Cargando hoja completa…</p>
         </div>
       </section>
+      ${renderVksMetrics(procedure, state)}
       <section class="guided-checklist-panel" aria-label="Validación de hoja ${escapeHtml(procedure.sheet)}">
         <header class="guided-checklist-titlebar"><div><p class="eyebrow">Hoja ${escapeHtml(procedure.sheet)}</p><h2>${procedure.steps.length === 1 ? "1 paso" : `${procedure.steps.length} pasos`} por validar</h2></div><span class="guided-checklist-heading-count" title="Pasos completados">${checkedCount}/${procedure.steps.length}</span></header>
         <div class="sop-run-progress" role="group" aria-label="Progreso de esta hoja"><div class="sop-run-progress-track"><span style="width:${sheetPercent}%"></span></div><strong>${sheetPercent}%</strong></div>
@@ -189,4 +191,30 @@ function renderStepImageDialog() {
     </div><div class="step-image-dialog-viewport"><img id="step-image-preview" alt="" /></div>
       <p class="step-image-dialog-caption" id="step-image-caption"></p></div>
   </dialog>`;
+}
+
+// Banda de instrucción sobre la hoja (estilo VKS): texto del paso actual en amarillo sobre negro.
+function renderVksStepBanner(procedure, state) {
+  const done = new Set(getGuidedSopCheckedSteps(state.sopRun, procedure.id));
+  const current = procedure.steps.find((step) => !done.has(String(step.number)));
+  if (!current) return "";
+  const index = procedure.steps.indexOf(current) + 1;
+  return `<div class="vks-step-banner" aria-live="polite"><span class="vks-step-counter">Paso ${index}/${procedure.steps.length}</span><p>${escapeHtml(current.text)}</p></div>`;
+}
+
+// Métricas reales del trabajo en curso (sin valores inventados): pasos, adjuntos, envíos a revisión y datos capturados.
+function renderVksMetrics(procedure, state) {
+  const done = getGuidedSopCheckedSteps(state.sopRun, procedure.id).length;
+  const total = procedure.steps.length;
+  const work = state.workItems?.find((item) => item.id === state.activeWorkId);
+  const attachments = work?.evidenceFiles?.length ?? 0;
+  const submissions = work?.evidenceHistory?.length ?? 0;
+  const fields = ["nodePartNumber", "serial", "componentPartNumber", "componentSerial"].filter((key) => String(state.form?.[key] ?? "").trim()).length;
+  const cards = [
+    { icon: "task_alt", label: "Pasos", value: `${done}/${total}` },
+    { icon: "attach_file", label: "Adjuntos", value: String(attachments) },
+    { icon: "fact_check", label: "Envíos a revisión", value: String(submissions) },
+    { icon: "data_object", label: "Datos capturados", value: `${fields}/4` },
+  ];
+  return `<div class="vks-metrics" role="list" aria-label="Métricas del trabajo">${cards.map((card) => `<div class="vks-metric" role="listitem"><span class="material-symbols-rounded" aria-hidden="true">${card.icon}</span><span><small>${escapeHtml(card.label)}</small><strong>${escapeHtml(card.value)}</strong></span></div>`).join("")}</div>`;
 }
