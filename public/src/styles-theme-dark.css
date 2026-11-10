@@ -302,6 +302,28 @@ html[data-theme="dark"] .main-area .ra-area.is-on small { color: #fff !important
 html[data-theme="dark"] .main-area .ra-area:not(.is-on) strong { color: #e7edf8 !important; }
 html[data-theme="dark"] .main-area .ra-area:not(.is-on) small { color: #9fb0cc !important; }
 
+/* Diálogos (Mi perfil, validación, registros, etc.) en oscuro: paleta compartida, sin inversión genérica. */
+html[data-theme="dark"] dialog {
+  filter: none;
+  --p-card: #132041; --p-soft: #0f1a33; --p-line: #22345c; --p-line-strong: #2f4370;
+  --p-ink: #e7edf8; --p-muted: #9fb0cc; --p-navy: #1b2940; --p-blue: #2f6ae6; --p-blue-hi: #3d7bff; --p-blue-text: #7fb0ff;
+  --p-blue-soft: rgb(61 123 255 / 16%);
+  background: var(--p-card) !important; color: var(--p-ink); border-color: var(--p-line) !important;
+}
+html[data-theme="dark"] dialog :is(h1, h2, h3, h4, strong, label, b) { color: var(--p-ink) !important; background: transparent !important; }
+html[data-theme="dark"] dialog :is(p, small, small *, .dialog-header p) { color: var(--p-muted) !important; }
+html[data-theme="dark"] dialog :is(input, select, textarea) { background: var(--p-soft) !important; border-color: var(--p-line-strong) !important; color: var(--p-ink) !important; }
+html[data-theme="dark"] dialog :is(input, textarea)::placeholder { color: var(--p-muted) !important; }
+html[data-theme="dark"] dialog :is(img, video, canvas, iframe) { filter: none; }
+html[data-theme="dark"] dialog .profile-avatar { background: #2653a6 !important; color: #fff !important; }
+html[data-theme="dark"] dialog .text-button { color: var(--p-blue-text) !important; background: transparent !important; }
+html[data-theme="dark"] dialog .icon-button { color: var(--p-muted) !important; background: transparent !important; border-color: var(--p-line-strong) !important; }
+html[data-theme="dark"] dialog button:not(.text-button):not(.icon-button):not(.button--primary):not(.vk-btn--primary) { background: var(--p-soft) !important; border-color: var(--p-line-strong) !important; color: var(--p-blue-text) !important; }
+html[data-theme="dark"] dialog :is(.button--primary, .vk-btn--primary, [type="submit"]) { background: var(--p-blue) !important; border-color: var(--p-blue) !important; color: #fff !important; }
+html[data-theme="dark"] dialog .form-error { color: #ff8a80 !important; }
+html[data-theme="dark"] dialog :is(.dialog-header, .profile-form, fieldset, [class*="section"], [class*="panel"]) { border-color: var(--p-line) !important; }
+html[data-theme="dark"] dialog :is(.dialog-header, .profile-form, fieldset) { background: transparent !important; }
+
 /* Bandeja de revisión en oscuro: mismo lenguaje que Crear usuarios, Actividad y Reportes. */
 html[data-theme="dark"] .main-area .sop-version-panel {
   filter: invert(1) hue-rotate(180deg);
