@@ -223,8 +223,8 @@
   min-width: 0;
   padding: 0;
 }
-.station-intake-screen.vk-app .vk-code-icon { display: block; width: 67px; height: 67px; padding: 0; border: 0; border-radius: 12px; background: transparent; box-shadow: none; }
-.station-intake-screen.vk-app .vk-code-icon img { display: block; width: 67px; height: 67px; border-radius: 12px; object-fit: cover; }
+.station-intake-screen.vk-app .vk-code-icon { display: grid; place-items: center; width: 72px; height: 72px; padding: 0; border: 0; border-radius: 12px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); box-shadow: 0 8px 18px rgba(29, 78, 216, .35); overflow: hidden; }
+.station-intake-screen.vk-app .vk-icon-mat { font-size: 40px; color: #ffffff; font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 48; }
 .station-intake-screen.vk-app .station-choice-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding-top: 2px; }
 .station-intake-screen.vk-app .station-choice-copy strong { font-size: 24px; line-height: 28px; font-weight: 600; color: #111827; }
 .station-intake-screen.vk-app .station-choice-copy small { font-size: 16px; line-height: 21px; color: #4b5563; }
@@ -626,3 +626,397 @@ body:has(.station-intake-screen.vk-app) .nav-item:has(.nav-key) .material-symbol
     radial-gradient(circle at 0% 0%, rgba(147, 197, 253, .55), rgba(147, 197, 253, 0) 22%),
     radial-gradient(circle at 100% 100%, rgba(147, 197, 253, .55), rgba(147, 197, 253, 0) 22%);
 }
+
+/* Cabecera estilo NVIDIA RACKS: negro, franjas verdes en los extremos, marca a la izquierda, título al centro, Ingrasys y usuario a la derecha */
+.station-intake-screen.vk-app .station-intake-banner {
+  position: relative;
+  overflow: visible;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  height: auto;
+  min-height: 112px;
+  margin: 0 -20px 0 -29px;
+  padding: 14px 28px;
+  border-radius: 0;
+  background:
+    radial-gradient(circle, rgba(147, 197, 253, .45) 1px, transparent 1.6px) 0 0 / 14px 14px,
+    linear-gradient(115deg, transparent 0 40%, rgba(96, 165, 250, .20) 48%, transparent 58%),
+    linear-gradient(105deg, transparent 0 62%, rgba(147, 197, 253, .16) 70%, transparent 80%),
+    linear-gradient(160deg, #0a1f4d 0%, #0d3a85 50%, #071c44 100%);
+  color: #ffffff;
+}
+.station-intake-screen.vk-app .station-intake-banner::before,
+.station-intake-screen.vk-app .station-intake-banner::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+.station-intake-screen.vk-app .station-intake-banner::before {
+  left: 0;
+  width: 40%;
+  height: auto;
+  background: linear-gradient(115deg, transparent 0 46%, rgba(118, 185, 0, .95) 46% 62%, transparent 62% 65%, rgba(118, 185, 0, .6) 65% 68%, transparent 68%);
+  -webkit-mask-image: linear-gradient(90deg, #000 45%, transparent 100%);
+          mask-image: linear-gradient(90deg, #000 45%, transparent 100%);
+}
+.station-intake-screen.vk-app .station-intake-banner::after {
+  right: 0;
+  width: 42%;
+  height: auto;
+  background: linear-gradient(115deg, transparent 0 40%, rgba(118, 185, 0, .95) 40% 58%, transparent 58% 61%, rgba(118, 185, 0, .6) 61% 64%, transparent 64%);
+  -webkit-mask-image: linear-gradient(270deg, #000 45%, transparent 100%);
+          mask-image: linear-gradient(270deg, #000 45%, transparent 100%);
+}
+.station-intake-screen.vk-app .vk-nvidia-brand,
+.station-intake-screen.vk-app .vk-head-center,
+.station-intake-screen.vk-app .vk-head-end { position: relative; z-index: 1; }
+.station-intake-screen.vk-app .vk-nvidia-brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+/* NVIDIA y RACKS a la misma altura de letra: palabra NVIDIA de 40 px; RACKS a 56 px (mayúscula ≈ 0.71 em). */
+.station-intake-screen.vk-app .vk-nvidia-brand { gap: 12px; }
+.station-intake-screen.vk-app .vk-nvidia-brand .vk-emblem { height: 46px; width: auto; display: block; }
+.station-intake-screen.vk-app .vk-nvidia-brand .vk-wordmark { height: 32px; width: auto; display: block; }
+.station-intake-screen.vk-app .vk-nvidia-brand span { font-size: 45px; font-weight: 800; letter-spacing: .01em; line-height: 1; color: #ffffff; white-space: nowrap; }
+/* Cabecera fluida: los logos y el título escalan con el ancho y no se encimen al reducir la ventana */
+.station-intake-screen.vk-app .station-intake-banner.vk-topbar { gap: clamp(12px, 1.6vw, 24px) !important; }
+.station-intake-screen.vk-app .vk-nvidia-brand { gap: clamp(8px, 0.9vw, 12px) !important; min-width: 0; }
+.station-intake-screen.vk-app .vk-nvidia-brand .vk-emblem { height: clamp(22px, 3vw, 46px) !important; }
+.station-intake-screen.vk-app .vk-nvidia-brand .vk-wordmark { height: clamp(16px, 2.1vw, 32px) !important; }
+.station-intake-screen.vk-app .vk-nvidia-brand span { font-size: clamp(22px, 2.96vw, 45px) !important; white-space: nowrap; }
+.station-intake-screen.vk-app .vk-head-center { min-width: 0; }
+.station-intake-screen.vk-app .vk-head-center h1 {
+  font-size: clamp(18px, 2.3vw, 34px) !important;
+  white-space: normal !important;
+  text-wrap: balance;
+  letter-spacing: .04em !important;
+}
+.station-intake-screen.vk-app .vk-head-end { gap: clamp(10px, 1.6vw, 26px) !important; min-width: 0; }
+@media (min-width: 1400px) { .station-intake-screen.vk-app .vk-head-center h1 { white-space: nowrap !important; } }
+.station-intake-screen.vk-app .vk-ingrasys { height: clamp(30px, 3.2vw, 64px) !important; width: auto; }
+@media (max-width: 900px) {
+  .station-intake-screen.vk-app .station-intake-banner.vk-topbar { grid-template-columns: minmax(0, 1fr) auto !important; }
+  .station-intake-screen.vk-app .vk-head-center { grid-column: 1 / -1; grid-row: 2; justify-items: center; }
+  .station-intake-screen.vk-app .vk-nvidia-brand .vk-emblem { height: 26px !important; }
+  .station-intake-screen.vk-app .vk-nvidia-brand .vk-wordmark { height: 17px !important; }
+  .station-intake-screen.vk-app .vk-nvidia-brand span { font-size: 24px !important; }
+  .station-intake-screen.vk-app .vk-ingrasys { height: 30px !important; }
+  .station-intake-screen.vk-app .vk-head-center h1 { font-size: 22px !important; }
+  .station-intake-screen.vk-app .vk-head-end .station-intake-user { zoom: .85; }
+}
+@media (max-width: 560px) {
+  .station-intake-screen.vk-app .vk-nvidia-brand { gap: 6px !important; }
+  .station-intake-screen.vk-app .vk-nvidia-brand .vk-emblem { height: 20px !important; }
+  .station-intake-screen.vk-app .vk-nvidia-brand .vk-wordmark { height: 13px !important; }
+  .station-intake-screen.vk-app .vk-nvidia-brand span { font-size: 17px !important; }
+  .station-intake-screen.vk-app .vk-ingrasys { height: 22px !important; }
+  .station-intake-screen.vk-app .vk-head-center h1 { font-size: 18px !important; }
+  .station-intake-screen.vk-app .vk-head-end { gap: 8px !important; }
+  .station-intake-screen.vk-app .vk-head-end .station-intake-user { transform: scale(.72); transform-origin: right center; }
+}
+/* Cambio de contraseña: ventana flotante anclada a la fila, sin empujar ni desbordar la pantalla */
+.uh .uh-expand > td { position: relative; height: 0; padding: 0 !important; border: 0 !important; background: transparent !important; }
+.uh .uh-expand .uh-password {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 60;
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid #c9d6e6;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 18px 40px rgba(15, 31, 61, .22);
+  box-sizing: border-box;
+}
+.uh .uh-expand .uh-password .local-password-form { grid-template-columns: 1fr; margin: 0; padding: 0; border: 0; background: transparent; }
+/* Columna de acciones con ancho suficiente para que el estado no se encime con los botones */
+.sop-version-panel .sop-catalog-table .sop-catalog-row,
+.sop-catalog-table .sop-catalog-row:has(.sop-catalog-actions) {
+  grid-template-columns: minmax(200px, 1.6fr) minmax(88px, .7fr) minmax(120px, 1fr) minmax(96px, .75fr) minmax(170px, 1.1fr) minmax(230px, 1.3fr) !important;
+}
+.sop-catalog-status-cell { min-width: 0; }
+.sop-catalog-status-cell .sop-status-chip { max-width: 100%; white-space: normal; line-height: 1.25; }
+/* Botones de acción de las revisiones de SOP: columna ordenada y del mismo ancho en cualquier pantalla */
+.sop-catalog-actions { min-width: 0; width: 100%; justify-self: stretch; }
+.sop-catalog-actions .sop-catalog-action-buttons {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)) !important;
+  gap: 8px !important;
+  width: 100%;
+  justify-content: stretch !important;
+  align-items: stretch !important;
+  flex-wrap: initial !important;
+}
+.sop-catalog-actions--workflow .sop-catalog-action-buttons { grid-template-columns: 1fr !important; }
+.sop-catalog-actions .sop-catalog-action-buttons { max-width: 100% !important; }
+.sop-catalog-actions .text-button {
+  width: 100% !important;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 44px !important;
+  height: auto;
+  justify-content: center;
+  padding: 0 10px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  line-height: 1.2;
+  white-space: normal !important;
+  text-align: center;
+  gap: 6px;
+}
+.sop-catalog-actions .text-button .material-symbols-rounded { font-size: 17px !important; margin: 0 !important; }
+@media (max-width: 760px) {
+  .sop-catalog-actions .sop-catalog-action-buttons { grid-template-columns: 1fr 1fr !important; }
+  .sop-catalog-actions--workflow .sop-catalog-action-buttons { grid-template-columns: 1fr !important; }
+}
+/* Barra de búsqueda y filtros de la actividad */
+.audit-tools { display: grid; grid-template-columns: minmax(200px, 1.6fr) repeat(2, minmax(150px, 1fr)) repeat(2, auto); gap: 10px; align-items: end; margin-bottom: 14px; }
+.audit-tools label, .audit-tools select { min-width: 0; }
+.audit-search { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border: 1px solid #cfd9e5; border-radius: 12px; background: #fff; }
+.audit-search .material-symbols-rounded { color: #5b6f85; font-size: 20px; }
+.audit-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 15px; color: #1d2f42; }
+.audit-tools select, .audit-tools .audit-date input { min-height: 44px; padding: 0 10px; border: 1px solid #cfd9e5; border-radius: 12px; background: #fff; color: #1d2f42; font: inherit; font-size: 14px; }
+.audit-date { display: grid; gap: 4px; font-size: 12px; font-weight: 700; color: #536476; }
+.audit-clear { min-height: 44px; padding: 0 14px; border: 1px solid #cfd9e5; border-radius: 12px; background: #f5f8fc; color: #1d4ed8; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.audit-count { grid-column: 1 / -1; margin: 0; font-size: 13px; font-weight: 700; color: #536476; }
+.audit-empty-filter { margin: 0; padding: 18px; text-align: center; color: #536476; }
+@media (max-width: 900px) { .audit-tools { grid-template-columns: 1fr 1fr; } .audit-search { grid-column: 1 / -1; } }
+/* Tabla de actividad: altura máxima con scroll interno y encabezado fijo */
+.audit-panel .table-scroll {
+  max-height: min(560px, 62vh);
+  overflow: auto;
+  border-radius: 12px;
+}
+.audit-panel .table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #eef4fb;
+}
+/* Cabecera fija: se queda arriba al desplazarse por cualquier parte de la pantalla */
+.station-intake-screen.vk-app .station-intake-banner.vk-topbar {
+  position: sticky !important;
+  top: 0;
+  z-index: 40;
+}
+/* Cabecera de las demás secciones: solo ocupa la altura de la banda, sin el lienzo del registro */
+.app-banner-wrap { display: block !important; min-height: 0 !important; height: auto !important; padding: 0 !important; margin: 0 !important; background: none !important; position: sticky !important; top: 0; z-index: 40; }
+.app-banner-wrap .vk-main { display: block !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; }
+.app-banner-wrap .station-intake-banner { margin: 0 0 16px !important; }
+/* Franjas verdes del diseño de cabecera (solo el color de fondo cambia a azul) */
+.station-intake-screen.vk-app .station-intake-banner::before,
+.station-intake-screen.vk-app .station-intake-banner::after { display: block; }
+/* Chip de usuario abierto/hover dentro de la cabecera: se mantiene oscuro para que el texto blanco se lea */
+.station-intake-screen.vk-app .station-intake-banner .profile-chip:hover,
+.station-intake-screen.vk-app .station-intake-banner .profile-menu[open] .profile-chip {
+  background: rgba(255, 255, 255, .14);
+  border-color: rgba(255, 255, 255, .3);
+}
+.station-intake-screen.vk-app .station-intake-banner .profile-chip strong { color: #ffffff; text-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
+.station-intake-screen.vk-app .station-intake-banner .profile-chip small { color: #ffffff; opacity: 1; }
+/* Menú de perfil dentro de la cabecera oscura: panel claro, texto oscuro y legible */
+.station-intake-screen.vk-app .station-intake-banner .profile-dropdown {
+  z-index: 60;
+  background: #ffffff;
+  color: #0f1f3d;
+  border: 1px solid #d9e1eb;
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(5, 12, 30, .35);
+  min-width: 200px;
+}
+.station-intake-screen.vk-app .station-intake-banner .profile-dropdown-role {
+  display: block;
+  padding: 6px 10px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: #475569;
+}
+.station-intake-screen.vk-app .station-intake-banner .profile-dropdown button {
+  color: #0f1f3d;
+  font-size: 15px;
+  font-weight: 600;
+}
+.station-intake-screen.vk-app .station-intake-banner .profile-dropdown button:hover { background: #eef4ff; }
+.station-intake-screen.vk-app .station-intake-banner .profile-dropdown button .material-symbols-rounded { color: #1d4ed8; }
+@media (min-width: 1600px) {
+  .station-intake-screen.vk-app .vk-nvidia-brand .vk-emblem { height: 60px; }
+  .station-intake-screen.vk-app .vk-nvidia-brand .vk-wordmark { height: 40px; }
+  .station-intake-screen.vk-app .vk-nvidia-brand span { font-size: 56px; }
+  .station-intake-screen.vk-app .vk-ingrasys { height: 84px; }
+}
+.station-intake-screen.vk-app .vk-head-center { text-align: center; display: grid; gap: 6px; justify-items: center; min-width: 0; }
+.station-intake-screen.vk-app .vk-head-center h1 {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #ffffff;
+  max-width: 100%;
+  white-space: nowrap;
+  text-shadow: 0 0 18px rgba(118, 185, 0, .55), 0 2px 0 rgba(0, 0, 0, .35);
+}
+.station-intake-screen.vk-app .vk-head-center h1::after {
+  content: "";
+  display: block;
+  width: 64px;
+  height: 4px;
+  margin: 8px auto 0;
+  border-radius: 999px;
+  background: #76b900;
+  box-shadow: 0 0 10px rgba(118, 185, 0, .7);
+}
+.station-intake-screen.vk-app .vk-head-center p { margin: 0; font-size: 16px; font-weight: 700; color: #cfe0ff; }
+.station-intake-screen.vk-app .vk-head-end { display: flex; align-items: center; justify-content: flex-end; gap: 26px; min-width: 0; }
+.station-intake-screen.vk-app .vk-ingrasys { height: 64px; width: auto; display: block; }
+@media (max-width: 1280px) {
+  .station-intake-screen.vk-app .vk-nvidia-brand .vk-emblem { height: 38px; }
+  .station-intake-screen.vk-app .vk-nvidia-brand .vk-wordmark { height: 26px; }
+  .station-intake-screen.vk-app .vk-nvidia-brand span { font-size: 37px; }
+  .station-intake-screen.vk-app .vk-ingrasys { height: 56px; }
+  .station-intake-screen.vk-app .vk-head-center h1 { font-size: 34px; }
+}
+@media (max-width: 1100px) {
+  .station-intake-screen.vk-app .vk-nvidia-brand .vk-emblem { height: 30px; }
+  .station-intake-screen.vk-app .vk-nvidia-brand .vk-wordmark { height: 21px; }
+  .station-intake-screen.vk-app .vk-nvidia-brand span { font-size: 29px; }
+  .station-intake-screen.vk-app .vk-ingrasys { height: 46px; }
+  .station-intake-screen.vk-app .vk-head-center h1 { font-size: 26px; }
+}
+@media (max-width: 760px) {
+  .station-intake-screen.vk-app .station-intake-banner { grid-template-columns: minmax(0, 1fr) auto; }
+  .station-intake-screen.vk-app .vk-head-center { grid-column: 1 / -1; grid-row: 2; }
+  .station-intake-screen.vk-app .vk-nvidia-brand .vk-emblem { height: 24px; }
+  .station-intake-screen.vk-app .vk-nvidia-brand .vk-wordmark { height: 17px; }
+  .station-intake-screen.vk-app .vk-nvidia-brand span { font-size: 24px; }
+  .station-intake-screen.vk-app .vk-ingrasys { height: 36px; }
+  .station-intake-screen.vk-app .vk-head-center h1 { font-size: 22px; }
+}
+
+/* Hoja de ejecución: datos de SOP/nodo/tarjeta resaltados, nota de seguridad más compacta y paso actual en azul */
+.sop-run-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+.sop-run-meta > * {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #e8f0ff;
+  border: 1px solid #bfd3f5;
+  color: #0f2a66;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .01em;
+}
+.sop-run-meta .material-symbols-rounded { font-size: 17px; color: #1d4fd1; }
+.sop-safety-note {
+  padding: 10px 14px !important;
+  gap: 10px !important;
+  border-left: 4px solid #d97706 !important;
+  background: #fff7ed !important;
+  align-items: center;
+}
+.sop-safety-note .sop-safety-icon { font-size: 22px !important; color: #b45309 !important; }
+.sop-safety-note strong { font-size: 13px !important; font-weight: 900; color: #7c2d12; text-transform: uppercase; letter-spacing: .04em; }
+.sop-safety-note p { margin: 2px 0 0 !important; font-size: 13px !important; line-height: 1.35 !important; color: #7c2d12; }
+.sop-execution-panel .guided-check-item:has(.guided-check-status--current) {
+  background: linear-gradient(100deg, #1d4fd1 0%, #2563eb 100%) !important;
+  border: 2px solid #1e40af !important;
+  box-shadow: 0 10px 22px rgba(29, 79, 209, .35) !important;
+}
+.sop-execution-panel .guided-check-item:has(.guided-check-status--current) .guided-check-index { background: #ffffff !important; color: #1d4fd1 !important; }
+.sop-execution-panel .guided-check-item:has(.guided-check-status--current) .guided-check-copy strong,
+.sop-execution-panel .guided-check-item:has(.guided-check-status--current) .guided-check-copy span { color: #ffffff !important; }
+.sop-execution-panel .guided-check-item:has(.guided-check-status--current) .guided-check-status { background: #ffffff !important; color: #1d4fd1 !important; }
+.sop-execution-panel .guided-check-item:has(.guided-check-status--current) > input[type="checkbox"] { accent-color: #ffffff; }
+
+/* Botones de la hoja de ejecución en estilo Material Design 3: píldora, elevación y estados tonales */
+.button.sop-action-prev,
+.button.sop-action-return,
+.button.sop-action-handoff,
+.button.sop-action-confirm,
+.button.sop-action-next {
+  min-height: 44px !important;
+  padding: 0 22px !important;
+  border-radius: 999px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: .01em;
+  border: 0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .18), 0 2px 6px rgba(15, 31, 61, .14) !important;
+  transition: box-shadow .18s ease, transform .12s ease, background-color .18s ease;
+  gap: 8px;
+}
+.button.sop-action-prev:hover:not(:disabled),
+.button.sop-action-return:hover:not(:disabled),
+.button.sop-action-handoff:hover:not(:disabled),
+.button.sop-action-confirm:hover:not(:disabled),
+.button.sop-action-next:hover:not(:disabled) {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, .2), 0 6px 14px rgba(15, 31, 61, .2) !important;
+}
+.button.sop-action-prev:active:not(:disabled),
+.button.sop-action-return:active:not(:disabled),
+.button.sop-action-handoff:active:not(:disabled),
+.button.sop-action-confirm:active:not(:disabled),
+.button.sop-action-next:active:not(:disabled) { transform: scale(.98); }
+/* Confirmar paso: primario lleno */
+.button.sop-action-confirm { background: #16a34a !important; color: #ffffff !important; }
+.button.sop-action-confirm:hover:not(:disabled) { background: #15803d !important; }
+/* Siguiente: primario azul lleno */
+.button.sop-action-next { background: #1d4ed8 !important; color: #ffffff !important; }
+.button.sop-action-next:hover:not(:disabled) { background: #1e40af !important; }
+/* Regresar y cambiar operador: tonales */
+.button.sop-action-return { background: #dbe8ff !important; color: #0b2a6b !important; }
+.button.sop-action-handoff { background: #ffedd5 !important; color: #7c2d12 !important; }
+/* Anterior: contorno */
+.button.sop-action-prev { background: #ffffff !important; color: #1e3a8a !important; box-shadow: inset 0 0 0 1.5px #9db4dc !important; }
+.button.sop-action-prev:hover:not(:disabled) { background: #f0f5ff !important; }
+.button.sop-action-prev:disabled, .button.sop-action-next:disabled, .button.sop-action-confirm:disabled { box-shadow: none !important; }
+.button.sop-action-confirm:disabled { background: #cbd5e1 !important; color: #64748b !important; }
+.button.sop-action-next:disabled { background: #e2e8f0 !important; color: #94a3b8 !important; }
+
+/* Hoja de ejecución: se retira la fila de Procedimiento y Nota de seguridad para que la hoja de la SOP ocupe más espacio */
+.sop-info-row:has(> .sop-summary-card) { display: none !important; }
+
+/* Banda de instrucción sobre la hoja (estilo VKS) */
+.guided-sop-page { position: relative; }
+.vks-step-banner {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(10, 12, 18, .92);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .25);
+}
+.vks-step-banner .vks-step-counter { flex: none; padding: 4px 10px; border-radius: 6px; background: #ffffff; color: #0b1220; font-size: 13px; font-weight: 900; }
+.vks-step-banner p { margin: 0; color: #facc15; font-size: 15px; font-weight: 700; line-height: 1.35; }
+
+/* Métricas del trabajo (estilo VKS): tarjetas con cifras reales */
+.vks-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 12px; }
+.vks-metric { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px 12px; border: 1px solid #d5e0ee; border-radius: 12px; background: #ffffff; box-shadow: 0 4px 12px rgba(15, 31, 61, .06); }
+.vks-metric > .material-symbols-rounded { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: #e8f0ff; color: #1d4ed8; font-size: 20px; }
+.vks-metric > span:last-child { display: grid; min-width: 0; }
+.vks-metric small { color: #536476; font-size: 12px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vks-metric strong { color: #0f1f3d; font-size: 22px; font-weight: 900; line-height: 1.1; }
+@media (max-width: 900px) { .vks-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Las métricas ocupan la fila completa encima de la hoja y la lista de pasos, sin estirarse */
+.sop-execution-panel > .vks-metrics,
+.procedure-panel > .vks-metrics { grid-column: 1 / -1; align-self: start; }
+.vks-metric { align-self: start; height: auto; }
+.guided-page-layout > .vks-metrics { grid-column: 1 / -1 !important; grid-row: 1; }
+.guided-page-layout > .vks-metrics .vks-metric small { white-space: normal; }

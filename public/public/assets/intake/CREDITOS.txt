@@ -1,0 +1,4 @@
+foto-manufactura-hd.jpg: Worker uses machinery to assemble parts in a factory setting.jpg — Shixart1985 — CC BY 2.0 — https://commons.wikimedia.org/wiki/File:Worker_uses_machinery_to_assemble_parts_in_a_factory_setting.jpg
+foto-retrabajo-hd.jpg: Technician with laptop working on server rack at NERSC.jpg — Derrick Coetzee from Berkeley, CA, USA — CC0 — https://commons.wikimedia.org/wiki/File:Technician_with_laptop_working_on_server_rack_at_NERSC.jpg
+foto-manufactura-captura.jpg / foto-retrabajo-captura.jpg: recortes de la captura de pantalla proporcionada por el usuario (sin licencia externa).
+foto-manufactura-usuario.jpg / foto-retrabajo-usuario.jpg: imágenes proporcionadas por el usuario.

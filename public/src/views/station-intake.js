@@ -96,16 +96,15 @@ function renderStationIntake(state) {
       : '<span class="station-choice-status station-choice-status--disabled">Sin SOP habilitadas por Administración</span>';
 
   return `<div class="station-intake-screen vk-app" aria-labelledby="station-intake-title"><div class="vk-main">
-    <section class="station-intake-banner" aria-label="Registrar validación">
-      <div class="vk-head-brand">
-        <a class="station-intake-banner-brand" href="#top" aria-label="Ingrasys">
-          <img src="./public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" />
-        </a>
-        <span class="vk-head-divider" aria-hidden="true"></span>
-        <span class="vk-head-icon material-symbols-rounded" aria-hidden="true">fact_check</span>
-        <h1 id="station-intake-title">Registrar validación</h1>
+    <section class="station-intake-banner" aria-label="Cabecera">
+      <div class="vk-nvidia-brand"><img class="vk-emblem" src="./public/assets/intake/nvidia-emblem.png" alt="" aria-hidden="true" /><img class="vk-wordmark" src="./public/assets/intake/nvidia-wordmark.png" alt="NVIDIA" /><span>RACKS</span></div>
+      <div class="vk-head-center">
+        <h1 id="station-intake-title">SOPs / SIPs</h1>
       </div>
-      <div class="station-intake-user">${renderProfileMenu(getActiveLocalUser())}</div>
+      <div class="vk-head-end">
+        <img class="vk-ingrasys" src="./public/assets/ingrasys-logo-transparent.png" alt="Ingrasys" />
+        <div class="station-intake-user">${renderProfileMenu(getActiveLocalUser())}</div>
+      </div>
     </section>
     ${canAccessSopAdmin() && getActiveLocalUser()?.role !== "admin" ? '<div class="station-intake-review-entry"><button class="button button--outlined" type="button" data-action="open-sop-admin-from-intake"><span class="material-symbols-rounded" aria-hidden="true">rate_review</span>Revisar o publicar SOP</button></div>' : ""}
     <nav class="operator-flow-progress" aria-label="Progreso del registro">
@@ -119,18 +118,18 @@ function renderStationIntake(state) {
         <fieldset class="station-choice-grid"><legend class="sr-only">Tipo de estación</legend>
           <label class="station-choice station-choice--mfg ${isMfg ? "station-choice--selected" : ""} ${enabledMfgAssignments.length ? "" : "station-choice--disabled"}">
             <input type="radio" name="stationAssignmentType" data-station-type data-focus-key="station-MFG" value="MFG" ${isMfg ? "checked" : ""} ${enabledMfgAssignments.length ? "" : "disabled"} />
-            <span class="vk-card-photo"><img src="./public/assets/intake/foto-manufactura.jpg" alt="" /></span>
+            <span class="vk-card-photo"><img src="./public/assets/intake/foto-manufactura-usuario.jpg" alt="" /></span>
             <span class="vk-card-body">
-            <span class="station-choice-radio" aria-hidden="true"></span><span class="station-code station-code--mfg vk-code-icon"><img src="./public/assets/intake/icono-manufactura.png" alt="" /><span class="sr-only">MFG</span></span><span class="station-choice-copy"><strong>Manufactura</strong><small>Estación de proceso en línea de producción.</small></span>
+            <span class="station-choice-radio" aria-hidden="true"></span><span class="station-code station-code--mfg vk-code-icon"><span class="material-symbols-rounded vk-icon-mat" aria-hidden="true">factory</span><span class="sr-only">MFG</span></span><span class="station-choice-copy"><strong>Manufactura</strong><small>Estación de proceso en línea de producción.</small></span>
             ${renderStationPills(enabledMfgAssignments, mfgSelected ? assignment : null, "Estaciones de manufactura")}
             ${mfgSelected || !enabledMfgAssignments.length ? mfgStatus : stationHint}
             </span>
           </label>
           <label class="station-choice station-choice--rwk ${selectedType === "RWK" ? "station-choice--selected" : ""} ${enabledRwkAssignments.length ? "" : "station-choice--disabled"}">
             <input type="radio" name="stationAssignmentType" data-station-type data-focus-key="station-RWK" value="RWK" ${selectedType === "RWK" ? "checked" : ""} ${enabledRwkAssignments.length ? "" : "disabled"} />
-            <span class="vk-card-photo"><img src="./public/assets/intake/foto-retrabajo.jpg" alt="" /></span>
+            <span class="vk-card-photo"><img src="./public/assets/intake/foto-retrabajo-usuario.jpg" alt="" /></span>
             <span class="vk-card-body">
-            <span class="station-choice-radio" aria-hidden="true"></span><span class="station-code station-code--rwk vk-code-icon"><img src="./public/assets/intake/icono-retrabajo.png" alt="" /><span class="sr-only">RWK</span></span><span class="station-choice-copy"><strong>Retrabajo</strong><small>Desensamble, retrabajo o reparación del equipo.</small></span>
+            <span class="station-choice-radio" aria-hidden="true"></span><span class="station-code station-code--rwk vk-code-icon"><span class="material-symbols-rounded vk-icon-mat" aria-hidden="true">build</span><span class="sr-only">RWK</span></span><span class="station-choice-copy"><strong>Retrabajo</strong><small>Desensamble, retrabajo o reparación del equipo.</small></span>
             ${rwkStationControl}
             ${rwkSelected || !enabledRwkAssignments.length ? rwkStatus : stationHint}
             </span>
