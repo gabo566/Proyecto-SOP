@@ -442,10 +442,64 @@ function renderLocalAuditTable() {
     demo_user_deactivated: "Desactivó usuario de demostración",
   };
   if (!events.length) return '<p class="audit-empty">Aún no hay acciones. Al marcar un paso o guardar un trabajo, aparecerá aquí el usuario que realizó la acción.</p>';
-  return `<div class="table-scroll"><table><thead><tr><th>Fecha y hora</th><th>Acción</th><th>Usuario</th><th>Referencia</th></tr></thead><tbody>${events.map((event) => {
+  const actionKeys = [...new Set(events.map((event) => event.action))];
+  const actorNames = [...new Set(events.map((event) => event.actor?.name ?? "Usuario"))].sort((a, b) => a.localeCompare(b, "es-MX"));
+  const rows = events.map((event) => {
     const date = new Date(event.at);
-    const stamp = Number.isNaN(date.valueOf()) ? "" : new Intl.DateTimeFormat("es-MX", { dateStyle: "short", timeStyle: "short" }).format(date);
+    const valid = !Number.isNaN(date.valueOf());
+    const stamp = valid ? new Intl.DateTimeFormat("es-MX", { dateStyle: "short", timeStyle: "short" }).format(date) : "";
+    const day = valid ? date.toLocaleDateString("sv-SE") : "";
+    const actor = event.actor?.name ?? "Usuario";
+    const actionText = actionLabels[event.action] ?? event.action;
     const reference = [event.serial && `Serial ${event.serial}`, event.procedureTitle, event.step && `Paso ${event.step}`, event.targetUserName].filter(Boolean).join(" · ");
-    return `<tr><td>${escapeHtml(stamp)}</td><td>${escapeHtml(actionLabels[event.action] ?? event.action)}</td><td><strong>${escapeHtml(event.actor?.name ?? "Usuario")}</strong><small>${escapeHtml(LOCAL_USER_ROLES[event.actor?.role] ?? "")}${event.actor?.employeeNumber ? ` · ${escapeHtml(event.actor.employeeNumber)}` : ""}</small></td><td>${escapeHtml(reference || event.details || "—")}</td></tr>`;
-  }).join("")}</tbody></table></div>`;
+    const searchText = [stamp, actionText, actor, LOCAL_USER_ROLES[event.actor?.role] ?? "", event.actor?.employeeNumber ?? "", reference, event.details ?? ""].join(" ").toLocaleLowerCase("es-MX");
+    return `<tr data-audit-row data-action-key="${escapeHtml(event.action)}" data-actor="${escapeHtml(actor)}" data-day="${escapeHtml(day)}" data-search="${escapeHtml(searchText)}"><td>${escapeHtml(stamp)}</td><td>${escapeHtml(actionText)}</td><td><strong>${escapeHtml(actor)}</strong><small>${escapeHtml(LOCAL_USER_ROLES[event.actor?.role] ?? "")}${event.actor?.employeeNumber ? ` · ${escapeHtml(event.actor.employeeNumber)}` : ""}</small></td><td>${escapeHtml(reference || event.details || "—")}</td></tr>`;
+  }).join("");
+  return `<div class="audit-tools" role="search">
+    <label class="audit-search"><span class="material-symbols-rounded" aria-hidden="true">search</span><input type="search" data-audit-search placeholder="Buscar por usuario, acción, serial o SOP" aria-label="Buscar en la actividad" autocomplete="off" /></label>
+    <select data-audit-action aria-label="Filtrar por acción"><option value="">Todas las acciones</option>${actionKeys.map((key) => `<option value="${escapeHtml(key)}">${escapeHtml(actionLabels[key] ?? key)}</option>`).join("")}</select>
+    <select data-audit-actor aria-label="Filtrar por usuario"><option value="">Todos los usuarios</option>${actorNames.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")}</select>
+    <label class="audit-date">Desde<input type="date" data-audit-from aria-label="Desde la fecha" /></label>
+    <label class="audit-date">Hasta<input type="date" data-audit-to aria-label="Hasta la fecha" /></label>
+    <button type="button" class="audit-clear" data-audit-clear>Limpiar filtros</button>
+    <p class="audit-count" data-audit-count aria-live="polite">Mostrando ${events.length} de ${events.length}</p>
+  </div>
+  <div class="table-scroll"><table><thead><tr><th>Fecha y hora</th><th>Acción</th><th>Usuario</th><th>Referencia</th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="audit-empty-filter" data-audit-empty hidden>Ningún evento coincide con los filtros.</p></div>`;
 }
+
+// Filtros de la actividad: se aplican en el navegador sin volver a dibujar la pantalla (no se pierde lo que se escribe).
+function applyAuditFilters() {
+  const panel = document.querySelector("#audit-panel");
+  if (!panel) return;
+  const search = panel.querySelector("[data-audit-search]")?.value.trim().toLocaleLowerCase("es-MX") ?? "";
+  const action = panel.querySelector("[data-audit-action]")?.value ?? "";
+  const actor = panel.querySelector("[data-audit-actor]")?.value ?? "";
+  const from = panel.querySelector("[data-audit-from]")?.value ?? "";
+  const to = panel.querySelector("[data-audit-to]")?.value ?? "";
+  let shown = 0;
+  const rows = panel.querySelectorAll("[data-audit-row]");
+  rows.forEach((row) => {
+    const visible = (!search || row.dataset.search.includes(search))
+      && (!action || row.dataset.actionKey === action)
+      && (!actor || row.dataset.actor === actor)
+      && (!from || row.dataset.day >= from)
+      && (!to || row.dataset.day <= to);
+    row.hidden = !visible;
+    if (visible) shown += 1;
+  });
+  const count = panel.querySelector("[data-audit-count]");
+  if (count) count.textContent = `Mostrando ${shown} de ${rows.length}`;
+  const empty = panel.querySelector("[data-audit-empty]");
+  if (empty) empty.hidden = shown > 0;
+}
+
+document.addEventListener("input", (event) => { if (event.target.closest?.("#audit-panel")) applyAuditFilters(); });
+document.addEventListener("change", (event) => { if (event.target.closest?.("#audit-panel")) applyAuditFilters(); });
+document.addEventListener("click", (event) => {
+  const clear = event.target.closest?.("[data-audit-clear]");
+  if (!clear) return;
+  const panel = clear.closest("#audit-panel");
+  panel?.querySelectorAll(".audit-tools input, .audit-tools select").forEach((field) => { field.value = ""; });
+  applyAuditFilters();
+});
